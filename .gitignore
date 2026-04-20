@@ -1,0 +1,37 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.*
+
+# Next.js
+/.next/
+/out/
+/build
+
+# Testing
+/coverage
+/test-results
+/playwright-report
+/playwright/.cache
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Dev PocketBase (dev-pb.js downloads binary + data here)
+/.pb/
+
+# Host-side data volume (runtime)
+/data/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# Misc
+*.log
