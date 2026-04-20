@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-05-PLAN.md
-last_updated: "2026-04-20T21:57:08.666Z"
+stopped_at: Completed 01-06-PLAN.md
+last_updated: "2026-04-20T22:02:59.832Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 ## Current Position
 
 Phase: 1 (Scaffold & Infrastructure) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-04-20
 
-Progress: [███████░░░] 71%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [███████░░░] 71%
 | Phase 01 P01-03 | 1min | 1 tasks | 12 files |
 | Phase 01 P04 | 1min | 1 tasks | 1 files |
 | Phase 01 P01-05 | 3min | 2 tasks | 3 files |
+| Phase 01 P01-06 | 2min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,10 @@ Recent decisions affecting current work:
 - 01-05: pull_policy: if_not_present (Docker normalizes to 'missing') -- predictable local behavior
 - 01-05: added pocketbase/pb_migrations/.gitkeep (Rule 3) to preserve committed-empty-dir contract git cannot track empty dirs
 - 01-05: dev-pb.js runs as .js without type:module -- verified working on Node 22.22.0 via smoke test (downloaded PB, served :8090, /api/health 200)
+- 01-06: arm64 cross-build on every PR via --output type=image,push=false (buildx cannot --load multi-platform)
+- 01-06: strict permissions split — ci.yml contents:read only, release.yml sole packages:write (PR cannot publish to GHCR)
+- 01-06: actions pinned to major versions (@v4/@v5/@v6/@v7); SHA pinning + cosign deferred to phase 7
+- 01-06: D-10 branch protection + GHCR visibility + Actions write permissions are user_setup (no gh CLI on host)
 
 ### Pending Todos
 
@@ -102,8 +107,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T21:57:08.650Z
-Stopped at: Completed 01-05-PLAN.md
+Last session: 2026-04-20T22:02:59.815Z
+Stopped at: Completed 01-06-PLAN.md
 Resume file: None
 
 **Planned Phase:** 1 (Scaffold & Infrastructure) — 7 plans — 2026-04-20T21:05:59.551Z
