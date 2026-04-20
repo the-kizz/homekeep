@@ -1,0 +1,20 @@
+services:
+  homekeep:
+    image: ghcr.io/${GHCR_OWNER:-owner}/homekeep:${TAG:-latest}
+    container_name: homekeep
+    restart: unless-stopped
+    pull_policy: if_not_present
+    ports:
+      - "${HOST_PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - TZ=${TZ:-Etc/UTC}
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
