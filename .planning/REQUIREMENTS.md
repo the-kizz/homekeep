@@ -1,0 +1,175 @@
+# Requirements: HomeKeep
+
+**Defined:** 2026-04-20
+**Core Value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
+
+## v1 Requirements
+
+### Authentication
+
+- [ ] **AUTH-01**: User can sign up with email and password
+- [ ] **AUTH-02**: User can log in and session persists across browser refresh
+- [ ] **AUTH-03**: User can log out from any page
+- [ ] **AUTH-04**: User can reset password via email link (PocketBase built-in)
+
+### Homes
+
+- [ ] **HOME-01**: User can create a home with name and optional address
+- [ ] **HOME-02**: User can have multiple homes
+- [ ] **HOME-03**: User lands on last-viewed home by default after login
+- [ ] **HOME-04**: User can switch between homes via nav
+- [ ] **HOME-05**: User can share a home via shareable invite link
+- [ ] **HOME-06**: Invited user can accept invite and join a home
+- [ ] **HOME-07**: Home owner can manage members (view, remove)
+
+### Areas
+
+- [ ] **AREA-01**: User can create areas within a home (location or whole_home scope)
+- [ ] **AREA-02**: Each home auto-creates one "Whole Home" area that cannot be deleted
+- [ ] **AREA-03**: User can set a default assignee per area
+- [ ] **AREA-04**: Areas have name, icon, color, sort order
+- [ ] **AREA-05**: User can edit and reorder areas
+
+### Tasks
+
+- [ ] **TASK-01**: User can create a task with name, frequency (days), area, optional notes
+- [ ] **TASK-02**: User can assign a task to a specific member (overrides area default)
+- [ ] **TASK-03**: Cascading assignment resolves: task assignee → area default → "Anyone"
+- [ ] **TASK-04**: UI shows effective assignee with icon distinguishing inherited vs overridden
+- [ ] **TASK-05**: User can set schedule mode per task (cycle or anchored, default: cycle)
+- [ ] **TASK-06**: User can add custom tasks beyond seed library
+- [ ] **TASK-07**: User can edit and archive tasks
+- [ ] **TASK-08**: Next due date is computed, never stored (cycle: last_completion + frequency; anchored: next in fixed series)
+
+### Completions
+
+- [ ] **COMP-01**: User can complete a task with one tap (records who, when)
+- [ ] **COMP-02**: Early-completion guard prompts when <25% of cycle elapsed since last completion
+- [ ] **COMP-03**: Completions are append-only history (never deleted)
+
+### Main View (Three-Band)
+
+- [ ] **VIEW-01**: Default screen shows three bands: Overdue (top), This Week (middle), Horizon (bottom)
+- [ ] **VIEW-02**: Overdue band only appears when tasks are actually overdue, sorted by days overdue
+- [ ] **VIEW-03**: This Week band shows 7-day window, grouped by day if >5 items
+- [ ] **VIEW-04**: Horizon band shows 12-month calendar strip with task dots/pills per month
+- [ ] **VIEW-05**: Coverage ring at top shows % of annual maintenance on track (equal-weight, frequency-normalized)
+- [ ] **VIEW-06**: Tapping a task allows completion or viewing details
+
+### By Area View
+
+- [ ] **AREA-V-01**: Card per area showing name, icon, coverage %, overdue/due/upcoming counts
+- [ ] **AREA-V-02**: "Whole Home" card pinned to top
+- [ ] **AREA-V-03**: Tapping an area card shows all its tasks
+
+### Person View
+
+- [ ] **PERS-01**: Shows tasks effectively assigned to the current user (via cascade)
+- [ ] **PERS-02**: Shows user's completion history
+- [ ] **PERS-03**: Shows personal streak and contribution to household stats
+- [ ] **PERS-04**: Shows notification preferences (editable)
+
+### History View
+
+- [ ] **HIST-01**: Timeline of recent completions across the household
+- [ ] **HIST-02**: Filterable by person, area, time range
+- [ ] **HIST-03**: Shows who completed what and when
+
+### Onboarding
+
+- [ ] **ONBD-01**: First-run wizard offers seed task library with suggested frequencies and areas
+- [ ] **ONBD-02**: User can accept/reject individual seed tasks
+- [ ] **ONBD-03**: User can customize frequency and area assignment of seed tasks
+- [ ] **ONBD-04**: Seed library covers Kitchen, Bathroom, Living areas, Yards, and Whole Home
+
+### Notifications
+
+- [ ] **NOTF-01**: Each user can configure a personal ntfy topic
+- [ ] **NOTF-02**: Default ntfy server is ntfy.sh, configurable via NTFY_URL env var
+- [ ] **NOTF-03**: Notification fires when a task becomes overdue (once, not repeatedly)
+- [ ] **NOTF-04**: Notification fires when a task is assigned to you specifically
+- [ ] **NOTF-05**: Optional notification when partner completes a task (off by default)
+- [ ] **NOTF-06**: Optional weekly summary on Sunday (opt-in)
+- [ ] **NOTF-07**: In-app scheduler (node-cron) runs hourly for overdue detection
+
+### Gamification
+
+- [ ] **GAME-01**: Household streak — consecutive weeks with at least one completion
+- [ ] **GAME-02**: Per-area coverage percentages displayed
+- [ ] **GAME-03**: Weekly summary: "Together you did X tasks. The house is Y% maintained."
+- [ ] **GAME-04**: Small celebration animation when area first hits 100% coverage
+- [ ] **GAME-05**: "Most neglected" card — the most overdue task, gentle nudge
+
+### Infrastructure
+
+- [ ] **INFR-01**: Single Docker image with Next.js + PocketBase (supervisord or similar)
+- [ ] **INFR-02**: Multi-arch image: linux/amd64 + linux/arm64
+- [ ] **INFR-03**: Final image under 300MB
+- [ ] **INFR-04**: Single `./data` volume for all persistence (PB DB + uploads)
+- [ ] **INFR-05**: `/api/health` endpoint for Docker / Uptime Kuma
+- [ ] **INFR-06**: Three compose variants: LAN-only (default), Caddy (public domain), Tailscale (private HTTPS)
+- [ ] **INFR-07**: App detects insecure context and informs user what's unavailable
+- [ ] **INFR-08**: PWA manifest + service worker in HTTPS modes
+- [ ] **INFR-09**: GitHub Actions CI/CD: lint, test on PR; multi-arch build → GHCR on tag
+- [ ] **INFR-10**: Env-driven config — no hardcoded URLs, paths, or secrets
+- [ ] **INFR-11**: `.env.example` with structure, real `.env` git-ignored
+- [ ] **INFR-12**: MIT license, public GitHub repo
+
+## v2 Requirements (v1.1)
+
+### Area Groups
+
+- **AGRP-01**: User can create area groups (Inside / Outside / Outbuildings) for homes with 6+ areas
+- **AGRP-02**: Groups only appear when needed; small homes see flat area list
+
+### Task Rotation
+
+- **TROT-01**: Per-task toggle that round-robins between members on completion
+
+### Public API
+
+- **API-01**: Documented REST API at `/api/v1/*` with stable contracts
+- **API-02**: Webhooks (task.overdue, task.completed, area.full_coverage)
+
+### Additional
+
+- **V2-01**: Year-in-review dashboard (December summary)
+- **V2-02**: Photo attachment on completion (proof / before-after)
+- **V2-03**: Task categories as cross-cutting tags (cleaning, maintenance, seasonal)
+- **V2-04**: Export data as JSON
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Calendar integration (iCal, Google Cal) | Different problem space — maintenance isn't calendar-shaped |
+| Shopping lists / inventory | Not home maintenance |
+| Bill tracking / finance | Not home maintenance |
+| Vendor/contractor contacts | Adds complexity without core value |
+| Multi-tenant SaaS | Self-hosted first, always |
+| Enterprise SSO (OIDC/SAML) | Not the target user |
+| i18n (v1) | English only; strings extractable for later |
+| Offline-first write sync | Reads cached, writes require connection |
+| Real-time presence/cursors | Overkill for household app |
+| Kids/chores mode | Post-1.1 — different mental model from adult maintenance |
+| Points, XP, levels, leaderboards | Against cooperative design principle |
+| Daily streak pressure | Weekly is humane, daily is toxic |
+| SMTP email delivery | v1 uses link-only invites; no SMTP dependency |
+| Native mobile apps | PWA is sufficient for v1 |
+
+## Traceability
+
+Updated during roadmap creation.
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| — | — | — |
+
+**Coverage:**
+- v1 requirements: 55 total
+- Mapped to phases: 0
+- Unmapped: 55
+
+---
+*Requirements defined: 2026-04-20*
+*Last updated: 2026-04-20 after initial definition*
