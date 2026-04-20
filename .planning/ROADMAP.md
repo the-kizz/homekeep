@@ -12,7 +12,7 @@ HomeKeep delivers a self-hosted household maintenance PWA in 7 phases, starting 
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Scaffold & Infrastructure** - Docker container with Next.js + PocketBase running, dev environment, compose files, health endpoint
+- [x] **Phase 1: Scaffold & Infrastructure** - Docker container with Next.js + PocketBase running, dev environment, compose files, health endpoint (completed 2026-04-20)
 - [ ] **Phase 2: Auth & Core Data** - Single user can sign up, create homes/areas/tasks, and manage their data
 - [ ] **Phase 3: Core Loop** - Three-band main view with task completion, coverage ring, and early-completion guard
 - [ ] **Phase 4: Collaboration** - Share homes via invite links, manage members, cascading task assignment
@@ -151,7 +151,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold & Infrastructure | 5/7 | In progress | - |
+| 1. Scaffold & Infrastructure | 7/7 | Complete    | 2026-04-20 |
 | 2. Auth & Core Data | 0/3 | Not started | - |
 | 3. Core Loop | 0/3 | Not started | - |
 | 4. Collaboration | 0/2 | Not started | - |
