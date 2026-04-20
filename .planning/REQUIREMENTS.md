@@ -159,17 +159,85 @@
 
 ## Traceability
 
-Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| — | — | — |
+| AUTH-01 | Phase 2 | Pending |
+| AUTH-02 | Phase 2 | Pending |
+| AUTH-03 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Pending |
+| HOME-01 | Phase 2 | Pending |
+| HOME-02 | Phase 2 | Pending |
+| HOME-03 | Phase 2 | Pending |
+| HOME-04 | Phase 2 | Pending |
+| HOME-05 | Phase 4 | Pending |
+| HOME-06 | Phase 4 | Pending |
+| HOME-07 | Phase 4 | Pending |
+| AREA-01 | Phase 2 | Pending |
+| AREA-02 | Phase 2 | Pending |
+| AREA-03 | Phase 2 | Pending |
+| AREA-04 | Phase 2 | Pending |
+| AREA-05 | Phase 2 | Pending |
+| TASK-01 | Phase 2 | Pending |
+| TASK-02 | Phase 4 | Pending |
+| TASK-03 | Phase 4 | Pending |
+| TASK-04 | Phase 4 | Pending |
+| TASK-05 | Phase 2 | Pending |
+| TASK-06 | Phase 2 | Pending |
+| TASK-07 | Phase 2 | Pending |
+| TASK-08 | Phase 2 | Pending |
+| COMP-01 | Phase 3 | Pending |
+| COMP-02 | Phase 3 | Pending |
+| COMP-03 | Phase 3 | Pending |
+| VIEW-01 | Phase 3 | Pending |
+| VIEW-02 | Phase 3 | Pending |
+| VIEW-03 | Phase 3 | Pending |
+| VIEW-04 | Phase 3 | Pending |
+| VIEW-05 | Phase 3 | Pending |
+| VIEW-06 | Phase 3 | Pending |
+| AREA-V-01 | Phase 5 | Pending |
+| AREA-V-02 | Phase 5 | Pending |
+| AREA-V-03 | Phase 5 | Pending |
+| PERS-01 | Phase 5 | Pending |
+| PERS-02 | Phase 5 | Pending |
+| PERS-03 | Phase 5 | Pending |
+| PERS-04 | Phase 5 | Pending |
+| HIST-01 | Phase 5 | Pending |
+| HIST-02 | Phase 5 | Pending |
+| HIST-03 | Phase 5 | Pending |
+| ONBD-01 | Phase 5 | Pending |
+| ONBD-02 | Phase 5 | Pending |
+| ONBD-03 | Phase 5 | Pending |
+| ONBD-04 | Phase 5 | Pending |
+| NOTF-01 | Phase 6 | Pending |
+| NOTF-02 | Phase 6 | Pending |
+| NOTF-03 | Phase 6 | Pending |
+| NOTF-04 | Phase 6 | Pending |
+| NOTF-05 | Phase 6 | Pending |
+| NOTF-06 | Phase 6 | Pending |
+| NOTF-07 | Phase 6 | Pending |
+| GAME-01 | Phase 6 | Pending |
+| GAME-02 | Phase 6 | Pending |
+| GAME-03 | Phase 6 | Pending |
+| GAME-04 | Phase 6 | Pending |
+| GAME-05 | Phase 6 | Pending |
+| INFR-01 | Phase 1 | Pending |
+| INFR-02 | Phase 1 | Pending |
+| INFR-03 | Phase 1 | Pending |
+| INFR-04 | Phase 1 | Pending |
+| INFR-05 | Phase 1 | Pending |
+| INFR-06 | Phase 1 | Pending |
+| INFR-07 | Phase 7 | Pending |
+| INFR-08 | Phase 7 | Pending |
+| INFR-09 | Phase 7 | Pending |
+| INFR-10 | Phase 1 | Pending |
+| INFR-11 | Phase 1 | Pending |
+| INFR-12 | Phase 1 | Pending |
 
 **Coverage:**
-- v1 requirements: 55 total
-- Mapped to phases: 0
-- Unmapped: 55
+- v1 requirements: 71 total
+- Mapped to phases: 71
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-20*
-*Last updated: 2026-04-20 after initial definition*
+*Last updated: 2026-04-20 after roadmap creation*
