@@ -1137,30 +1137,30 @@ echo "OK"
 
 **If any assumption above breaks during execution:** it becomes a scoped question for the user or a small in-plan adjustment. None are plan-stoppers.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should phase 1 include a basic shadcn/ui setup (Button, Card) or defer entirely to phase 2?**
    - What we know: CONTEXT.md doesn't mandate it; the hello page in phase 1 only needs a heading.
    - What's unclear: Does the "scaffold is complete" bar include "shadcn ready to go" or just "Next+Tailwind set up"?
-   - Recommendation: **Defer shadcn init to phase 2.** Phase 1 ships with plain Tailwind + next-lint working; phase 2 (UI phase) runs `npx shadcn init` and installs Button/Card/Dialog as part of that phase's work. Reduces phase-1 surface area.
+   - Recommendation: RESOLVED: **Defer shadcn init to phase 2.** Phase 1 ships with plain Tailwind + next-lint working; phase 2 (UI phase) runs `npx shadcn init` and installs Button/Card/Dialog as part of that phase's work. Reduces phase-1 surface area.
 
 2. **Phase 1 uses only the LAN-only compose variant — should it also stub `docker-compose.caddy.yml` and `docker-compose.tailscale.yml` as placeholders?**
    - What we know: INFR-06 lists all three variants; CONTEXT.md deferred list explicitly defers Tailscale/Caddy to phase 7.
    - What's unclear: Do we leave phase 7 with zero skeleton, or pre-create empty files?
-   - Recommendation: **Do NOT pre-create.** Phase 7 owns those fully. Phase 1's `docker-compose.yml` is a standalone working artifact.
+   - Recommendation: RESOLVED: **Do NOT pre-create.** Phase 7 owns those fully. Phase 1's `docker-compose.yml` is a standalone working artifact.
 
 3. **Should the phase-1 `/api/health` include a write test of SQLite to catch Pitfall #1 (NFS/SMB volumes)?**
    - What we know: PITFALLS.md #1 recommends a write test in the health check.
    - What's unclear: Simple `ping PB` vs `do a throwaway PB insert`.
-   - Recommendation: **Just `ping PB` in phase 1.** A write test requires writable PB auth (we don't have admin yet in phase 1). Phase 2 (auth) can add a deeper check using the `_superusers` test collection or similar. Document this as a known limitation.
+   - Recommendation: RESOLVED: **Just `ping PB` in phase 1.** A write test requires writable PB auth (we don't have admin yet in phase 1). Phase 2 (auth) can add a deeper check using the `_superusers` test collection or similar. Document this as a known limitation.
 
 4. **How is the PocketBase superuser created in production on first run?**
    - What we know: PB 0.37 auto-prints an installer JWT link to stdout on first boot (verified via smoke test). Admin can click it to set up creds.
    - What's unclear: Does the user see that link? s6 forwards stdout to Docker logs, so yes — `docker logs homekeep | grep pbinstall`.
-   - Recommendation: **Document this in README.** "After first `docker compose up -d`, run `docker compose logs homekeep | grep pbinstall` to get the one-time superuser setup link." No env-var bootstrap needed — D-05 is consistent with this.
+   - Recommendation: RESOLVED: **Document this in README.** "After first `docker compose up -d`, run `docker compose logs homekeep | grep pbinstall` to get the one-time superuser setup link." No env-var bootstrap needed — D-05 is consistent with this.
 
 5. **Branch protection automation — `gh` CLI not installed on the VPS.**
-   - Recommendation: **Document as manual step** in phase 1 plan: "After pushing initial commits, configure branch protection in GitHub UI (Settings → Branches → Add rule for `main` → Require PR before merge, Require status checks: ci.yml)." OR add `apt install -y gh && gh auth login` as a setup plan step. Either way, this is a one-time setup, not recurring automation.
+   - Recommendation: RESOLVED: **Document as manual step** in phase 1 plan: "After pushing initial commits, configure branch protection in GitHub UI (Settings → Branches → Add rule for `main` → Require PR before merge, Require status checks: ci.yml)." OR add `apt install -y gh && gh auth login` as a setup plan step. Either way, this is a one-time setup, not recurring automation.
 
 ## Project Constraints (from CLAUDE.md)
 
