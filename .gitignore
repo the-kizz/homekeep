@@ -22,6 +22,9 @@
 # Dev PocketBase (dev-pb.js downloads binary + data here)
 /.pb/
 
+# PocketBase runtime state (generated on first boot: types.d.ts, data.db, etc.)
+/pocketbase/pb_data/
+
 # Host-side data volume (runtime)
 /data/
 
