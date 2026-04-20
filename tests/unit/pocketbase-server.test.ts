@@ -14,6 +14,13 @@ describe('createServerClient', () => {
     // the mock applied. createServerClient has no module-level state anyway
     // (assertion in test 4) but this keeps the tests independent.
     vi.resetModules();
+    // PocketBase's default LocalAuthStore persists auth to localStorage
+    // under the 'pocketbase_auth' key. In jsdom the localStorage survives
+    // between tests, so test N+1 would see the auth that test N loaded.
+    // Clear it explicitly to simulate a fresh browser context per test.
+    if (typeof globalThis.localStorage !== 'undefined') {
+      globalThis.localStorage.clear();
+    }
   });
 
   test('returns PB client pointed at 127.0.0.1:8090 (loopback)', async () => {
