@@ -1,0 +1,26 @@
+{
+	auto_https off
+	admin off
+}
+
+:3000 {
+	handle /api/health {
+		reverse_proxy localhost:3001
+	}
+
+	handle /api/* {
+		reverse_proxy localhost:8090 {
+			flush_interval -1
+		}
+	}
+
+	handle /_/* {
+		reverse_proxy localhost:8090 {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		reverse_proxy localhost:3001
+	}
+}
