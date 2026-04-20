@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-04-20T21:45:08.012Z"
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-04-20T21:49:39.813Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 7
-  completed_plans: 3
-  percent: 43
+  completed_plans: 4
+  percent: 57
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 ## Current Position
 
 Phase: 1 (Scaffold & Infrastructure) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-04-20
 
-Progress: [████░░░░░░] 43%
+Progress: [██████░░░░] 57%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [████░░░░░░] 43%
 | Phase 01 P01-01 | 9min | 2 tasks | 25 files |
 | Phase 01 P01-02 | 3min | 2 tasks | 4 files |
 | Phase 01 P01-03 | 1min | 1 tasks | 12 files |
+| Phase 01 P04 | 1min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - 01-02: docker build deferred to 01-06 CI (runtime stage COPY targets come from 01-03 + 01-04)
 - 01-03: parallel s6 startup (no dependencies.d/<peer>) relies on Caddy upstream-retry + HEALTHCHECK start-period=30s
 - 01-03: Caddy stays root (T-01-03-03 accept); PB and Next.js drop to node via s6-setuidgid
+- 01-04: Caddyfile tab-indented matching RESEARCH.md §Critical Design Choice byte-for-byte
+- 01-04: global options block added (auto_https off, admin off) to minimize attack surface on internal port
+- 01-04: caddy validate deferred to 01-06 CI (binary not installed on exec host); static-grep gate green
 
 ### Pending Todos
 
@@ -93,8 +97,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T21:45:07.994Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-04-20T21:49:39.796Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None
 
 **Planned Phase:** 1 (Scaffold & Infrastructure) — 7 plans — 2026-04-20T21:05:59.551Z

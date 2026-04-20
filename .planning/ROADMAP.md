@@ -38,7 +38,7 @@ Plans:
 - [x] 01-01-PLAN.md — Next.js 16 + TS + Tailwind 4 + Vitest + Playwright scaffold with health route, PB client factory, LICENSE, .env.example
 - [x] 01-02-PLAN.md — Multi-stage Dockerfile with s6-overlay + Caddy + PocketBase, .dockerignore, image-size and multi-arch helper scripts
 - [x] 01-03-PLAN.md — s6-overlay v3 service tree (caddy, pocketbase, nextjs longruns) with user-bundle registration
-- [ ] 01-04-PLAN.md — Caddyfile with path-ordered routing (/api/health -> Next.js, /api/* and /_/* -> PocketBase with SSE-safe flush_interval)
+- [x] 01-04-PLAN.md — Caddyfile with path-ordered routing (/api/health -> Next.js, /api/* and /_/* -> PocketBase with SSE-safe flush_interval)
 - [ ] 01-05-PLAN.md — docker-compose.yml (LAN variant) + scripts/dev-pb.js for native dev workflow
 - [ ] 01-06-PLAN.md — GitHub Actions ci.yml (lint/test/build/e2e + image-size + NEXT_PUBLIC_ guard) and release.yml (multi-arch GHCR push on v* tag)
 - [ ] 01-07-PLAN.md — Public-polish README.md covering quickstart, first-boot PB setup, dev workflow, caveats, MIT license
@@ -151,7 +151,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold & Infrastructure | 3/7 | In progress | - |
+| 1. Scaffold & Infrastructure | 4/7 | In progress | - |
 | 2. Auth & Core Data | 0/3 | Not started | - |
 | 3. Core Loop | 0/3 | Not started | - |
 | 4. Collaboration | 0/2 | Not started | - |
