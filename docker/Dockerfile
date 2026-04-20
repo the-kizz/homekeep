@@ -40,33 +40,40 @@ RUN cd /tmp && sha256sum -c s6-overlay-noarch.tar.xz.sha256 \
     && tar -C / -Jxpf s6-overlay-noarch.tar.xz \
     && rm -f s6-overlay-noarch.tar.xz s6-overlay-noarch.tar.xz.sha256
 
-# s6-overlay arch tarball (TARGETARCH -> S6_ARCH mapping)
+# s6-overlay arch tarball (TARGETARCH -> S6_ARCH mapping).
+# Save each download under its upstream filename so that sha256sum -c (which reads
+# the filename from inside the .sha256 file) can locate it on disk.
 RUN case "${TARGETARCH}" in \
       amd64) S6_ARCH=x86_64 ;; \
       arm64) S6_ARCH=aarch64 ;; \
       *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
     esac \
-    && curl -fsSL -o /tmp/s6-arch.tar.xz "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" \
-    && curl -fsSL -o /tmp/s6-arch.tar.xz.sha256 "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz.sha256" \
-    && cd /tmp && sha256sum -c s6-arch.tar.xz.sha256 \
-    && tar -C / -Jxpf s6-arch.tar.xz \
-    && rm -f /tmp/s6-arch.tar.xz /tmp/s6-arch.tar.xz.sha256
+    && cd /tmp \
+    && curl -fsSL -O "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz" \
+    && curl -fsSL -O "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_ARCH}.tar.xz.sha256" \
+    && sha256sum -c "s6-overlay-${S6_ARCH}.tar.xz.sha256" \
+    && tar -C / -Jxpf "s6-overlay-${S6_ARCH}.tar.xz" \
+    && rm -f "/tmp/s6-overlay-${S6_ARCH}.tar.xz" "/tmp/s6-overlay-${S6_ARCH}.tar.xz.sha256"
 
 # Caddy 2.11.2 static binary from official image
 COPY --from=caddy:2.11.2-alpine /usr/bin/caddy /usr/bin/caddy
 
-# PocketBase 0.37.1 (checksum-verified)
+# PocketBase 0.37.1 (checksum-verified).
+# Save the zip under its upstream filename so the checksum line from checksums.txt
+# (format: `<sha>  pocketbase_<ver>_linux_<arch>.zip`) resolves via sha256sum -c -.
 RUN case "${TARGETARCH}" in \
       amd64) PB_ARCH=amd64 ;; \
       arm64) PB_ARCH=arm64 ;; \
       *) echo "Unsupported arch: ${TARGETARCH}" && exit 1 ;; \
     esac \
-    && curl -fsSL -o /tmp/pb.zip "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_${PB_ARCH}.zip" \
-    && curl -fsSL -o /tmp/pb.sha "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/checksums.txt" \
-    && grep "pocketbase_${PB_VERSION}_linux_${PB_ARCH}.zip" /tmp/pb.sha | sha256sum -c - \
-    && unzip -q /tmp/pb.zip -d /usr/local/bin/ \
+    && PB_ZIP="pocketbase_${PB_VERSION}_linux_${PB_ARCH}.zip" \
+    && cd /tmp \
+    && curl -fsSL -O "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/${PB_ZIP}" \
+    && curl -fsSL -o pb-checksums.txt "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/checksums.txt" \
+    && grep " ${PB_ZIP}\$" pb-checksums.txt | sha256sum -c - \
+    && unzip -q "${PB_ZIP}" -d /usr/local/bin/ \
     && chmod +x /usr/local/bin/pocketbase \
-    && rm -f /tmp/pb.zip /tmp/pb.sha
+    && rm -f "/tmp/${PB_ZIP}" /tmp/pb-checksums.txt
 
 # Next.js standalone output (Pitfall #2: explicit COPY of public/ and .next/static/)
 WORKDIR /app
