@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Completed 01-07-PLAN.md (phase 1 done)
-last_updated: "2026-04-20T22:10:52.409Z"
+status: executing
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-04-20T23:32:03.970Z"
 last_activity: 2026-04-20
 progress:
   total_phases: 7
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 29
+  completed_phases: 1
+  total_plans: 12
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 1 — Scaffold & Infrastructure
+**Current focus:** Phase 2 — Auth & Core Data
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Ready to plan
+Phase: 2 (Auth & Core Data) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
 Last activity: 2026-04-20
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 01 P01-05 | 3min | 2 tasks | 3 files |
 | Phase 01 P01-06 | 2min | 2 tasks | 2 files |
 | Phase 01 P01-07 | 2min | 1 tasks | 1 files |
+| Phase 02 P02-01 | 14min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,11 @@ Recent decisions affecting current work:
 - 01-07: README dual-renders docker run (one-liner + multi-line) to satisfy key_links single-line regex
 - 01-07: README documents compose-dir footgun (env_file/./data resolve relative to docker/, not cwd)
 - 01-07: UID fallback uses --entrypoint sh -u 0 override so chown actually executes (not s6 /init CMD-swallow)
+- 02-01: PB 0.37.1 Collection constructor ignores fields+indexes — use collection.fields.add() post-construction
+- 02-01: Whole Home hook calls e.next() BEFORE creating area (fixes validation_missing_rel_records on home_id)
+- 02-01: Rate-limit labels use camelCase (*:authWithPassword) and path prefixes (/api/); lone * and kebab-case actions rejected by Go validator
+- 02-01: Integration-test pattern — create superuser BEFORE serve start to avoid SQLite WAL race; port 18090 with unique --dir per test file
+- 02-01: ESLint override disables triple-slash-reference for pocketbase/pb_migrations + pb_hooks (PB JSVM pattern, ESM import unsupported in goja)
 
 ### Pending Todos
 
@@ -112,8 +118,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-20T22:10:52.393Z
-Stopped at: Completed 01-07-PLAN.md (phase 1 done)
+Last session: 2026-04-20T23:32:03.948Z
+Stopped at: Completed 02-01-PLAN.md
 Resume file: None
 
-**Planned Phase:** 1 (Scaffold & Infrastructure) — 7 plans — 2026-04-20T21:05:59.551Z
+**Planned Phase:** 2 (Auth & Core Data) — 5 plans — 2026-04-20T23:14:37.047Z

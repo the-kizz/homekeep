@@ -7,15 +7,19 @@
 
 ### Authentication
 
-- [ ] **AUTH-01**: User can sign up with email and password
+- [x] **AUTH-01
+**: User can sign up with email and password
 - [ ] **AUTH-02**: User can log in and session persists across browser refresh
 - [ ] **AUTH-03**: User can log out from any page
-- [ ] **AUTH-04**: User can reset password via email link (PocketBase built-in)
+- [x] **AUTH-04
+**: User can reset password via email link (PocketBase built-in)
 
 ### Homes
 
-- [ ] **HOME-01**: User can create a home with name and optional address
-- [ ] **HOME-02**: User can have multiple homes
+- [x] **HOME-01
+**: User can create a home with name and optional address
+- [x] **HOME-02
+**: User can have multiple homes
 - [ ] **HOME-03**: User lands on last-viewed home by default after login
 - [ ] **HOME-04**: User can switch between homes via nav
 - [ ] **HOME-05**: User can share a home via shareable invite link
@@ -24,22 +28,30 @@
 
 ### Areas
 
-- [ ] **AREA-01**: User can create areas within a home (location or whole_home scope)
-- [ ] **AREA-02**: Each home auto-creates one "Whole Home" area that cannot be deleted
-- [ ] **AREA-03**: User can set a default assignee per area
-- [ ] **AREA-04**: Areas have name, icon, color, sort order
+- [x] **AREA-01
+**: User can create areas within a home (location or whole_home scope)
+- [x] **AREA-02
+**: Each home auto-creates one "Whole Home" area that cannot be deleted
+- [x] **AREA-03
+**: User can set a default assignee per area
+- [x] **AREA-04
+**: Areas have name, icon, color, sort order
 - [ ] **AREA-05**: User can edit and reorder areas
 
 ### Tasks
 
-- [ ] **TASK-01**: User can create a task with name, frequency (days), area, optional notes
+- [x] **TASK-01
+**: User can create a task with name, frequency (days), area, optional notes
 - [ ] **TASK-02**: User can assign a task to a specific member (overrides area default)
 - [ ] **TASK-03**: Cascading assignment resolves: task assignee → area default → "Anyone"
 - [ ] **TASK-04**: UI shows effective assignee with icon distinguishing inherited vs overridden
-- [ ] **TASK-05**: User can set schedule mode per task (cycle or anchored, default: cycle)
+- [x] **TASK-05
+**: User can set schedule mode per task (cycle or anchored, default: cycle)
 - [ ] **TASK-06**: User can add custom tasks beyond seed library
-- [ ] **TASK-07**: User can edit and archive tasks
-- [ ] **TASK-08**: Next due date is computed, never stored (cycle: last_completion + frequency; anchored: next in fixed series)
+- [x] **TASK-07
+**: User can edit and archive tasks
+- [x] **TASK-08
+**: Next due date is computed, never stored (cycle: last_completion + frequency; anchored: next in fixed series)
 
 ### Completions
 
