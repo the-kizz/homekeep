@@ -106,12 +106,13 @@ Plans:
   2. Home owner can view members and remove a member from the home
   3. Tasks show their effective assignee (task-level, area-default, or "Anyone") with a visual indicator distinguishing inherited vs overridden assignment
   4. Assigning a member to a task overrides the area default; unassigning falls back to cascade
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md — home_members + invites PB migrations with owner backfill + rule-update to member-gated access + Whole Home hook extension + integration tests
+- [ ] 04-02-PLAN.md — invite/member server actions (createInvite, acceptInvite, revokeInvite, removeMember, leaveHome) + admin client + membership helpers + signup-next thread-through + /invite/[token] route + ownership→membership preflight swap
+- [ ] 04-03-PLAN.md — resolveAssignee pure fn + avatar primitives + AssigneeDisplay + HomeSwitcher home_members swap + Settings/Members/Leave routes + InviteLinkCard + MembersList + Playwright E2E (invite roundtrip + cascade + owner gating)
 
 ### Phase 5: Views & Onboarding
 **Goal**: Users can explore tasks by area, view personal history, and new households get a guided first-run experience with seed tasks
