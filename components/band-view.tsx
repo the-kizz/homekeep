@@ -24,6 +24,8 @@ import {
   type GuardState,
 } from '@/components/early-completion-dialog';
 import { TaskDetailSheet } from '@/components/task-detail-sheet';
+import { AreaCelebration } from '@/components/area-celebration';
+import { MostNeglectedCard } from '@/components/most-neglected-card';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
@@ -140,6 +142,17 @@ export function BandView({
   const [guardState, setGuardState] = useState<GuardState | null>(null);
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  // 06-03 GAME-04: celebration overlay state. Server action
+  // completeTaskAction returns `celebration: {kind:'area-100', areaName}`
+  // iff detectAreaCelebration fired for the tapped task's area. We set
+  // state here and <AreaCelebration> self-dismisses after 2500ms.
+  const [celebration, setCelebration] = useState<{
+    areaName: string;
+    // A mount key so a back-to-back second crossover remounts the
+    // component with a fresh animation timer rather than re-using stale
+    // state. See onDone clearing logic below.
+    key: number;
+  } | null>(null);
 
   // Reducer form — Pitfall 1 safe: no outer closure captured.
   const [optimisticCompletions, addOptimisticCompletion] = useOptimistic(
@@ -205,6 +218,16 @@ export function BandView({
           return;
         }
         toast.success(`Done — next due ${result.nextDueFormatted}`);
+        // 06-03 GAME-04: fire the celebration overlay if the server
+        // detected an area-100% crossover. Bumping `.key` on each
+        // trigger guarantees remount + fresh 2500ms timer even if the
+        // previous overlay is still visible.
+        if (result.celebration && result.celebration.kind === 'area-100') {
+          setCelebration({
+            areaName: result.celebration.areaName,
+            key: Date.now(),
+          });
+        }
         // Pitfall 6 complementarity with the server action's
         // revalidatePath: the server invalidates the route's data
         // cache; router.refresh() tells Next's client to re-fetch
@@ -254,6 +277,22 @@ export function BandView({
   const thisWeekWithName = bands.thisWeek.map(attachMeta);
   const horizonWithName = bands.horizon.map(attachMeta);
 
+  // 06-03 GAME-05: surface the SINGLE most-overdue task on the dashboard.
+  // bands.overdue is already sorted most-negative-daysDelta first, so the
+  // head of the array IS the most-overdue. Only render when at least one
+  // overdue task exists (CONTEXT §critical).
+  const mostNeglected = overdueWithName.length > 0
+    ? (() => {
+        const t = overdueWithName[0];
+        return {
+          id: t.id,
+          name: t.name,
+          daysOverdue: Math.abs(Math.floor(t.daysDelta)),
+          area_name: byId.get(t.id)?.area_name,
+        };
+      })()
+    : null;
+
   const detailTask = detailTaskId
     ? tasks.find((t) => t.id === detailTaskId)
     : null;
@@ -299,6 +338,17 @@ export function BandView({
             variant="overdue"
             now={nowDate}
           />
+          {/* 06-03 GAME-05: MostNeglectedCard between Overdue and This
+              Week bands. Self-null when no overdue tasks. `pending` is
+              per-task precise so the card only disables while THIS
+              task is in flight — double-tap guard shared via handleTap. */}
+          <MostNeglectedCard
+            task={mostNeglected}
+            onComplete={(id) => handleTap(id)}
+            pending={
+              mostNeglected !== null && pendingTaskId === mostNeglected.id
+            }
+          />
           <TaskBand
             label="This Week"
             tasks={thisWeekWithName}
@@ -315,6 +365,14 @@ export function BandView({
             timezone={timezone}
           />
         </>
+      )}
+
+      {celebration && (
+        <AreaCelebration
+          key={celebration.key}
+          areaName={celebration.areaName}
+          onDone={() => setCelebration(null)}
+        />
       )}
 
       {guardState && (

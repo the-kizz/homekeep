@@ -6,6 +6,8 @@ import {
 } from '@/lib/completions';
 import { BandView, type TaskWithName } from '@/components/band-view';
 import { AvatarStack } from '@/components/avatar-stack';
+import { HouseholdStreakBadge } from '@/components/household-streak-badge';
+import { computeHouseholdStreak } from '@/lib/household-streak';
 import { resolveAssignee, type Member } from '@/lib/assignment';
 
 /**
@@ -107,6 +109,15 @@ export default async function HomeDashboardPage({
   const taskIds = tasks.map((t) => t.id);
   const completions = await getCompletionsForHome(pb, taskIds, now);
 
+  // 06-03 D-11 / D-16 / GAME-01: household-wide streak badge for the
+  // dashboard header. computeHouseholdStreak counts ANY-member
+  // completions per week (D-10) — already a pure fn; no Date.now reads.
+  const householdStreak = computeHouseholdStreak(
+    completions,
+    now,
+    home.timezone as string,
+  );
+
   // Map PB records -> BandView's TaskWithName shape. The expand shape
   // for `area_id` is Record<string, RecordModel>, so we narrow it to
   // the name projection we requested via `fields`.
@@ -164,8 +175,15 @@ export default async function HomeDashboardPage({
 
   return (
     <>
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-6 pt-4 pb-0 text-sm text-muted-foreground">
-        <span className="font-medium">{home.name as string}</span>
+      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 pt-4 pb-0 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <span className="font-medium">{home.name as string}</span>
+          {/* 06-03 D-11 / D-16 / GAME-01: household streak badge. Sits
+              next to the home name on the left; CoverageRing stays in
+              BandView on the right — symmetric at the above-the-fold
+              header level (see 06-03 plan <interfaces> decision). */}
+          <HouseholdStreakBadge streak={householdStreak} />
+        </div>
         <AvatarStack
           members={members}
           href={`/h/${homeId}/members`}
