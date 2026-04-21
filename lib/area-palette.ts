@@ -21,8 +21,8 @@ export const AREA_COLORS = [
   '#D4A574', // terracotta-sand — primary accent, default for new areas
   '#C87E5C', // terracotta
   '#9B6B3E', // earth brown
-  '#6B8E5A', // sage green
-  '#4F6D7A', // slate blue
+  '#B88A6A', // warm sand (replaced '#6B8E5A' sage — cool, broke palette)
+  '#8F6B55', // warm cocoa (replaced '#4F6D7A' slate — cool, broke palette)
   '#A67C52', // warm taupe
   '#BF8F4C', // mustard amber
   '#8A6F5C', // walnut

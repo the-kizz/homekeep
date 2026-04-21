@@ -57,6 +57,15 @@ export function AreaCard({
   >;
   const Icon = LucideMap[pascalIcon] ?? LucideIcons.Home;
 
+  // Accent hex: prefer area.color; fall back to the warm primary token
+  // if it's absent or empty (edge case for legacy rows pre-palette
+  // enforcement). The fallback matches the #D4A574 accent so the card
+  // still reads as warm rather than defaulting to a cool border.
+  const accent =
+    typeof area.color === 'string' && area.color.length > 0
+      ? area.color
+      : '#D4A574';
+
   return (
     <Link
       href={`/h/${homeId}/areas/${area.id}`}
@@ -72,7 +81,7 @@ export function AreaCard({
     >
       <Card
         className="border-l-4"
-        style={{ borderLeftColor: area.color }}
+        style={{ borderLeftColor: accent }}
       >
         <CardContent className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
@@ -80,11 +89,6 @@ export function AreaCard({
               <Icon className="size-5 shrink-0" aria-hidden={true} />
               <span className="font-medium truncate">{area.name}</span>
             </div>
-            {area.is_whole_home_system && (
-              <span className="shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-                Whole Home
-              </span>
-            )}
           </div>
 
           {/* Counter row: each counter is whitespace-nowrap so the label
@@ -121,9 +125,17 @@ export function AreaCard({
               role="img"
               aria-label={`Coverage ${coveragePct}%`}
             >
+              {/* Fill tint is driven from the same accent as the left
+                  border so each card reads as a unified color block.
+                  We use the hex directly (Tailwind can't compute a
+                  dynamic hex) at full opacity — the surrounding bg-muted
+                  track gives enough contrast without needing alpha. */}
               <div
-                className="h-full rounded-full bg-primary motion-safe:transition-[width] motion-safe:duration-500"
-                style={{ width: `${coveragePct}%` }}
+                className="h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500"
+                style={{
+                  width: `${coveragePct}%`,
+                  backgroundColor: accent,
+                }}
               />
             </div>
             <span className="text-xs text-muted-foreground tabular-nums">
