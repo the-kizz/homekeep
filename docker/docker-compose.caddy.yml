@@ -1,0 +1,43 @@
+# HTTPS variant: add a Caddy sidecar in front of the homekeep service.
+# Usage:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.caddy.yml up -d
+# Requires:
+#   - DOMAIN set in .env (e.g. homekeep.example.com)
+#   - DNS A-record for DOMAIN pointing at this host's public IP
+#   - Ports 80 + 443 open on the VPS firewall (ACME HTTP-01 + HTTPS)
+# Optional:
+#   - CADDY_EMAIL (Let's Encrypt notification address; defaults to admin@DOMAIN)
+#
+# Compose-merge notes:
+#   - The baseline homekeep service's host port is hidden here with `!reset []`
+#     so only Caddy binds 80/443 on the host. The internal compose network
+#     still routes container-to-container on homekeep:3000.
+
+services:
+  homekeep:
+    # Drop the baseline host-port mapping; Caddy reaches homekeep over the
+    # internal compose network. Requires Docker Compose v2.24+ for `!reset`.
+    ports: !reset []
+
+  caddy:
+    image: caddy:2.11.2-alpine
+    container_name: homekeep-caddy
+    restart: unless-stopped
+    depends_on:
+      - homekeep
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3 (Caddy 2.6+)
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      # Fail fast if DOMAIN is unset rather than silently serving a localhost cert.
+      - DOMAIN=${DOMAIN:?set DOMAIN in .env before using this variant}
+      - CADDY_EMAIL=${CADDY_EMAIL:-admin@${DOMAIN}}
+
+volumes:
+  caddy_data:
+  caddy_config:

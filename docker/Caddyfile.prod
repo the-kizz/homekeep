@@ -1,0 +1,17 @@
+# External Caddy reverse proxy for the Caddy compose variant.
+# DOMAIN is injected via compose env; Caddy auto-obtains a Let's Encrypt
+# cert on first hit (ACME HTTP-01 on port 80, then serves HTTPS on 443).
+# Internal homekeep container still does its own /api / /_/ routing via
+# docker/Caddyfile -- this file is the EXTERNAL terminator only.
+{
+	email {$CADDY_EMAIL:admin@example.com}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+	reverse_proxy homekeep:3000 {
+		# flush_interval -1 preserves SSE/streaming behaviour; matches
+		# the internal docker/Caddyfile policy for /api/* and /_/* paths.
+		flush_interval -1
+	}
+}
