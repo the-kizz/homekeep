@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-04-21T05:07:11.135Z"
+status: verifying
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-04-21T05:25:35.733Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 21
-  completed_plans: 21
+  completed_phases: 5
+  total_plans: 22
+  completed_plans: 22
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 
 Phase: 5 (Views & Onboarding) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-21
 
 Progress: [██████████] 100%
@@ -74,6 +74,7 @@ Progress: [██████████] 100%
 | Phase 04 P03 | 25min | 3 tasks | 30 files |
 | Phase 05 P01 | 11min | 3 tasks | 14 files |
 | Phase 05 P02 | 20min | 3 tasks tasks | 10 files files |
+| Phase 05 P03 | 12min | 3 tasks | 19 files |
 
 ## Accumulated Context
 
@@ -176,6 +177,12 @@ Recent decisions affecting current work:
 - 05-02: HistoryFilters strips default values (empty person/area, range=month) from URLSearchParams for clean /history URLs
 - 05-02: E2E uses direct URL navigation for /by-area|/person|/history — NavShell BottomNav is md:hidden and desktop viewport would miss it
 - 05-02: Bumped *:authWithPassword rate limit 20/60s → 60/60s (Rule 3 Blocking) — Phase 5 adds 3 signup-heavy suites; password-spray protection still prohibitive
+- 05-03: pb.createBatch() atomic N tasks + homes.onboarded=true flip in one transaction (T-05-03-10)
+- 05-03: every seed defaults to Whole Home area — guaranteed to exist via Phase 2 hook; Edit control surfaces existing-area select; no auto-creation of Kitchen/Bathroom
+- 05-03: BottomNav + TopTabs early-return null on pathname.endsWith('/onboarding') — breaks Home-tap redirect loop without route-group refactor (Rule 2)
+- 05-03: batchCreateSeedTasks uses user-authed pb client (NOT admin) — tasks.createRule gates writes via membership which caller has; keeps security model clean
+- 05-03: tests/e2e excluded from tsconfig paths → onboarding.spec.ts uses relative '../../lib/seed-library' import
+- 05-03: skipOnboardingIfPresent(page) E2E helper centralises backward-compat; 6 older specs patched at createHome call sites
 
 ### Pending Todos
 
@@ -194,8 +201,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T05:07:11.118Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-04-21T05:25:16.985Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
 
 **Planned Phase:** 5 (Views & Onboarding) — 3 plans — 2026-04-21T04:27:26.096Z

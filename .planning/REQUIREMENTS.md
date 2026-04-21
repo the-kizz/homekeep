@@ -120,10 +120,14 @@
 
 ### Onboarding
 
-- [ ] **ONBD-01**: First-run wizard offers seed task library with suggested frequencies and areas
-- [ ] **ONBD-02**: User can accept/reject individual seed tasks
-- [ ] **ONBD-03**: User can customize frequency and area assignment of seed tasks
-- [ ] **ONBD-04**: Seed library covers Kitchen, Bathroom, Living areas, Yards, and Whole Home
+- [x] **ONBD-01
+**: First-run wizard offers seed task library with suggested frequencies and areas
+- [x] **ONBD-02
+**: User can accept/reject individual seed tasks
+- [x] **ONBD-03
+**: User can customize frequency and area assignment of seed tasks
+- [x] **ONBD-04
+**: Seed library covers Kitchen, Bathroom, Living areas, Yards, and Whole Home
 
 ### Notifications
 

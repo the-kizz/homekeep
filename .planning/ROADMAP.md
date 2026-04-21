@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2.1: Deploy Checkpoint** (INSERTED) - Build local image + docker compose up on VPS port 3000 for live preview at http://46.62.151.57:3000/ (completed 2026-04-21)
 - [x] **Phase 3: Core Loop** - Three-band main view with task completion, coverage ring, and early-completion guard (completed 2026-04-21)
 - [x] **Phase 4: Collaboration** - Share homes via invite links, manage members, cascading task assignment (completed 2026-04-21)
-- [ ] **Phase 5: Views & Onboarding** - By Area, Person, and History views plus seed task library wizard
+- [x] **Phase 5: Views & Onboarding** - By Area, Person, and History views plus seed task library wizard (completed 2026-04-21)
 - [ ] **Phase 6: Notifications & Gamification** - ntfy push notifications, scheduler, streaks, and celebrations
 - [ ] **Phase 7: PWA & Release** - PWA manifest, HTTPS compose variants, graceful degradation, CI/CD publish
 
@@ -129,7 +129,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — homes.onboarded migration + seed library + pure helpers (streak / area-coverage / history-filter) + nav shell (bottom nav + top tabs) + per-home layout
 - [x] 05-02-PLAN.md — By Area view (grid + pinned Whole Home) + Person view (assigned tasks + history + stats + prefs stub) + History view (timeline + URL-param filters) + E2E Suites B/C/D
-- [ ] 05-03-PLAN.md — Onboarding wizard (SeedTaskCard + OnboardingWizard) + batchCreateSeedTasks / skipOnboarding actions + dashboard redirect + E2E Suite A + backward-compat skip helper
+- [x] 05-03-PLAN.md — Onboarding wizard (SeedTaskCard + OnboardingWizard) + batchCreateSeedTasks / skipOnboarding actions + dashboard redirect + E2E Suite A + backward-compat skip helper
 
 ### Phase 6: Notifications & Gamification
 **Goal**: The app proactively reminds users of overdue tasks via ntfy and provides gentle motivation through streaks and celebrations
