@@ -73,6 +73,13 @@ export function BottomNav({ homeId }: { homeId: string }) {
   const pathname = usePathname() ?? '';
   const items = buildItems(homeId);
 
+  // 05-03: hide the nav chrome on /onboarding. Every nav link points at
+  // /h/[id] or a tab under it, and the dashboard now redirects back to
+  // /onboarding while onboarded=false — without this guard the user would
+  // be trapped in a Home-tap → dashboard → /onboarding loop. The "Skip
+  // all" escape hatch lives inside the wizard itself (D-13).
+  if (pathname.endsWith('/onboarding')) return null;
+
   return (
     <nav
       aria-label="Primary"

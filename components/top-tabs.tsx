@@ -70,6 +70,11 @@ export function TopTabs({ homeId }: { homeId: string }) {
   const pathname = usePathname() ?? '';
   const items = buildItems(homeId);
 
+  // 05-03: hide the nav chrome on /onboarding. See bottom-nav.tsx for
+  // the redirect-loop rationale; TopTabs mirrors the same guard so both
+  // viewport sizes behave identically during the wizard flow.
+  if (pathname.endsWith('/onboarding')) return null;
+
   return (
     <nav
       aria-label="Primary"

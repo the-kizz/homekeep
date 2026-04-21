@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/pocketbase-server';
 import {
   getCompletionsForHome,
@@ -42,10 +42,18 @@ export default async function HomeDashboardPage({
   let home;
   try {
     home = await pb.collection('homes').getOne(homeId, {
-      fields: 'id,name,timezone',
+      fields: 'id,name,timezone,onboarded',
     });
   } catch {
     notFound();
+  }
+
+  // 05-03 (D-14): redirect first-run homes to the seed wizard. The
+  // migration 1714953604 backfilled existing homes to onboarded=true,
+  // so only homes created via createHome (which sets onboarded=false)
+  // enter the wizard. Skipping or completing the wizard flips the flag.
+  if (home.onboarded === false) {
+    redirect(`/h/${homeId}/onboarding`);
   }
 
   // 04-03: fetch home members + areas (with default_assignee_id) so the
