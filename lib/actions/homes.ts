@@ -56,11 +56,15 @@ export async function createHome(
   let homeId: string;
   try {
     // owner_id comes from the trusted authStore — never from formData.
+    // 05-03: new homes enter the onboarding wizard; seed or skip flips
+    //        this to true (backfilled rows already have onboarded=true
+    //        from migration 1714953604, so existing homes skip the wizard).
     const home = await pb.collection('homes').create({
       name: parsed.data.name,
       address: parsed.data.address ?? '',
       timezone: parsed.data.timezone,
       owner_id: authId,
+      onboarded: false,
     });
     homeId = home.id;
 
