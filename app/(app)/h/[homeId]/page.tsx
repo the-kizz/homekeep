@@ -175,9 +175,13 @@ export default async function HomeDashboardPage({
 
   return (
     <>
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 pt-4 pb-0 text-sm text-muted-foreground">
+      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 pt-4 pb-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
-          <span className="font-medium">{home.name as string}</span>
+          {/* Mobile: tighter single-line title using serif. Desktop keeps
+              same line but in the regular header density. */}
+          <h1 className="font-display text-xl font-medium tracking-tight text-foreground sm:text-lg sm:font-normal">
+            {home.name as string}
+          </h1>
           {/* 06-03 D-11 / D-16 / GAME-01: household streak badge. Sits
               next to the home name on the left; CoverageRing stays in
               BandView on the right — symmetric at the above-the-fold
