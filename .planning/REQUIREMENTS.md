@@ -22,8 +22,10 @@
 **: User can create a home with name and optional address
 - [x] **HOME-02
 **: User can have multiple homes
-- [ ] **HOME-03**: User lands on last-viewed home by default after login
-- [ ] **HOME-04**: User can switch between homes via nav
+- [x] **HOME-03
+**: User lands on last-viewed home by default after login
+- [x] **HOME-04
+**: User can switch between homes via nav
 - [ ] **HOME-05**: User can share a home via shareable invite link
 - [ ] **HOME-06**: Invited user can accept invite and join a home
 - [ ] **HOME-07**: Home owner can manage members (view, remove)
@@ -38,7 +40,8 @@
 **: User can set a default assignee per area
 - [x] **AREA-04
 **: Areas have name, icon, color, sort order
-- [ ] **AREA-05**: User can edit and reorder areas
+- [x] **AREA-05
+**: User can edit and reorder areas
 
 ### Tasks
 

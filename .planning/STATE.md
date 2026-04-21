@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-04-21T00:01:22.021Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-04-21T00:33:20.677Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 12
-  completed_plans: 10
-  percent: 83
+  completed_plans: 11
+  percent: 92
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 ## Current Position
 
 Phase: 2 (Auth & Core Data) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-04-21
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 83%
 | Phase 02 P02-01 | 14min | 2 tasks | 9 files |
 | Phase 02 P02 | 8min | 2 tasks | 21 files |
 | Phase 02 P02-03 | 7min | 3 tasks | 18 files |
+| Phase 02 P02-04 | 25min | 3 tasks | 22 files |
 
 ## Accumulated Context
 
@@ -114,6 +115,13 @@ Recent decisions affecting current work:
 - 02-03: app/page.tsx single landing file; no app/(public)/page.tsx (would error 'two parallel pages same path' — route groups don't create segments)
 - 02-03: Logout is DropdownMenuItem asChild wrapping a form whose action={logoutAction} — works without JS, participates in Next 16 cookie-clear+redirect single-response flow (D-07)
 - 02-03: signupAction email-taken detection covers both PB 0.23+ 'validation_not_unique' and older 'validation_invalid_email' codes for forward/backward compat
+- 02-04: AREA_ICONS substitutes 'brush' for 'vacuum'/'broom' (neither in lucide-react@1.8.0)
+- 02-04: IconPicker+ColorPicker as RHF Controller + hidden input bridge — single source for UI state AND FormData submit payload
+- 02-04: HomeSwitcher uses router.push+refresh (Open Q #3) — avoids full-layout revalidate on every switch
+- 02-04: SortableAreaList uses render-time reset-state pattern (setPrevKey/setItems inline) — syncs to fresh server props after router.refresh without useEffect
+- 02-04: (app)/layout.tsx + /h/page.tsx fetch live users record via pb.getOne() — pb.authStore.record is stale cookie snapshot
+- 02-04: Bumped *:authWithPassword rate limit 5/60s → 20/60s to unblock E2E suite (still blocks >20 spray/min)
+- 02-04: deleteHome server action exported but NOT UI-wired — Danger Zone deferred to Settings/Phase 5
 
 ### Pending Todos
 
@@ -132,8 +140,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T00:01:21.998Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-04-21T00:33:20.660Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None
 
 **Planned Phase:** 2 (Auth & Core Data) — 5 plans — 2026-04-20T23:14:37.047Z

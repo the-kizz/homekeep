@@ -170,7 +170,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold & Infrastructure | 7/7 | Complete    | 2026-04-20 |
-| 2. Auth & Core Data | 3/5 | In progress | - |
+| 2. Auth & Core Data | 4/5 | In progress | - |
 | 3. Core Loop | 0/3 | Not started | - |
 | 4. Collaboration | 0/2 | Not started | - |
 | 5. Views & Onboarding | 0/3 | Not started | - |
