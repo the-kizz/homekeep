@@ -111,7 +111,7 @@ Plans:
 
 Plans:
 - [x] 04-01-PLAN.md — home_members + invites PB migrations with owner backfill + rule-update to member-gated access + Whole Home hook extension + integration tests
-- [ ] 04-02-PLAN.md — invite/member server actions (createInvite, acceptInvite, revokeInvite, removeMember, leaveHome) + admin client + membership helpers + signup-next thread-through + /invite/[token] route + ownership→membership preflight swap
+- [x] 04-02-PLAN.md — invite/member server actions (createInvite, acceptInvite, revokeInvite, removeMember, leaveHome) + admin client + membership helpers + signup-next thread-through + /invite/[token] route + ownership→membership preflight swap
 - [ ] 04-03-PLAN.md — resolveAssignee pure fn + avatar primitives + AssigneeDisplay + HomeSwitcher home_members swap + Settings/Members/Leave routes + InviteLinkCard + MembersList + Playwright E2E (invite roundtrip + cascade + owner gating)
 
 ### Phase 5: Views & Onboarding

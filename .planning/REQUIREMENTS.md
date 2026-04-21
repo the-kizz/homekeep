@@ -26,8 +26,10 @@
 **: User lands on last-viewed home by default after login
 - [x] **HOME-04
 **: User can switch between homes via nav
-- [ ] **HOME-05**: User can share a home via shareable invite link
-- [ ] **HOME-06**: Invited user can accept invite and join a home
+- [x] **HOME-05
+**: User can share a home via shareable invite link
+- [x] **HOME-06
+**: Invited user can accept invite and join a home
 - [x] **HOME-07
 **: Home owner can manage members (view, remove)
 

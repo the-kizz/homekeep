@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-04-21T03:19:06.708Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-04-21T03:37:37.828Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 18
-  completed_plans: 17
-  percent: 94
+  completed_plans: 18
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 ## Current Position
 
 Phase: 4 (Collaboration) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-21
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [█████████░] 94%
 | Phase 03 P03-02 | 7 | 5 tasks | 10 files |
 | Phase 03 P03-03 | 30min | 4 tasks | 10 files |
 | Phase 04 P04-01 | 7min | 2 tasks | 7 files |
+| Phase Phase 04 PP04-02 | 13min | 3 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,11 @@ Recent decisions affecting current work:
 - Phase 4 primary rule form: _via_ back-relation with ?= any-match (over @collection fallback)
 - Owner-membership auto-create lives in the Whole Home hook (single transaction, not chained hooks)
 - Disposable-PB port map: 18090/18091/18092/18093 (02-01 / 03-01 / 04-01 hook / 04-01 rules)
+- 04-02: Enable PB batch API via bootstrap hook (Rule 3) — PB 0.37 defaults to disabled; reorderAreas + acceptInvite both require
+- 04-02: Admin client 30-min TTL cache — amortises authWithPassword 20/60s rate limit (Pitfall 3)
+- 04-02: acceptInvite uses admin batch (NOT split with authed client) — attribution preserved via server-set accepted_by_id; simpler atomicity
+- 04-02: assigned_to_id validation: trust-the-rule (Wave 3 resolveAssignee handles orphan assignees) rather than explicit assertMembership on assignee
+- 04-02: Port 18094 for invites-roundtrip test (plan said 18093 but 04-01 already claimed 18093)
 
 ### Pending Todos
 
@@ -167,8 +173,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T03:19:06.693Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-04-21T03:37:24.813Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 4 (Collaboration) — 3 plans — 2026-04-21T03:08:12.524Z
