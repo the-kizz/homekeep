@@ -62,7 +62,7 @@ export function MostNeglectedCard({
           aria-hidden="true"
         />
         <div className="flex-1 space-y-1">
-          <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-primary">
+          <div className="flex items-center gap-2 font-display text-xs font-medium uppercase tracking-[0.12em] text-primary">
             <span>Most neglected</span>
           </div>
           <p className="truncate text-sm font-medium">{task.name}</p>
@@ -85,9 +85,9 @@ export function MostNeglectedCard({
           size="sm"
           onClick={() => onComplete(task.id)}
           disabled={pending}
-          className="shrink-0"
+          className="shrink-0 transition-colors duration-200"
         >
-          {pending ? 'Completing…' : 'Complete'}
+          {pending ? 'Completing…' : 'Complete it →'}
         </Button>
       </CardContent>
     </Card>
