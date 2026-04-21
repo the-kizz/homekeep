@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-04-21T07:17:12.810Z"
+status: verifying
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-04-21T09:56:04.844Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 26
-  completed_plans: 26
+  completed_plans: 27
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 
 Phase: 7 (PWA & Release) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-21
 
 Progress: [██████████] 100%
@@ -81,6 +81,7 @@ Progress: [██████████] 100%
 | Phase Phase 06 PP02 | 18min | 2 tasks | 14 files |
 | Phase Phase 06 PP03 | 13min | 3 tasks tasks | 12 files files |
 | Phase 07 P01 | 15 | 2 tasks | 17 files |
+| Phase 07 P02 | 120min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -216,6 +217,13 @@ Recent decisions affecting current work:
 - 07-01: public/sw.js + /public/swe-worker-*.js gitignored — regenerated on every prod build; committing would drift vs app code
 - 07-01: E2E stubs window.isSecureContext=false via page.addInitScript — http://localhost is W3C secure-context allowlisted
 - 07-01: app/sw.ts uses triple-slash /// <reference lib="webworker" /> + @types/serviceworker — keeps WebWorker + DOM types isolated from main app bundle
+- 07-02: Caddyfile.prod uses Caddy's {$DOMAIN} env-substitution (not compose ${DOMAIN}) — single file handles any DOMAIN without file regeneration
+- 07-02: !reset [] (Compose v2.24+) over ports: [] — explicit directive; older-Compose fallback documented in docs/deployment.md Troubleshooting
+- 07-02: Caddy external pinned to 2.11.2-alpine to match the internal Caddy from 01-02 — supply-chain coherence across in-container + external
+- 07-02: Named caddy_data + caddy_config volumes — persist Let's Encrypt cert + ACME account key across restarts (5/wk LE rate limit)
+- 07-02: Tailscale kernel-networking (TS_USERSPACE=false + net_admin + /dev/net/tun) kept default; userspace fallback documented
+- 07-02: tailscale/tailscale:stable floating tag kept per publisher convention; SHA-pinning deferred post-v1 per T-07-02-02
+- 07-02: INFR-09 re-validated in-place — yaml-parse + grep + exec-bit smoke proves Phase 1 release.yml still clean; zero edits to .github/workflows/*.yml
 
 ### Pending Todos
 
@@ -234,8 +242,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T07:16:56.413Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-04-21T09:55:46.026Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 7 (PWA & Release) — 2 plans — 2026-04-21T06:58:11.893Z

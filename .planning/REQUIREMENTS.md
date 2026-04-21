@@ -177,7 +177,8 @@
 **: App detects insecure context and informs user what's unavailable
 - [x] **INFR-08
 **: PWA manifest + service worker in HTTPS modes
-- [ ] **INFR-09**: GitHub Actions CI/CD: lint, test on PR; multi-arch build → GHCR on tag
+- [x] **INFR-09
+**: GitHub Actions CI/CD: lint, test on PR; multi-arch build → GHCR on tag
 - [x] **INFR-10
 **: Env-driven config — no hardcoded URLs, paths, or secrets
 - [x] **INFR-11

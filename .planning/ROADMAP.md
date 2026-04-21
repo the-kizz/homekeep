@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Collaboration** - Share homes via invite links, manage members, cascading task assignment (completed 2026-04-21)
 - [x] **Phase 5: Views & Onboarding** - By Area, Person, and History views plus seed task library wizard (completed 2026-04-21)
 - [x] **Phase 6: Notifications & Gamification** - ntfy push notifications, scheduler, streaks, and celebrations (completed 2026-04-21)
-- [ ] **Phase 7: PWA & Release** - PWA manifest, HTTPS compose variants, graceful degradation, CI/CD publish
+- [x] **Phase 7: PWA & Release** - PWA manifest, HTTPS compose variants, graceful degradation, CI/CD publish (completed 2026-04-21)
 
 ## Phase Details
 
@@ -161,7 +161,7 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md — PWA manifest + Serwist service worker + secure-context detection + warm banner for HTTP deployments
-- [ ] 07-02-PLAN.md -- Caddy + Tailscale compose variants + deployment/PWA-install docs + INFR-09 release pipeline re-validation
+- [x] 07-02-PLAN.md -- Caddy + Tailscale compose variants + deployment/PWA-install docs + INFR-09 release pipeline re-validation
 
 ## Progress
 
@@ -176,4 +176,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 4. Collaboration | 3/3 | Complete    | 2026-04-21 |
 | 5. Views & Onboarding | 3/3 | Complete    | 2026-04-21 |
 | 6. Notifications & Gamification | 3/3 | Complete    | 2026-04-21 |
-| 7. PWA & Release | 1/2 | In progress | - |
+| 7. PWA & Release | 2/2 | Complete    | 2026-04-21 |
