@@ -77,6 +77,10 @@ export function HorizonStrip({
     : '';
 
   const emptyHorizon = tasks.length === 0;
+  // The current month is always index 0 (see the loop above: i=0 is now).
+  // We tag that cell with a subtle warm border so the strip has a clear
+  // "you are here" anchor without shouting.
+  const currentMonthKey = months[0]?.key;
 
   return (
     <Card data-band="horizon">
@@ -94,18 +98,31 @@ export function HorizonStrip({
           <div className="grid grid-cols-6 gap-1 sm:grid-cols-12">
             {months.map((m) => {
               const count = (buckets.get(m.key) ?? []).length;
+              const isCurrent = m.key === currentMonthKey;
+              // Populated months stay at full opacity so the eye
+              // lands on them; empty months dim to 55% so the strip
+              // reads as "activity graph" not a full calendar.
+              const labelOpacity = count > 0 ? 'opacity-100' : 'opacity-55';
               return (
                 <button
                   key={m.key}
                   type="button"
                   disabled={count === 0}
                   onClick={() => count > 0 && setOpenMonthKey(m.key)}
-                  className="flex min-h-[44px] flex-col items-center justify-center gap-1 rounded border p-1 text-xs disabled:opacity-50"
+                  className={
+                    'flex min-h-[44px] flex-col items-center justify-center gap-1 rounded border p-1 text-xs disabled:opacity-50 ' +
+                    (isCurrent ? 'border-primary/40' : '')
+                  }
                   aria-label={`${m.label} — ${count} task${count === 1 ? '' : 's'}`}
                   data-month-key={m.key}
                   data-month-count={count}
+                  data-current-month={isCurrent ? 'true' : undefined}
                 >
-                  <span className="text-muted-foreground">{m.label}</span>
+                  <span
+                    className={`font-display text-muted-foreground ${labelOpacity}`}
+                  >
+                    {m.label}
+                  </span>
                   <span className="flex items-center gap-0.5">
                     {Array.from({ length: Math.min(count, 3) }).map(
                       (_, i) => (
