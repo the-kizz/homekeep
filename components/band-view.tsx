@@ -312,10 +312,14 @@ export function BandView({
       </header>
 
       {!hasAnyTasks ? (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-            <p className="text-muted-foreground">
-              No tasks yet — your house is a blank canvas.
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+            <p className="font-display text-lg text-foreground/85">
+              Your house is a blank canvas.
+            </p>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Add your first recurring task and HomeKeep will keep track of
+              what&rsquo;s due, quietly, in the background.
             </p>
             <Button asChild>
               <Link
