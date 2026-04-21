@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Scaffold & Infrastructure** - Docker container with Next.js + PocketBase running, dev environment, compose files, health endpoint (completed 2026-04-20)
 - [x] **Phase 2: Auth & Core Data** - Single user can sign up, create homes/areas/tasks, and manage their data (completed 2026-04-21)
 - [x] **Phase 2.1: Deploy Checkpoint** (INSERTED) - Build local image + docker compose up on VPS port 3000 for live preview at http://46.62.151.57:3000/ (completed 2026-04-21)
-- [ ] **Phase 3: Core Loop** - Three-band main view with task completion, coverage ring, and early-completion guard
+- [x] **Phase 3: Core Loop** - Three-band main view with task completion, coverage ring, and early-completion guard (completed 2026-04-21)
 - [ ] **Phase 4: Collaboration** - Share homes via invite links, manage members, cascading task assignment
 - [ ] **Phase 5: Views & Onboarding** - By Area, Person, and History views plus seed task library wizard
 - [ ] **Phase 6: Notifications & Gamification** - ntfy push notifications, scheduler, streaks, and celebrations
@@ -95,7 +95,7 @@ Plans:
 Plans:
 - [x] 03-01-PLAN.md — Completions collection migration + pure band/coverage/guard functions + completeTaskAction server action
 - [x] 03-02-PLAN.md — Three-band UI: CoverageRing, TaskBand, TaskRow, HorizonStrip, BandView + rewritten /h/[homeId] page
-- [ ] 03-03-PLAN.md — Wire tap-to-complete + EarlyCompletionDialog + TaskDetailSheet + D-21 Playwright E2E
+- [x] 03-03-PLAN.md — Wire tap-to-complete + EarlyCompletionDialog + TaskDetailSheet + D-21 Playwright E2E
 
 ### Phase 4: Collaboration
 **Goal**: A household can share a home, manage members, and tasks resolve their effective assignee through cascading logic
@@ -171,7 +171,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Scaffold & Infrastructure | 7/7 | Complete    | 2026-04-20 |
 | 2. Auth & Core Data | 4/5 | In progress | - |
-| 3. Core Loop | 2/3 | In progress | - |
+| 3. Core Loop | 3/3 | Complete    | 2026-04-21 |
 | 4. Collaboration | 0/2 | Not started | - |
 | 5. Views & Onboarding | 0/3 | Not started | - |
 | 6. Notifications & Gamification | 0/3 | Not started | - |
