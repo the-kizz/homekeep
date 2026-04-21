@@ -110,7 +110,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 04-01-PLAN.md — home_members + invites PB migrations with owner backfill + rule-update to member-gated access + Whole Home hook extension + integration tests
+- [x] 04-01-PLAN.md — home_members + invites PB migrations with owner backfill + rule-update to member-gated access + Whole Home hook extension + integration tests
 - [ ] 04-02-PLAN.md — invite/member server actions (createInvite, acceptInvite, revokeInvite, removeMember, leaveHome) + admin client + membership helpers + signup-next thread-through + /invite/[token] route + ownership→membership preflight swap
 - [ ] 04-03-PLAN.md — resolveAssignee pure fn + avatar primitives + AssigneeDisplay + HomeSwitcher home_members swap + Settings/Members/Leave routes + InviteLinkCard + MembersList + Playwright E2E (invite roundtrip + cascade + owner gating)
 
@@ -173,7 +173,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 1. Scaffold & Infrastructure | 7/7 | Complete    | 2026-04-20 |
 | 2. Auth & Core Data | 4/5 | In progress | - |
 | 3. Core Loop | 3/3 | Complete    | 2026-04-21 |
-| 4. Collaboration | 0/2 | Not started | - |
+| 4. Collaboration | 1/3 | In progress | - |
 | 5. Views & Onboarding | 0/3 | Not started | - |
 | 6. Notifications & Gamification | 0/3 | Not started | - |
 | 7. PWA & Release | 0/2 | Not started | - |

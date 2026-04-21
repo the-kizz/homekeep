@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Completed 03-03-PLAN.md — Phase 3 DONE
-last_updated: "2026-04-21T02:34:44.638Z"
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-04-21T03:19:06.708Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 16
-  percent: 50
+  completed_phases: 3
+  total_plans: 18
+  completed_plans: 17
+  percent: 94
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 3 — Core Loop
+**Current focus:** Phase 4 — Collaboration
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
-Status: Ready to plan
+Phase: 4 (Collaboration) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-04-21
 
-Progress: [██████████] 100%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [██████████] 100%
 | Phase 03 P03-01 | 9min | 3 tasks | 13 files |
 | Phase 03 P03-02 | 7 | 5 tasks | 10 files |
 | Phase 03 P03-03 | 30min | 4 tasks | 10 files |
+| Phase 04 P04-01 | 7min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,9 @@ Recent decisions affecting current work:
 - 03-03: Date/clock reads hoisted inside startTransition to satisfy react-hooks/purity without a 'use no memo' directive
 - 03-03: E2E URL regex {15} enforced PB id length — closes the /h/new ambiguity that let expect(toHaveURL) return before server-action redirect
 - 03-03: Seed-via-PB-REST pattern for E2E back-dated completions — the user's own auth token is sufficient, no superuser back-door needed
+- Phase 4 primary rule form: _via_ back-relation with ?= any-match (over @collection fallback)
+- Owner-membership auto-create lives in the Whole Home hook (single transaction, not chained hooks)
+- Disposable-PB port map: 18090/18091/18092/18093 (02-01 / 03-01 / 04-01 hook / 04-01 rules)
 
 ### Pending Todos
 
@@ -163,8 +167,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T02:34:35.601Z
-Stopped at: Completed 03-03-PLAN.md — Phase 3 DONE
+Last session: 2026-04-21T03:19:06.693Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
 
-**Planned Phase:** 3 (Core Loop) — 3 plans — 2026-04-21T01:31:15.048Z
+**Planned Phase:** 4 (Collaboration) — 3 plans — 2026-04-21T03:08:12.524Z
