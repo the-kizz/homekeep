@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 const INITIAL: ActionState = { ok: false };
 
 type AreaOption = { id: string; name: string };
+type MemberOption = { id: string; name: string };
 
 type TaskRecord = {
   id: string;
@@ -49,6 +50,7 @@ type TaskRecord = {
   schedule_mode: 'cycle' | 'anchored';
   anchor_date: string | null;
   notes?: string;
+  assigned_to_id?: string | null;
 };
 
 const QUICK_SELECT: { label: string; days: number }[] = [
@@ -62,12 +64,14 @@ export function TaskForm({
   mode,
   homeId,
   areas,
+  members = [],
   task,
   preselectedAreaId,
 }: {
   mode: 'create' | 'edit';
   homeId: string;
   areas: AreaOption[];
+  members?: MemberOption[];
   task?: TaskRecord;
   preselectedAreaId?: string;
 }) {
@@ -91,6 +95,14 @@ export function TaskForm({
       ? task.anchor_date.slice(0, 10)
       : '';
 
+  // 04-03 TASK-02: assigned_to_id default — use the task record's value
+  // if editing; otherwise empty string (="" = "Area default / Anyone").
+  // The zod schema treats empty string as null-equivalent (z.string().nullish()).
+  const defaultAssigned =
+    typeof task?.assigned_to_id === 'string' && task.assigned_to_id.length > 0
+      ? task.assigned_to_id
+      : '';
+
   const {
     register,
     control,
@@ -108,6 +120,7 @@ export function TaskForm({
       frequency_days: task?.frequency_days ?? 7,
       schedule_mode: task?.schedule_mode ?? 'cycle',
       anchor_date: defaultAnchor || null,
+      assigned_to_id: defaultAssigned,
       notes: task?.notes ?? '',
     },
   });
@@ -176,6 +189,34 @@ export function TaskForm({
         {areaError && (
           <p className="text-sm text-destructive">{areaError}</p>
         )}
+      </div>
+
+      {/*
+        04-03 TASK-02: Assignee picker. "" = "Area default / Anyone" —
+        the cascade in lib/assignment.ts falls through to area default or
+        'anyone' at render time. Single option (no separate "Anyone"
+        entry) because the DB representation of both is null; adding a
+        second sentinel would introduce a lying UI. Native <select>
+        matches the area picker above for visual consistency.
+      */}
+      <div className="space-y-1.5">
+        <Label htmlFor="task-assignee">Assign to</Label>
+        <select
+          id="task-assignee"
+          data-testid="task-assignee-select"
+          {...register('assigned_to_id')}
+          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">Use area default (or Anyone)</option>
+          {members.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground">
+          Leave as area default unless you want to override for this task.
+        </p>
       </div>
 
       <div className="space-y-1.5">
