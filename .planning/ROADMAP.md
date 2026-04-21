@@ -157,11 +157,11 @@ Plans:
   1. On HTTPS deployments, the app is installable as a PWA with offline read caching
   2. On LAN-only (HTTP) deployments, the app informs users what features are unavailable without breaking functionality
   3. GitHub Actions builds multi-arch images and publishes to GHCR on tagged releases
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-01-PLAN.md -- PWA manifest + Serwist service worker + secure-context detection + warm banner for HTTP deployments
+- [ ] 07-02-PLAN.md -- Caddy + Tailscale compose variants + deployment/PWA-install docs + INFR-09 release pipeline re-validation
 
 ## Progress
 
