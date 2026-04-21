@@ -13,7 +13,7 @@ HomeKeep delivers a self-hosted household maintenance PWA in 7 phases, starting 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Scaffold & Infrastructure** - Docker container with Next.js + PocketBase running, dev environment, compose files, health endpoint (completed 2026-04-20)
-- [ ] **Phase 2: Auth & Core Data** - Single user can sign up, create homes/areas/tasks, and manage their data
+- [x] **Phase 2: Auth & Core Data** - Single user can sign up, create homes/areas/tasks, and manage their data (completed 2026-04-21)
 - [ ] **Phase 2.1: Deploy Checkpoint** (INSERTED) - Build local image + docker compose up on VPS port 80 for live preview at http://46.62.151.57/
 - [ ] **Phase 3: Core Loop** - Three-band main view with task completion, coverage ring, and early-completion guard
 - [ ] **Phase 4: Collaboration** - Share homes via invite links, manage members, cascading task assignment
@@ -61,8 +61,8 @@ Plans:
 - [x] 02-01-PLAN.md — PocketBase migration (homes/areas/tasks + users.last_viewed_home_id) + pb_hooks (Whole Home auto-create, SMTP bootstrap, rate limits) + dev-pb.js --hooksDir + Whole Home integration test
 - [x] 02-02-PLAN.md — shadcn/ui init + Tailwind 4 warm-accent theme + SSR cookie bridge (lib/pocketbase-server.ts + lib/pocketbase-browser.ts) + new-deps install (react-hook-form, @dnd-kit, date-fns-tz, sonner, lucide-react)
 - [x] 02-03-PLAN.md — Auth pages + server actions + proxy.ts (Next 16) + zod schemas + account menu + Playwright auth happy-path E2E
-- [ ] 02-04-PLAN.md — Homes + Areas CRUD (HomeSwitcher, SortableAreaList, IconPicker, ColorPicker, area palette) + last-viewed persistence + Whole Home delete guard E2E
-- [ ] 02-05-PLAN.md — Tasks CRUD + computeNextDue pure function (13-case matrix) + TaskForm (cycle/anchored, freq quick-select) + NextDueDisplay (date-fns-tz) + D-21 full happy-path E2E
+- [x] 02-04-PLAN.md — Homes + Areas CRUD (HomeSwitcher, SortableAreaList, IconPicker, ColorPicker, area palette) + last-viewed persistence + Whole Home delete guard E2E
+- [x] 02-05-PLAN.md — Tasks CRUD + computeNextDue pure function (13-case matrix) + TaskForm (cycle/anchored, freq quick-select) + NextDueDisplay (date-fns-tz) + D-21 full happy-path E2E
 
 ### Phase 2.1: Deploy Checkpoint (INSERTED)
 **Goal**: Build the current HomeKeep image locally and deploy via docker compose on VPS port 80 so the user can hit http://46.62.151.57/ and see the live Phase 2 state.

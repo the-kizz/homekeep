@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-04-21T00:33:20.677Z"
+status: verifying
+stopped_at: Completed 02-05-PLAN.md (Phase 2 COMPLETE)
+last_updated: "2026-04-21T00:55:28.920Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 12
-  completed_plans: 11
-  percent: 92
+  completed_plans: 12
+  percent: 100
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 
 Phase: 2 (Auth & Core Data) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-21
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████████░] 92%
 | Phase 02 P02 | 8min | 2 tasks | 21 files |
 | Phase 02 P02-03 | 7min | 3 tasks | 18 files |
 | Phase 02 P02-04 | 25min | 3 tasks | 22 files |
+| Phase 02 P02-05 | 16min | 4 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,10 @@ Recent decisions affecting current work:
 - 02-04: (app)/layout.tsx + /h/page.tsx fetch live users record via pb.getOne() — pb.authStore.record is stale cookie snapshot
 - 02-04: Bumped *:authWithPassword rate limit 5/60s → 20/60s to unblock E2E suite (still blocks >20 spray/min)
 - 02-04: deleteHome server action exported but NOT UI-wired — Danger Zone deferred to Settings/Phase 5
+- 02-05: Adopted RESEARCH's computeNextDue anchored formula (floor(elapsed/freq)+1 cycles) over CONTEXT D-13's Math.ceil pseudocode — codified with an explicit exact-boundary unit test.
+- 02-05: Frequency quick-select buttons are explicitly type='button' — HTML default of type='submit' would submit the form mid-fill on click; plan verification flagged this as a real bug risk.
+- 02-05: computeNextDue is pure — accepts now: Date as a parameter, never reads Date.now internally. The Server Component page passes new Date() as a prop so all tasks render relative to a single request-time instant.
+- 02-05: NextDueDisplay is Client Component — date-fns-tz timezone DB loads on the client boundary only, keeping the server bundle lean. Rendering uses formatInTimeZone(date, home.timezone, 'MMM d, yyyy') inside a <time dateTime> element.
 
 ### Pending Todos
 
@@ -140,8 +145,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T00:33:20.660Z
-Stopped at: Completed 02-04-PLAN.md
+Last session: 2026-04-21T00:55:28.903Z
+Stopped at: Completed 02-05-PLAN.md (Phase 2 COMPLETE)
 Resume file: None
 
 **Planned Phase:** 2 (Auth & Core Data) — 5 plans — 2026-04-20T23:14:37.047Z

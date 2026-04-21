@@ -52,7 +52,8 @@
 - [ ] **TASK-04**: UI shows effective assignee with icon distinguishing inherited vs overridden
 - [x] **TASK-05
 **: User can set schedule mode per task (cycle or anchored, default: cycle)
-- [ ] **TASK-06**: User can add custom tasks beyond seed library
+- [x] **TASK-06
+**: User can add custom tasks beyond seed library
 - [x] **TASK-07
 **: User can edit and archive tasks
 - [x] **TASK-08
