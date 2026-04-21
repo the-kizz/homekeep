@@ -213,6 +213,25 @@ modifications so users of that service can see what's running. Same spirit as
 the rest of the project: transparent, self-hostable, yours to change — just
 keep the changes visible to the people you serve.
 
+## Provenance
+
+Every HomeKeep build ships a small, static, zero-telemetry JSON probe at
+`/.well-known/homekeep.json`. It returns the app name, source repo URL,
+license, and the unique build UUID baked into that image at Docker build
+time. No phone-home, no analytics — the endpoint only responds to a request
+made directly to the serving host.
+
+```bash
+curl -fsS https://your-homekeep.example.com/.well-known/homekeep.json
+# => {"app":"HomeKeep","repo":"https://github.com/conroyke56/homekeep","license":"AGPL-3.0-or-later","build":"hk-<uuid>"}
+```
+
+If you ever come across HomeKeep running on a domain that isn't yours or
+mine, that endpoint is the fastest way to see where it was built and to
+verify the AGPL license declaration. A `build` value of `hk-dev-local` means
+someone rebuilt the image without passing the `HK_BUILD_ID` build-arg — a
+signal (not proof) that the deploy isn't from an official release.
+
 ## Credits
 
 - Written during a few long evenings with [Claude Code](https://claude.com/claude-code) driving the build (the whole thing was scaffolded, researched, planned, and implemented via GSD — see `.planning/` for the phase-by-phase paper trail).
