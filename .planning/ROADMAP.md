@@ -123,13 +123,13 @@ Plans:
   2. Person view shows the user's assigned tasks, completion history, and personal stats
   3. History view shows a filterable timeline of household completions (by person, area, time range)
   4. First-run wizard offers seed tasks organized by area, and user can accept/reject/customize each one
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-- [ ] 05-03: TBD
+- [ ] 05-01-PLAN.md — homes.onboarded migration + seed library + pure helpers (streak / area-coverage / history-filter) + nav shell (bottom nav + top tabs) + per-home layout
+- [ ] 05-02-PLAN.md — By Area view (grid + pinned Whole Home) + Person view (assigned tasks + history + stats + prefs stub) + History view (timeline + URL-param filters) + E2E Suites B/C/D
+- [ ] 05-03-PLAN.md — Onboarding wizard (SeedTaskCard + OnboardingWizard) + batchCreateSeedTasks / skipOnboarding actions + dashboard redirect + E2E Suite A + backward-compat skip helper
 
 ### Phase 6: Notifications & Gamification
 **Goal**: The app proactively reminds users of overdue tasks via ntfy and provides gentle motivation through streaks and celebrations
