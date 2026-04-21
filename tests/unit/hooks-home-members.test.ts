@@ -3,7 +3,7 @@ import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import PocketBase from 'pocketbase';
-import { runBackfill } from '../fixtures/backfill-loop.js';
+import { runBackfill, type BackfillMockApp } from '../fixtures/backfill-loop';
 
 /**
  * 04-01 Task 2 — proves the Whole Home hook extension atomically inserts
@@ -166,9 +166,11 @@ describe('home_members owner auto-create + backfill', () => {
     const saved: Array<{ home_id: string; user_id: string; role: string }> = [];
 
     // Helper: build a mock app whose state reflects saved rows.
-    function makeMockApp(existingRows: Array<{ home_id: string; user_id: string }>) {
+    function makeMockApp(
+      existingRows: Array<{ home_id: string; user_id: string }>,
+    ): BackfillMockApp {
       return {
-        findRecordsByFilter: (collection: string) => {
+        findRecordsByFilter: (collection) => {
           if (collection !== 'homes') {
             throw new Error(`unexpected collection: ${collection}`);
           }
@@ -180,11 +182,7 @@ describe('home_members owner auto-create + backfill', () => {
             },
           }));
         },
-        findFirstRecordByFilter: (
-          collection: string,
-          _filter: string,
-          params: { hid: string; uid: string },
-        ) => {
+        findFirstRecordByFilter: (collection, _filter, params) => {
           if (collection !== 'home_members') {
             throw new Error(`unexpected collection: ${collection}`);
           }
@@ -197,7 +195,7 @@ describe('home_members owner auto-create + backfill', () => {
           }
           return hit;
         },
-        save: (row: { home_id: string; user_id: string; role: string }) => {
+        save: (row) => {
           saved.push(row);
         },
       };

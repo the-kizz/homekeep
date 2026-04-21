@@ -34,4 +34,26 @@ onRecordCreateExecute((e) => {
   // Still inside the transaction: if this throws, the home insert
   // rolls back, so we cannot leave an orphan home without a Whole Home.
   e.app.save(wholeHome);
+
+  // ─── ADDED in Phase 4 (D-03) ──────────────────────────────────────
+  // Auto-create the owner's home_members row in the same DB transaction.
+  // Same atomicity guarantee as the Whole Home area insert above —
+  // if this throws, the whole transaction rolls back and the client
+  // sees an error rather than ending up with an orphan home (no
+  // Whole Home) or a home its owner cannot read (no membership
+  // row under the Phase 4 member-gated listRule on homes).
+  //
+  // Consolidated into this hook (rather than split into a separate
+  // file) so "home creation = home + whole home area + owner
+  // membership" stays obviously atomic; two onRecordCreateExecute
+  // hooks on the same event each call e.next() independently, which
+  // is a subtle pattern we avoid on purpose (Pattern 5 anti-pattern).
+  const members = e.app.findCollectionByNameOrId("home_members");
+  const ownerMember = new Record(members, {
+    home_id: e.record.id,
+    user_id: e.record.get("owner_id"),
+    role:    "owner",
+  });
+  e.app.save(ownerMember);
+  // ─── END ADDED ────────────────────────────────────────────────────
 }, "homes");
