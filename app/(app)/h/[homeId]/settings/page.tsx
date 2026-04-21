@@ -106,10 +106,18 @@ export default async function HomeSettingsPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Phase 9 UX audit: button hierarchy inside the Members
+              section. InviteLinkCard renders the primary action
+              ("Create invite link") in solid warm. "View members" is
+              a secondary navigation affordance — outline variant,
+              natural width, not full-bleed, so it doesn't visually
+              compete with the primary action above it. */}
           <InviteLinkCard homeId={homeId} pendingInvites={pendingInvites} />
-          <Button asChild variant="outline" className="w-full">
-            <Link href={`/h/${homeId}/members`}>View members</Link>
-          </Button>
+          <div className="flex justify-start">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/h/${homeId}/members`}>View members</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
