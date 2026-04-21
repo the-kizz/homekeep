@@ -38,10 +38,22 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
+          # Take manual control of :latest so it only applies to stable tags.
+          flavor: |
+            latest=false
           tags: |
+            # Exact version: v1.0.0 -> 1.0.0, v1.0.0-rc1 -> 1.0.0-rc1
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=true
+            # Minor pin (stable only): v1.2.3 -> 1.2; RC tags skipped via match-prefix
+            type=semver,pattern={{major}}.{{minor}},enable=${{ !contains(github.ref_name, '-') }}
+            # Major pin (stable only): v1.2.3 -> 1
+            type=semver,pattern={{major}},enable=${{ !contains(github.ref_name, '-') }}
+            # :latest only for stable releases (no -rc / -beta / -alpha suffix)
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+            # :rc channel auto-updates to the most recent release candidate
+            type=raw,value=rc,enable=${{ contains(github.ref_name, '-rc') }}
+            # :beta channel auto-updates to the most recent beta
+            type=raw,value=beta,enable=${{ contains(github.ref_name, '-beta') }}
 
       - name: Build and push multi-arch
         uses: docker/build-push-action@v7

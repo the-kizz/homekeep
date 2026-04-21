@@ -100,7 +100,20 @@ docker run -d -p 3000:3000 \
 
 Open <http://localhost:3000>, sign up, create a home. The PocketBase admin UI lives at `/_/` — on first boot check the container logs for an installer link.
 
-**Pin a version** for reproducible deploys: replace `:latest` with a specific tag like `:1.0.0-rc1`. See [Releases](https://github.com/conroyke56/homekeep/releases) for available tags.
+### Image tags (pick your channel)
+
+| Tag | What it is | Good for |
+|---|---|---|
+| `:latest` | Most recent **stable** release. No RCs, no betas. | Default — what you want unless you know otherwise. |
+| `:rc` | Most recent release candidate. Moving pointer. | Early-access; might break. |
+| `:edge` | Auto-built from every push to `master`. Bleeding edge. | Trying the unreleased HEAD; expect breakage. |
+| `:1` | Latest patch of major version 1. Auto-updates within `1.x.x`. | Conservative auto-updates (bugfixes only). |
+| `:1.0` | Latest patch of `1.0.x`. Never crosses minor. | Very conservative — only `1.0.<next>` patches. |
+| `:1.0.0`, `:1.0.0-rc1`, … | Exact version pin. Never changes. | Production; reproducibility. |
+
+Model borrowed from Plex, Nextcloud, Grafana, Postgres. `:latest` is **stable**, not nightly.
+
+> Pre-v1.0.0 note: right now `:latest` points at `1.0.0-rc1` because there's no stable release yet. The moment `v1.0.0` ships (non-RC), `:latest` auto-updates and this note goes away.
 
 ### Option 2 — `docker compose up` (LAN)
 
