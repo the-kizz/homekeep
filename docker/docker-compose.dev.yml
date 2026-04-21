@@ -1,0 +1,8 @@
+# Dev override: use local image + named volume (avoids host bind-mount uid issues)
+services:
+  homekeep:
+    image: homekeep:latest
+    volumes:
+      - homekeep_data:/app/data
+volumes:
+  homekeep_data:
