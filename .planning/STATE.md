@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-04-21T05:58:08.546Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-04-21T06:21:30.388Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 24
-  completed_plans: 23
-  percent: 96
+  completed_plans: 24
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 ## Current Position
 
 Phase: 6 (Notifications & Gamification) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-21
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [██████████] 96%
 | Phase 05 P02 | 20min | 3 tasks tasks | 10 files files |
 | Phase 05 P03 | 12min | 3 tasks | 19 files |
 | Phase 06 P01 | 12min | 2 tasks | 13 files |
+| Phase Phase 06 PP02 | 18min | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,13 @@ Recent decisions affecting current work:
 - 06-01: recordNotification/hasNotified swallow ALL errors; DB UNIQUE INDEX is race safety net (two-layer dedupe per D-05)
 - 06-01: detectAreaCelebration uses strict === 1.0 (not epsilon) — computeCoverage is deterministic mean, no FP drift vs canonical values
 - 06-01: Disposable-PB port 18096 claimed for notifications idempotency test; allocation log 18090..18096
+- 06-02: node-cron pinned to v3.0.3 (matches @types/node-cron@3.0.11; v4 async API breaking)
+- 06-02: scheduler test seeds past completion (5d ago) on cycle-mode task — PB AutoDate `created` is server-controlled
+- 06-02: fetchHomeMembers drops PB `fields` whitelist; `expand.user_id.<field>` syntax silently empties expand payload
+- 06-02: celebration reuses tasksInArea + getCompletionsForHome via Map overlay (no 2nd PB roundtrip)
+- 06-02: playwright.config.ts env gains DISABLE_SCHEDULER=true — quiets cron start logs in E2E; sync hooks still run but test users have empty topics
+- 06-02: Disposable-PB port 18097 claimed for scheduler integration test (allocation log now 18090..18097)
+- 06-02: admin-route fail-closed: 401 identical for token-unset vs token-too-short (no signal leakage)
 
 ### Pending Todos
 
@@ -208,8 +216,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T05:58:08.531Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-04-21T06:21:30.374Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 **Planned Phase:** 6 (Notifications & Gamification) — 3 plans — 2026-04-21T05:45:07.848Z

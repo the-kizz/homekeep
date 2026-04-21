@@ -131,13 +131,20 @@
 
 ### Notifications
 
-- [ ] **NOTF-01**: Each user can configure a personal ntfy topic
-- [ ] **NOTF-02**: Default ntfy server is ntfy.sh, configurable via NTFY_URL env var
-- [ ] **NOTF-03**: Notification fires when a task becomes overdue (once, not repeatedly)
-- [ ] **NOTF-04**: Notification fires when a task is assigned to you specifically
-- [ ] **NOTF-05**: Optional notification when partner completes a task (off by default)
-- [ ] **NOTF-06**: Optional weekly summary on Sunday (opt-in)
-- [ ] **NOTF-07**: In-app scheduler (node-cron) runs hourly for overdue detection
+- [x] **NOTF-01
+**: Each user can configure a personal ntfy topic
+- [x] **NOTF-02
+**: Default ntfy server is ntfy.sh, configurable via NTFY_URL env var
+- [x] **NOTF-03
+**: Notification fires when a task becomes overdue (once, not repeatedly)
+- [x] **NOTF-04
+**: Notification fires when a task is assigned to you specifically
+- [x] **NOTF-05
+**: Optional notification when partner completes a task (off by default)
+- [x] **NOTF-06
+**: Optional weekly summary on Sunday (opt-in)
+- [x] **NOTF-07
+**: In-app scheduler (node-cron) runs hourly for overdue detection
 
 ### Gamification
 
