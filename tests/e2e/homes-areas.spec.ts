@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { skipOnboardingIfPresent } from './helpers';
 
 /**
  * Homes + Areas happy-path E2E (02-04 Plan Task 3).
@@ -45,7 +46,9 @@ test('create home → Whole Home auto-created → add Kitchen → edit → delet
   await page.fill('[name=name]', 'Playwright House');
   await page.click('button[type=submit]');
 
-  // Redirect to /h/[newHomeId]
+  // 05-03: new home redirects to /onboarding; skip to land on dashboard.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
 
   // Navigate to the Areas management page — Whole Home should be there.
@@ -108,6 +111,9 @@ test('multiple homes + last-viewed persistence (HOME-03 / HOME-04)', async ({
   await page.click('text=Create your first home');
   await page.fill('[name=name]', 'House A');
   await page.click('button[type=submit]');
+  // 05-03: skip onboarding wizard to land on the dashboard.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
   await expect(switcherFor(/House A/)).toBeVisible();
 
@@ -118,6 +124,9 @@ test('multiple homes + last-viewed persistence (HOME-03 / HOME-04)', async ({
   await expect(page).toHaveURL(/\/h\/new/);
   await page.fill('[name=name]', 'House B');
   await page.click('button[type=submit]');
+  // 05-03: skip onboarding wizard on House B too.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
   await expect(switcherFor(/House B/)).toBeVisible();
 

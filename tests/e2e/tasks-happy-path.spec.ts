@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { skipOnboardingIfPresent } from './helpers';
 
 /**
  * D-21 full happy-path E2E (02-05 Plan Task 4) — the Phase 2 acceptance gate.
@@ -53,6 +54,9 @@ test('D-21 full happy path: signup -> home -> area -> cycle task -> anchored tas
   await expect(page).toHaveURL(/\/h\/new$/);
   await page.fill('[name=name]', 'TestHouse');
   await page.click('button[type=submit]');
+  // 05-03: new home redirects to /onboarding — skip to dashboard.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
   // Phase 3 replaced the home heading with the BandView. Probe the
   // HomeSwitcher in the banner instead — it surfaces the home name.
@@ -163,6 +167,9 @@ test('archive task removes it from the area active list', async ({ page }) => {
   await page.click('text=Create your first home');
   await page.fill('[name=name]', 'ArchiveHouse');
   await page.click('button[type=submit]');
+  // 05-03: new home redirects to /onboarding — skip to dashboard.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
 
   // Create Laundry area — navigate directly to /areas (Phase 3 removed

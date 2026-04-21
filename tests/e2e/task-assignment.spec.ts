@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { skipOnboardingIfPresent } from './helpers';
 
 /**
  * 04-03 D-20 Suite B — task-assignment cascade on member removal.
@@ -43,6 +44,9 @@ async function createHome(page: Page, homeName: string): Promise<string> {
   await expect(page).toHaveURL(/\/h\/new$/);
   await page.fill('[name=name]', homeName);
   await page.click('button[type=submit]');
+  // 05-03: new-home redirect to /onboarding — skip to land on dashboard.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
   return page.url();
 }

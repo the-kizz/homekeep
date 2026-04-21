@@ -4,6 +4,7 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
+import { skipOnboardingIfPresent } from './helpers';
 
 /**
  * 05-02 D-19 Phase 5 views E2E — three suites (B/C/D) covering the
@@ -64,6 +65,9 @@ async function createHome(page: Page, homeName: string): Promise<string> {
   await expect(page).toHaveURL(/\/h\/new$/);
   await page.fill('[name=name]', homeName);
   await page.click('button[type=submit]');
+  // 05-03: new-home redirect to /onboarding — skip to land on dashboard.
+  await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
+  await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
   return page.url();
 }
