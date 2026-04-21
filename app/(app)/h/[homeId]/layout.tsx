@@ -1,7 +1,8 @@
 import { NavShell } from '@/components/nav-shell';
+import { InsecureContextBanner } from '@/components/insecure-context-banner';
 
 /**
- * Per-home segment layout (05-01 Task 3).
+ * Per-home segment layout (05-01 Task 3 + 07-01 Task 2).
  *
  * Wraps every page under /h/[homeId]/* — dashboard, areas, tasks,
  * members, settings, leave — plus the Wave-2/3 additions (by-area,
@@ -15,6 +16,11 @@ import { NavShell } from '@/components/nav-shell';
  * layout awaits once to extract the id and hands it to NavShell; the
  * NavShell's client sub-components read the id from props, not from
  * `useParams()`, so there's a single server-trusted source of truth.
+ *
+ * 07-01 (D-07): <InsecureContextBanner /> sits ABOVE NavShell so the
+ * warm "You're on HTTP" banner renders on every authed page on HTTP
+ * deploys — but not on /login / /signup / /invite/[token], where a
+ * dismiss-nag would distract from auth.
  */
 export default async function HomeSegmentLayout({
   params,
@@ -24,5 +30,10 @@ export default async function HomeSegmentLayout({
   children: React.ReactNode;
 }) {
   const { homeId } = await params;
-  return <NavShell homeId={homeId}>{children}</NavShell>;
+  return (
+    <>
+      <InsecureContextBanner />
+      <NavShell homeId={homeId}>{children}</NavShell>
+    </>
+  );
 }
