@@ -29,28 +29,36 @@ export function PersonalStats({
   streak: number;
 }) {
   return (
+    // Phase 9 UX audit: equalize card heights so the streak card's
+    // longer zero-state copy ("New week — let's go!" + subline) doesn't
+    // make that tile tower over the two numeric tiles. `items-stretch`
+    // on the grid + `h-full` on the Card + `min-h-[120px]` on the
+    // CardContent gives every card the same visual weight regardless
+    // of content length. Body copy in the zero-state also downshifts
+    // to text-sm leading-snug so it wraps cleanly inside the fixed
+    // height instead of pushing the card taller.
     <div
       data-personal-stats
-      className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+      className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-3"
     >
-      <Card data-weekly-count={weekly}>
-        <CardContent className="flex flex-col items-center gap-1 py-4 text-center">
+      <Card data-weekly-count={weekly} className="h-full">
+        <CardContent className="flex min-h-[120px] flex-col items-center justify-center gap-1 py-4 text-center">
           <span className="text-3xl font-semibold tabular-nums">{weekly}</span>
           <span className="text-xs uppercase tracking-wide text-muted-foreground">
             this week
           </span>
         </CardContent>
       </Card>
-      <Card data-monthly-count={monthly}>
-        <CardContent className="flex flex-col items-center gap-1 py-4 text-center">
+      <Card data-monthly-count={monthly} className="h-full">
+        <CardContent className="flex min-h-[120px] flex-col items-center justify-center gap-1 py-4 text-center">
           <span className="text-3xl font-semibold tabular-nums">{monthly}</span>
           <span className="text-xs uppercase tracking-wide text-muted-foreground">
             this month
           </span>
         </CardContent>
       </Card>
-      <Card data-streak-count={streak}>
-        <CardContent className="flex flex-col items-center gap-1 py-4 text-center">
+      <Card data-streak-count={streak} className="h-full">
+        <CardContent className="flex min-h-[120px] flex-col items-center justify-center gap-1 py-4 text-center">
           {streak > 0 ? (
             <>
               <span className="text-3xl font-semibold tabular-nums">
@@ -62,10 +70,10 @@ export function PersonalStats({
             </>
           ) : (
             <>
-              <span className="text-lg font-medium">
+              <span className="text-sm font-medium leading-snug">
                 New week — let&apos;s go!
               </span>
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">
+              <span className="text-[10px] uppercase leading-tight tracking-wide text-muted-foreground">
                 streak starts on your next completion
               </span>
             </>
