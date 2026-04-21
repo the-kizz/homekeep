@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';

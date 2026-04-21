@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 /**
  * Public provenance constant — re-exported from a dedicated module so

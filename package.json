@@ -1,6 +1,7 @@
 {
   "name": "homekeep",
   "version": "0.1.0",
+  "license": "AGPL-3.0-or-later",
   "private": true,
   "scripts": {
     "dev": "concurrently -n next,pb -c cyan,magenta \"npm:dev:next\" \"npm:dev:pb\"",

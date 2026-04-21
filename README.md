@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/conroyke56/homekeep/actions"><img src="https://img.shields.io/github/actions/workflow/status/conroyke56/homekeep/ci.yml?branch=master&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
+  <img src="https://img.shields.io/badge/License-AGPL%20v3-ff6b35" alt="AGPL v3 License">
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16">
   <img src="https://img.shields.io/badge/PocketBase-0.37-ff8c00" alt="PocketBase 0.37">
   <img src="https://img.shields.io/badge/Docker-multi--arch-2496ed" alt="Docker multi-arch">
@@ -20,7 +20,7 @@
 
 A small weekend project that grew into a full v1. Existing task apps (Apple Reminders, Todoist) treat a task due in 365 days the same as one due today — everything lives in the same list, so you either ignore it or get overwhelmed. HomeKeep separates **what's due now** from **what's coming eventually**, and turns the whole year of home maintenance into a steady rhythm instead of a guilt pile.
 
-Built for people who self-host things and want ownership of their data. MIT license, public repo, no cloud dependencies, no telemetry, no paid APIs.
+Built for people who self-host things and want ownership of their data. AGPL v3, public repo, no cloud dependencies, no telemetry, no paid APIs.
 
 ## Guiding principles
 
@@ -207,7 +207,11 @@ If the app helps you keep your house, let me know — no tracking, no analytics,
 
 ## License
 
-[MIT](LICENSE). Fork it, modify it, host it, sell a service around it — all fine.
+[AGPL v3](LICENSE). Self-host freely. Modify freely. If you run a modified
+version of HomeKeep as a public service, the AGPL asks that you publish your
+modifications so users of that service can see what's running. Same spirit as
+the rest of the project: transparent, self-hostable, yours to change — just
+keep the changes visible to the people you serve.
 
 ## Credits
 
