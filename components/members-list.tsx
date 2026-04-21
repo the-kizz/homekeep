@@ -88,7 +88,7 @@ export function MembersList({
               <div className="flex items-center gap-3 min-w-0">
                 <AvatarCircle
                   initials={initialsOf(m.name)}
-                  variant="solid"
+                  variant="soft"
                   size="md"
                   title={m.name}
                 />

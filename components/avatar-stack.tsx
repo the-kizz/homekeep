@@ -37,10 +37,15 @@ export function AvatarStack({
       data-member-count={members.length}
     >
       {shown.map((m) => (
+        // Phase 9 UX audit: use 'soft' (warm-tinted) rather than
+        // 'solid' (warm-accent filled) so the identity avatars don't
+        // compete with the solid-warm streak pill that sits next to
+        // them in the dashboard header. Reserve solid warm for
+        // assignee-override semantics (AssigneeDisplay).
         <AvatarCircle
           key={m.id}
           initials={initialsOf(m.name)}
-          variant="solid"
+          variant="soft"
           size="sm"
           title={m.name}
         />

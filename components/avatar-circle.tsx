@@ -4,13 +4,18 @@ import clsx from 'clsx';
  * AvatarCircle — minimal initials-in-circle primitive (04-03, D-10).
  *
  * No @radix-ui/react-avatar dependency (RESEARCH Don't Hand-Roll #3):
- * all three display variants are pure CSS. Used by AvatarStack,
+ * all four display variants are pure CSS. Used by AvatarStack,
  * AssigneeDisplay, and the /members page row.
  *
  * Variants:
  *   - solid:     warm primary bg — task-level override assignee
- *   - wireframe: outlined, transparent bg — area-default assignee
- *   - dashed:    dashed outline, transparent bg — "Anyone" placeholder
+ *                (AssigneeDisplay: "Assigned via task").
+ *   - soft:      warm primary-tinted bg — identity-only avatars (dashboard
+ *                AvatarStack, MembersList). Visually softer than `solid`
+ *                so the streak pill keeps ownership of the solid warm
+ *                accent. Added in Phase 9 UX audit.
+ *   - wireframe: outlined, transparent bg — area-default assignee.
+ *   - dashed:    dashed outline, transparent bg — "Anyone" placeholder.
  *
  * Sizes: sm (24px), md (32px, default), lg (40px). All use a single
  * size class (size-X) so rounded-full renders as a perfect circle.
@@ -19,6 +24,9 @@ import clsx from 'clsx';
  *   - Rendered as a <span role="img"> with aria-label from title or
  *     initials. No text content leaks to screen readers beyond the
  *     label (avoids "Alice Alice" double-announcement).
+ *   - `soft` variant uses text-foreground on bg-primary/15 — passes
+ *     4.5:1 contrast on the cream background (tested in light mode
+ *     at the SPEC primary hue of hsl(30 45% 65%)).
  */
 export function AvatarCircle({
   initials,
@@ -27,7 +35,7 @@ export function AvatarCircle({
   title,
 }: {
   initials?: string;
-  variant?: 'solid' | 'wireframe' | 'dashed';
+  variant?: 'solid' | 'soft' | 'wireframe' | 'dashed';
   size?: 'sm' | 'md' | 'lg';
   title?: string;
 }) {
@@ -40,9 +48,11 @@ export function AvatarCircle({
   const variantCls =
     variant === 'solid'
       ? 'bg-primary text-primary-foreground border border-primary'
-      : variant === 'wireframe'
-        ? 'border-2 border-muted-foreground/70 text-muted-foreground bg-background'
-        : 'border-2 border-dashed border-muted-foreground/70 text-muted-foreground bg-background';
+      : variant === 'soft'
+        ? 'bg-primary/15 text-foreground border border-primary/25'
+        : variant === 'wireframe'
+          ? 'border-2 border-muted-foreground/70 text-muted-foreground bg-background'
+          : 'border-2 border-dashed border-muted-foreground/70 text-muted-foreground bg-background';
   return (
     <span
       role="img"
