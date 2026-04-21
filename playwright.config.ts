@@ -51,6 +51,12 @@ export default defineConfig({
             PB_ADMIN_EMAIL: E2E_ADMIN_EMAIL,
             PB_ADMIN_PASSWORD: E2E_ADMIN_PASSWORD,
             SITE_URL,
+            // 06-02 D-09: silence the in-process cron in E2E runs. The
+            // server-action synchronous ntfy hooks still fire — but every
+            // E2E user has an empty ntfy_topic by default, so sendNtfy
+            // never POSTs. This just prevents the hourly cron from logging
+            // `[scheduler] started` noise into the E2E server output.
+            DISABLE_SCHEDULER: 'true',
           },
         },
       ],

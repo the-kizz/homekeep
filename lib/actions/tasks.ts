@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/pocketbase-server';
+import { createAdminClient } from '@/lib/pocketbase-admin';
 import { assertMembership } from '@/lib/membership';
 import { taskSchema } from '@/lib/schemas/task';
 import type { ActionState } from '@/lib/schemas/auth';
@@ -179,6 +180,20 @@ export async function updateTask(
     return { ok: false, formError: 'You are not a member of this home' };
   }
 
+  // 06-02 D-06: capture previous assignee BEFORE the update so we can
+  // detect a non-null change and fire the assigned ntfy afterwards.
+  // The tasks.viewRule gates this read (T-06-02-02); a forged taskId for
+  // a non-member home 404s here, matching the update behaviour below.
+  let previousAssignedToId: string | null = null;
+  try {
+    const prev = await pb
+      .collection('tasks')
+      .getOne(taskId, { fields: 'id,home_id,assigned_to_id,name' });
+    previousAssignedToId = (prev.assigned_to_id as string) || null;
+  } catch {
+    /* update will surface the error below */
+  }
+
   try {
     await pb.collection('tasks').update(taskId, {
       name: parsed.data.name,
@@ -200,6 +215,30 @@ export async function updateTask(
     });
   } catch {
     return { ok: false, formError: 'Could not save task' };
+  }
+
+  // 06-02 NOTF-04: fire assigned ntfy when assigned_to_id changes to a
+  // NEW non-null user. Admin-client scoped because the authed pb client
+  // cannot write to notifications (createRule=null). Wrapped in try/catch —
+  // D-03 best-effort: ntfy failure MUST NOT block the update response.
+  const newAssignedToId = parsed.data.assigned_to_id ?? null;
+  if (newAssignedToId && newAssignedToId !== previousAssignedToId) {
+    try {
+      const admin = await createAdminClient();
+      const { sendAssignedNotification } = await import('@/lib/scheduler');
+      await sendAssignedNotification(admin, {
+        assigneeUserId: newAssignedToId,
+        taskId,
+        taskName: parsed.data.name,
+        homeId: parsed.data.home_id,
+        assignedAtIso: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn(
+        '[updateTask] assigned-notification failed:',
+        (e as Error).message,
+      );
+    }
   }
 
   revalidatePath(`/h/${parsed.data.home_id}`);

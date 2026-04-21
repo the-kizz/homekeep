@@ -74,8 +74,7 @@ describe('notificationPrefsSchema', () => {
   test('rejects weekly_summary_day outside enum', () => {
     const r = notificationPrefsSchema.safeParse({
       ...baseValid,
-      // @ts-expect-error — intentional invalid enum member for test
-      weekly_summary_day: 'tuesday',
+      weekly_summary_day: 'tuesday' as 'sunday' | 'monday',
     });
     expect(r.success).toBe(false);
     if (!r.success) {

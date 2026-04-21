@@ -3,9 +3,16 @@
 import { revalidatePath } from 'next/cache';
 import { formatInTimeZone } from 'date-fns-tz';
 import { createServerClient } from '@/lib/pocketbase-server';
+import { createAdminClient } from '@/lib/pocketbase-admin';
 import { assertMembership } from '@/lib/membership';
 import { shouldWarnEarly } from '@/lib/early-completion-guard';
-import { computeNextDue } from '@/lib/task-scheduling';
+import { computeNextDue, type Task } from '@/lib/task-scheduling';
+import {
+  getCompletionsForHome,
+  reduceLatestByTask,
+  type CompletionRecord,
+} from '@/lib/completions';
+import { detectAreaCelebration } from '@/lib/area-celebration';
 
 /**
  * Completion server action (03-01 Plan, Pattern 4, Pitfalls 5/6/13).
@@ -46,6 +53,9 @@ export type CompleteResult =
       ok: true;
       completion: { id: string; completed_at: string };
       nextDueFormatted: string;
+      // 06-02 GAME-04: present IFF the task's area crossed from <100% →
+      // 100% coverage via this completion. Client triggers animation.
+      celebration?: { kind: 'area-100'; areaId: string; areaName: string };
     }
   | { ok: false; formError: string }
   | {
@@ -75,7 +85,7 @@ export async function completeTaskAction(
     // `home_id.owner_id = @request.auth.id`; a forged id 404s here.
     const task = await pb.collection('tasks').getOne(taskId, {
       fields:
-        'id,home_id,frequency_days,schedule_mode,anchor_date,archived,created,name',
+        'id,home_id,area_id,frequency_days,schedule_mode,anchor_date,archived,created,name',
     });
 
     // 04-02 D-13: completeTaskAction is member-permitted. assertMembership
@@ -145,6 +155,19 @@ export async function completeTaskAction(
       }
     }
 
+    // 06-02 GAME-04: snapshot the task's area coverage BEFORE the write so
+    // we can detect the <100% → 100% crossover after the completion lands.
+    // Fetch sibling tasks + recent completions once; reuse for the after-
+    // snapshot via an overlay Map that swaps in the fresh completion.
+    const areaId = task.area_id as string;
+    const tasksInArea = (await pb.collection('tasks').getFullList({
+      filter: `home_id = "${homeId}" && area_id = "${areaId}" && archived = false`,
+      fields: 'id,created,archived,frequency_days,schedule_mode,anchor_date',
+    })) as unknown as Task[];
+    const areaTaskIds = tasksInArea.map((t) => t.id);
+    const areaCompletions = await getCompletionsForHome(pb, areaTaskIds, now);
+    const latestBefore = reduceLatestByTask(areaCompletions);
+
     // Write the completion. `completed_by_id` is server-set from
     // `pb.authStore` — NEVER from client input (T-03-01-02). PB
     // createRule also enforces the body match as defense-in-depth.
@@ -155,6 +178,59 @@ export async function completeTaskAction(
       via: 'tap', // Pitfall 13
       notes: '',
     });
+
+    // 06-02 GAME-04: build the after-snapshot by overlaying the fresh
+    // completion on top of latestBefore (don't re-fetch — avoids a
+    // needless PB roundtrip). detectAreaCelebration returns true IFF
+    // area coverage crossed from strictly-below 1.0 to exactly 1.0.
+    const afterCompletion: CompletionRecord = {
+      id: created.id,
+      task_id: taskId,
+      completed_by_id: userId,
+      completed_at: created.completed_at as string,
+      notes: '',
+      via: 'tap',
+    };
+    const latestAfter = new Map(latestBefore);
+    latestAfter.set(taskId, afterCompletion);
+    let celebration:
+      | { kind: 'area-100'; areaId: string; areaName: string }
+      | undefined;
+    if (detectAreaCelebration(tasksInArea, latestBefore, latestAfter, now)) {
+      try {
+        const area = await pb
+          .collection('areas')
+          .getOne(areaId, { fields: 'id,name' });
+        celebration = {
+          kind: 'area-100',
+          areaId,
+          areaName: area.name as string,
+        };
+      } catch {
+        /* area gone? silently skip — celebration is nice-to-have */
+      }
+    }
+
+    // 06-02 NOTF-05: fire partner-completed ntfys to OTHER home members
+    // who opted-in. Wrapped in try/catch per D-03 best-effort; a ntfy
+    // failure MUST NOT block the completion success response.
+    try {
+      const admin = await createAdminClient();
+      const { sendPartnerCompletedNotifications } = await import(
+        '@/lib/scheduler'
+      );
+      await sendPartnerCompletedNotifications(admin, {
+        completerUserId: userId,
+        completionId: created.id,
+        taskName: task.name as string,
+        homeId,
+      });
+    } catch (e) {
+      console.warn(
+        '[completeTask] partner-completed failed:',
+        (e as Error).message,
+      );
+    }
 
     // Compute next-due for the success toast.
     const nextDue = computeNextDue(
@@ -184,6 +260,7 @@ export async function completeTaskAction(
         completed_at: created.completed_at as string,
       },
       nextDueFormatted,
+      ...(celebration && { celebration }),
     };
   } catch {
     return { ok: false, formError: 'Could not record completion' };
