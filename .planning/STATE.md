@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 02-05-PLAN.md (Phase 2 COMPLETE)
-last_updated: "2026-04-21T00:55:28.920Z"
+status: executing
+stopped_at: Completed 03-01-PLAN.md
+last_updated: "2026-04-21T01:44:32.594Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 12
-  completed_plans: 12
-  percent: 100
+  total_plans: 15
+  completed_plans: 14
+  percent: 93
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 2 — Auth & Core Data
+**Current focus:** Phase 3 — Core Loop
 
 ## Current Position
 
-Phase: 2 (Auth & Core Data) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
+Phase: 3 (Core Loop) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-04-21
 
-Progress: [██████████] 100%
+Progress: [█████████░] 93%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [██████████] 100%
 | Phase 02 P02-03 | 7min | 3 tasks | 18 files |
 | Phase 02 P02-04 | 25min | 3 tasks | 22 files |
 | Phase 02 P02-05 | 16min | 4 tasks | 13 files |
+| Phase 03 P03-01 | 9min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,10 @@ Recent decisions affecting current work:
 - 02-05: Frequency quick-select buttons are explicitly type='button' — HTML default of type='submit' would submit the form mid-fill on click; plan verification flagged this as a real bug risk.
 - 02-05: computeNextDue is pure — accepts now: Date as a parameter, never reads Date.now internally. The Server Component page passes new Date() as a prop so all tasks render relative to a single request-time instant.
 - 02-05: NextDueDisplay is Client Component — date-fns-tz timezone DB loads on the client boundary only, keeping the server bundle lean. Rendering uses formatInTimeZone(date, home.timezone, 'MMM d, yyyy') inside a <time dateTime> element.
+- 03-01: Completions collection uses updateRule=null + deleteRule=null (not empty string) per PB docs — locks mutations to superusers
+- 03-01: Timezone-aware band boundaries via fromZonedTime(startOfDay(toZonedTime(now, tz)), tz) — DST-safe per date-fns-tz
+- 03-01: Server action returns discriminated-union CompleteResult — business outcomes typed, only PB/network outages caught as {ok:false,formError}
+- 03-01: Integration test uses port 18091 (02-01 used 18090) for concurrent test runs without collision
 
 ### Pending Todos
 
@@ -145,8 +150,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T00:55:28.903Z
-Stopped at: Completed 02-05-PLAN.md (Phase 2 COMPLETE)
+Last session: 2026-04-21T01:44:32.579Z
+Stopped at: Completed 03-01-PLAN.md
 Resume file: None
 
-**Planned Phase:** 2 (Auth & Core Data) — 5 plans — 2026-04-20T23:14:37.047Z
+**Planned Phase:** 3 (Core Loop) — 3 plans — 2026-04-21T01:31:15.048Z

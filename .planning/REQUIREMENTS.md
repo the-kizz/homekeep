@@ -62,8 +62,10 @@
 ### Completions
 
 - [ ] **COMP-01**: User can complete a task with one tap (records who, when)
-- [ ] **COMP-02**: Early-completion guard prompts when <25% of cycle elapsed since last completion
-- [ ] **COMP-03**: Completions are append-only history (never deleted)
+- [x] **COMP-02
+**: Early-completion guard prompts when <25% of cycle elapsed since last completion
+- [x] **COMP-03
+**: Completions are append-only history (never deleted)
 
 ### Main View (Three-Band)
 
@@ -71,7 +73,8 @@
 - [ ] **VIEW-02**: Overdue band only appears when tasks are actually overdue, sorted by days overdue
 - [ ] **VIEW-03**: This Week band shows 7-day window, grouped by day if >5 items
 - [ ] **VIEW-04**: Horizon band shows 12-month calendar strip with task dots/pills per month
-- [ ] **VIEW-05**: Coverage ring at top shows % of annual maintenance on track (equal-weight, frequency-normalized)
+- [x] **VIEW-05
+**: Coverage ring at top shows % of annual maintenance on track (equal-weight, frequency-normalized)
 - [ ] **VIEW-06**: Tapping a task allows completion or viewing details
 
 ### By Area View

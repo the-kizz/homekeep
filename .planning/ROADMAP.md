@@ -89,13 +89,13 @@ Plans:
   3. Early-completion guard prompts the user when completing a task less than 25% into its cycle
   4. Coverage ring at the top reflects the household's overall maintenance health
   5. Year-view horizon shows a 12-month calendar strip with upcoming task distribution
-**Plans**: TBD
+**Plans**: 3 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
-- [ ] 03-03: TBD
+- [x] 03-01-PLAN.md — Completions collection migration + pure band/coverage/guard functions + completeTaskAction server action
+- [ ] 03-02-PLAN.md — Three-band UI: CoverageRing, TaskBand, TaskRow, HorizonStrip, BandView + rewritten /h/[homeId] page
+- [ ] 03-03-PLAN.md — Wire tap-to-complete + EarlyCompletionDialog + TaskDetailSheet + D-21 Playwright E2E
 
 ### Phase 4: Collaboration
 **Goal**: A household can share a home, manage members, and tasks resolve their effective assignee through cascading logic
