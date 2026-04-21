@@ -297,9 +297,9 @@
 | INFR-04 | Phase 1 | Complete (01-02) |
 | INFR-05 | Phase 1 | Complete (01-01) |
 | INFR-06 | Phase 1 | Complete (01-05) |
-| INFR-07 | Phase 7 | Pending |
-| INFR-08 | Phase 7 | Pending |
-| INFR-09 | Phase 7 | Pending |
+| INFR-07 | Phase 7 | Complete |
+| INFR-08 | Phase 7 | Complete |
+| INFR-09 | Phase 7 | Complete |
 | INFR-10 | Phase 1 | Complete (01-02) |
 | INFR-11 | Phase 1 | Complete (01-01) |
 | INFR-12 | Phase 1 | Complete (01-01) |
