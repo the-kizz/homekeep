@@ -129,8 +129,6 @@ describe.sequential('scheduler overdue notifications', () => {
   let homeId: string;
   let areaId: string;
   let taskT1: { id: string };
-  let taskT2: { id: string } | null = null;
-  let taskT3: { id: string } | null = null;
 
   test('scenario A: new overdue task fires exactly one ntfy + writes one notification row', async () => {
     // Seed users. Alice opted-in with topic; Bob (created later) opted-in without topic.
@@ -165,8 +163,11 @@ describe.sequential('scheduler overdue notifications', () => {
       .getFirstListItem(`home_id = "${homeId}"`);
     areaId = wholeHome.id;
 
-    // Create a task with created=2 days ago, frequency_days=1 → already 1 day overdue.
-    const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+    // Create cycle-mode task, then seed a prior completion far enough in the
+    // past that `nextDue = completion.completed_at + frequency_days` is before
+    // `now` → scheduler must classify as overdue. `completed_at` is a regular
+    // DateField (not AutoDate) so we can write past values. This sidesteps
+    // PB's server-controlled `created` field.
     const t1 = await aliceClient.collection('tasks').create({
       home_id: homeId,
       area_id: areaId,
@@ -175,15 +176,23 @@ describe.sequential('scheduler overdue notifications', () => {
       frequency_days: 1,
       schedule_mode: 'cycle',
       anchor_date: '',
-      created: twoDaysAgo,
       icon: '',
       color: '',
       assigned_to_id: '',
       notes: '',
       archived: false,
     });
-    // PB does not let you set created on create. Re-read + fail fast if needed.
     taskT1 = { id: t1.id };
+
+    // Prior completion: 5 days ago → nextDue = completed_at + 1d = 4 days ago → overdue.
+    const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString();
+    await aliceClient.collection('completions').create({
+      task_id: t1.id,
+      completed_by_id: alice.id,
+      completed_at: fiveDaysAgo,
+      via: 'manual-date',
+      notes: '',
+    });
 
     // Now run the scheduler. Must detect T1 as overdue, send one ntfy, record one notification.
     const { processOverdueNotifications } = await import('@/lib/scheduler');
@@ -223,8 +232,7 @@ describe.sequential('scheduler overdue notifications', () => {
       notify_overdue: false,
     });
 
-    // Add a second overdue task T2.
-    const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+    // Add a second overdue task T2 (same pattern as T1 — cycle + past completion).
     const aliceClient = new PocketBase(`http://${HTTP}`);
     await aliceClient
       .collection('users')
@@ -237,14 +245,21 @@ describe.sequential('scheduler overdue notifications', () => {
       frequency_days: 1,
       schedule_mode: 'cycle',
       anchor_date: '',
-      created: twoDaysAgo,
       icon: '',
       color: '',
       assigned_to_id: '',
       notes: '',
       archived: false,
     });
-    taskT2 = { id: t2.id };
+    // taskT2 id captured inline below; assertion uses the task object directly.
+    const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString();
+    await aliceClient.collection('completions').create({
+      task_id: t2.id,
+      completed_by_id: alice.id,
+      completed_at: fiveDaysAgo,
+      via: 'manual-date',
+      notes: '',
+    });
 
     installMockFetch();
     const { processOverdueNotifications } = await import('@/lib/scheduler');
@@ -281,8 +296,7 @@ describe.sequential('scheduler overdue notifications', () => {
       role: 'member',
     });
 
-    // Add a third overdue task T3.
-    const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString();
+    // Add a third overdue task T3 (same pattern — cycle + past completion).
     const aliceClient = new PocketBase(`http://${HTTP}`);
     await aliceClient
       .collection('users')
@@ -295,14 +309,21 @@ describe.sequential('scheduler overdue notifications', () => {
       frequency_days: 1,
       schedule_mode: 'cycle',
       anchor_date: '',
-      created: twoDaysAgo,
       icon: '',
       color: '',
       assigned_to_id: '',
       notes: '',
       archived: false,
     });
-    taskT3 = { id: t3.id };
+    // taskT3 id captured inline below; assertion uses the task object directly.
+    const fiveDaysAgo = new Date(Date.now() - 5 * 86400000).toISOString();
+    await aliceClient.collection('completions').create({
+      task_id: t3.id,
+      completed_by_id: alice.id,
+      completed_at: fiveDaysAgo,
+      via: 'manual-date',
+      notes: '',
+    });
 
     installMockFetch();
     const { processOverdueNotifications } = await import('@/lib/scheduler');

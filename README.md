@@ -200,6 +200,17 @@ If you are forking HomeKeep into your own GitHub account or org and want the rel
 
 Once done, tag a release (`git tag v0.1.0 && git push origin v0.1.0`) and the multi-arch image will publish to GHCR automatically.
 
+## Notifications (Phase 6)
+
+HomeKeep pushes via [ntfy](https://ntfy.sh) — no account required.
+
+1. Pick a hard-to-guess topic string (e.g. `homekeep-alice-a7b3c9`).
+2. Subscribe on your phone/desktop: install the ntfy app and enter the same topic.
+3. In HomeKeep, open `/h/<home>/person` → Notifications, paste the topic, save.
+4. Test manually: `curl -d "hi from HomeKeep" https://ntfy.sh/<your-topic>`.
+
+Self-host ntfy (optional): set `NTFY_URL=https://ntfy.your-domain.com` in `.env`.
+
 ## License
 
 MIT -- see [LICENSE](./LICENSE).
