@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/pocketbase-server';
+import { assertMembership, assertOwnership } from '@/lib/membership';
 import { homeSchema } from '@/lib/schemas/home';
 import type { ActionState } from '@/lib/schemas/auth';
 
@@ -99,9 +100,17 @@ export async function updateHome(
     return { ok: false, formError: 'Not signed in' };
   }
 
+  // 04-02 D-13: updateHome is owner-only. assertOwnership throws for
+  // non-owner members; we translate to a friendly error.
   try {
-    // PB's updateRule (`owner_id = @request.auth.id`) blocks cross-owner
-    // writes — we rely on PB as the single source of ownership truth.
+    await assertOwnership(pb, homeId);
+  } catch {
+    return { ok: false, formError: 'Only the home owner can edit this home' };
+  }
+
+  try {
+    // PB's updateRule (`owner_id = @request.auth.id`) still blocks
+    // cross-owner writes as defense-in-depth beneath the action guard.
     await pb.collection('homes').update(homeId, {
       name: parsed.data.name,
       address: parsed.data.address ?? '',
@@ -133,6 +142,16 @@ export async function switchHome(homeId: string): Promise<void> {
   const pb = await createServerClient();
   if (!pb.authStore.isValid || !pb.authStore.record) return;
   const authId = pb.authStore.record.id;
+
+  // 04-02 D-13 defense-in-depth: silently no-op if the user is not a
+  // member of this home. Prevents setting last_viewed_home_id to a home
+  // the user cannot access (which would cause the (app)/layout redirect
+  // to land on a 404 after login). Best-effort, no formError surface.
+  try {
+    await assertMembership(pb, homeId);
+  } catch {
+    return;
+  }
 
   try {
     await pb.collection('users').update(authId, {
@@ -167,6 +186,13 @@ export async function deleteHome(homeId: string): Promise<ActionState> {
   const pb = await createServerClient();
   if (!pb.authStore.isValid) {
     return { ok: false, formError: 'Not signed in' };
+  }
+
+  // 04-02 D-13: deleteHome is owner-only.
+  try {
+    await assertOwnership(pb, homeId);
+  } catch {
+    return { ok: false, formError: 'Only the home owner can delete this home' };
   }
 
   try {

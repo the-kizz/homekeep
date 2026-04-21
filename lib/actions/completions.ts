@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { formatInTimeZone } from 'date-fns-tz';
 import { createServerClient } from '@/lib/pocketbase-server';
+import { assertMembership } from '@/lib/membership';
 import { shouldWarnEarly } from '@/lib/early-completion-guard';
 import { computeNextDue } from '@/lib/task-scheduling';
 
@@ -76,6 +77,17 @@ export async function completeTaskAction(
       fields:
         'id,home_id,frequency_days,schedule_mode,anchor_date,archived,created,name',
     });
+
+    // 04-02 D-13: completeTaskAction is member-permitted. assertMembership
+    // on task.home_id runs AFTER the tasks.getOne (we need home_id to
+    // check) but BEFORE the archived/timing guards — a non-member should
+    // never see the archived-status or early-warning leakage either.
+    try {
+      await assertMembership(pb, task.home_id as string);
+    } catch {
+      return { ok: false, formError: 'You are not a member of this home' };
+    }
+
     if (task.archived) {
       return { ok: false, formError: 'Task is archived' };
     }

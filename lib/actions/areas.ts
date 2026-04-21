@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/pocketbase-server';
+import { assertMembership } from '@/lib/membership';
 import { areaSchema } from '@/lib/schemas/area';
 import type { ActionState } from '@/lib/schemas/auth';
 import { AREA_COLORS, AREA_ICONS } from '@/lib/area-palette';
@@ -64,12 +65,15 @@ export async function createArea(
     return { ok: false, formError: 'Not signed in' };
   }
 
+  // 04-02 D-13: createArea is member-permitted (not owner-only). Swap
+  // the old owner-implicit getOne preflight for the membership helper.
   try {
-    // Ownership preflight — calling getOne triggers the PB viewRule which
-    // rejects cross-owner reads. Without this the user would see a
-    // cryptic 403 later; this surfaces a friendly error fast.
-    await pb.collection('homes').getOne(parsed.data.home_id);
+    await assertMembership(pb, parsed.data.home_id);
+  } catch {
+    return { ok: false, formError: 'You are not a member of this home' };
+  }
 
+  try {
     // Compute sort_order = max(existing) + 1. An empty list returns -1
     // so the first user-created area lands at 0 (Whole Home is already
     // at 0 from the hook, but this is a safe default — E2E reorder test
@@ -138,6 +142,14 @@ export async function updateArea(
     return { ok: false, formError: 'Not signed in' };
   }
 
+  // 04-02 D-13: updateArea is member-permitted. Membership-preflight
+  // via home_id from the validated form data.
+  try {
+    await assertMembership(pb, parsed.data.home_id);
+  } catch {
+    return { ok: false, formError: 'You are not a member of this home' };
+  }
+
   try {
     await pb.collection('areas').update(areaId, {
       name: parsed.data.name,
@@ -178,6 +190,13 @@ export async function reorderAreas(
     return { ok: false, formError: 'Not signed in' };
   }
 
+  // 04-02 D-13: reorderAreas is member-permitted.
+  try {
+    await assertMembership(pb, homeId);
+  } catch {
+    return { ok: false, formError: 'You are not a member of this home' };
+  }
+
   try {
     const batch = pb.createBatch();
     orderedIds.forEach((id, idx) => {
@@ -213,13 +232,25 @@ export async function deleteArea(areaId: string): Promise<ActionState> {
   let homeId: string | undefined;
   try {
     const area = await pb.collection('areas').getOne(areaId);
+    homeId = typeof area.home_id === 'string' ? area.home_id : undefined;
+
+    // 04-02 D-13: deleteArea is member-permitted (but the
+    // is_whole_home_system guard still blocks deletion of the Whole
+    // Home row for everyone including owners — see Phase 2 D-04).
+    if (homeId) {
+      try {
+        await assertMembership(pb, homeId);
+      } catch {
+        return { ok: false, formError: 'You are not a member of this home' };
+      }
+    }
+
     if (area.is_whole_home_system === true) {
       return {
         ok: false,
         formError: 'The Whole Home area cannot be deleted',
       };
     }
-    homeId = typeof area.home_id === 'string' ? area.home_id : undefined;
 
     await pb.collection('areas').delete(areaId);
   } catch {

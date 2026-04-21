@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/pocketbase-server';
+import { assertMembership } from '@/lib/membership';
 import { taskSchema } from '@/lib/schemas/task';
 import type { ActionState } from '@/lib/schemas/auth';
 
@@ -46,6 +47,7 @@ export async function createTask(
   const rawAnchor = String(formData.get('anchor_date') ?? '').trim();
   const rawFreq = Number(formData.get('frequency_days') ?? 0);
   const rawMode = String(formData.get('schedule_mode') ?? 'cycle').trim();
+  const rawAssigned = String(formData.get('assigned_to_id') ?? '').trim();
 
   const raw = {
     home_id: String(formData.get('home_id') ?? '').trim(),
@@ -60,6 +62,11 @@ export async function createTask(
     anchor_date: rawAnchor.length > 0 ? rawAnchor : null,
     icon: rawIcon,
     color: rawColor,
+    // 04-02: assigned_to_id is member-user-id or empty string ("" = no
+    // specific assignee → resolveAssignee falls through to area default
+    // in Wave 3). Validity is enforced by PB's relation field rule; if
+    // the client forged a non-member id, the rule rejects the write.
+    assigned_to_id: rawAssigned.length > 0 ? rawAssigned : null,
     notes: rawNotes,
   };
 
@@ -73,11 +80,16 @@ export async function createTask(
     return { ok: false, formError: 'Not signed in' };
   }
 
+  // 04-02 D-13: createTask is member-permitted. Swap the owner-implicit
+  // homes.getOne preflight for assertMembership; keep the areas.getOne
+  // call for the home_id-mismatch sanity check.
   try {
-    // Ownership preflight: both calls trigger PB viewRules which reject
-    // non-owner reads. Surfaces a friendly error before the PB create
-    // call would otherwise return a cryptic 404.
-    await pb.collection('homes').getOne(parsed.data.home_id);
+    await assertMembership(pb, parsed.data.home_id);
+  } catch {
+    return { ok: false, formError: 'You are not a member of this home' };
+  }
+
+  try {
     const area = await pb.collection('areas').getOne(parsed.data.area_id);
 
     // Defensive: belt-and-braces check that the chosen area actually
@@ -101,6 +113,8 @@ export async function createTask(
           : '',
       icon: parsed.data.icon ?? '',
       color: parsed.data.color ?? '',
+      // 04-02 TASK-02: empty string = null relation in PB.
+      assigned_to_id: parsed.data.assigned_to_id ?? '',
       notes: parsed.data.notes ?? '',
       // SECURITY: archived is server-controlled, never from formData.
       archived: false,
@@ -128,6 +142,7 @@ export async function updateTask(
   const rawAnchor = String(formData.get('anchor_date') ?? '').trim();
   const rawFreq = Number(formData.get('frequency_days') ?? 0);
   const rawMode = String(formData.get('schedule_mode') ?? 'cycle').trim();
+  const rawAssigned = String(formData.get('assigned_to_id') ?? '').trim();
 
   const raw = {
     home_id: String(formData.get('home_id') ?? '').trim(),
@@ -141,6 +156,9 @@ export async function updateTask(
     anchor_date: rawAnchor.length > 0 ? rawAnchor : null,
     icon: rawIcon,
     color: rawColor,
+    // 04-02 TASK-02: passthrough from formData; PB relation-field
+    // validation enforces the assignee must be a valid user id.
+    assigned_to_id: rawAssigned.length > 0 ? rawAssigned : null,
     notes: rawNotes,
   };
 
@@ -154,10 +172,14 @@ export async function updateTask(
     return { ok: false, formError: 'Not signed in' };
   }
 
+  // 04-02 D-13: updateTask is member-permitted.
   try {
-    // Ownership on update: PB tasks updateRule enforces
-    // `home_id.owner_id = @request.auth.id`. A forged task id belonging
-    // to another owner 404s out of update().
+    await assertMembership(pb, parsed.data.home_id);
+  } catch {
+    return { ok: false, formError: 'You are not a member of this home' };
+  }
+
+  try {
     await pb.collection('tasks').update(taskId, {
       name: parsed.data.name,
       description: parsed.data.description ?? '',
@@ -169,6 +191,8 @@ export async function updateTask(
           : '',
       icon: parsed.data.icon ?? '',
       color: parsed.data.color ?? '',
+      // 04-02 TASK-02: empty string = null relation in PB.
+      assigned_to_id: parsed.data.assigned_to_id ?? '',
       notes: parsed.data.notes ?? '',
       area_id: parsed.data.area_id,
       // SECURITY: never accept `archived` from formData on update either.
@@ -208,13 +232,23 @@ export async function archiveTask(taskId: string): Promise<ActionState> {
   let areaId: string | undefined;
   try {
     // Fetch the task so we know which paths to revalidate after the
-    // archive. The getOne call also triggers the viewRule — a cross-user
-    // forged id 404s here before the update.
+    // archive. The getOne call also triggers the viewRule — a forged
+    // task id for a non-member home 404s here before the update.
     const task = await pb.collection('tasks').getOne(taskId, {
       fields: 'id,home_id,area_id',
     });
     homeId = typeof task.home_id === 'string' ? task.home_id : undefined;
     areaId = typeof task.area_id === 'string' ? task.area_id : undefined;
+
+    // 04-02 D-13: archiveTask is member-permitted. Re-check membership
+    // via the fetched home_id — defense in depth over the PB rule.
+    if (homeId) {
+      try {
+        await assertMembership(pb, homeId);
+      } catch {
+        return { ok: false, formError: 'You are not a member of this home' };
+      }
+    }
 
     await pb.collection('tasks').update(taskId, {
       archived: true,
