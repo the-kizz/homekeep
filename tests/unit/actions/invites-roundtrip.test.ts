@@ -49,7 +49,6 @@ let pbProcess: ChildProcess | undefined;
 // Module-level client holders that vi.mock closures read via getters
 // (vi.mock is hoisted — refs must be mutated after beforeAll).
 let adminClient: PocketBase;
-const aliceClient = () => new PocketBase(`http://${HTTP}`);
 
 // Per-test "current authed user" client that `createServerClient` mock returns.
 let currentAuthed: PocketBase;

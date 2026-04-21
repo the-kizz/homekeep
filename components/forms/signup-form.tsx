@@ -11,7 +11,14 @@ import { Label } from '@/components/ui/label';
 
 const INITIAL: ActionState = { ok: false };
 
-export function SignupForm() {
+/**
+ * Signup form. Threads an optional `next` prop (usually a same-origin
+ * path like `/invite/TOKEN`) through as a hidden input so `signupAction`
+ * can `safeNext(...)` it and redirect accordingly after account
+ * creation (04-02 Pitfall 5). If omitted, the action falls back to
+ * its default `/h` redirect.
+ */
+export function SignupForm({ next }: { next?: string }) {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     signupAction,
     INITIAL,
@@ -37,6 +44,12 @@ export function SignupForm() {
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
+      {/* 04-02: thread next through so signupAction can redirect to the
+          originating /invite/TOKEN after account creation. safeNext on
+          the server rejects hostile values; empty string = no redirect
+          target, falling back to /h. */}
+      <input type="hidden" name="next" value={next ?? ''} />
+
       <div className="space-y-1.5">
         <Label htmlFor="name">Name</Label>
         <Input

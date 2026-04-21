@@ -156,8 +156,15 @@ export async function signupAction(
   const store = await cookies();
   store.set(COOKIE_NAME, rawValue, cookieOptions());
 
+  // 04-02 signup-next (Pitfall 5): if the signup form threaded a `next`
+  // value through (e.g. /signup?next=/invite/TOKEN), redirect there.
+  // safeNext enforces same-origin + `/`-prefix + forbids `//` and `:`
+  // so /invite/TOKEN passes while an attacker-crafted //evil.com does
+  // not. Falls back to /h (the default post-signup landing).
+  const nextTarget = safeNext(String(formData.get('next') ?? '')) ?? '/h';
+
   revalidatePath('/h');
-  redirect('/h');
+  redirect(nextTarget);
 }
 
 export async function logoutAction(): Promise<void> {
