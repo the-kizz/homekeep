@@ -22,11 +22,23 @@ export default async function HomesLandingPage() {
   }
 
   const userId = pb.authStore.record.id;
-  const lastViewedRaw = pb.authStore.record.last_viewed_home_id;
-  const lastViewedHomeId =
-    typeof lastViewedRaw === 'string' && lastViewedRaw.length > 0
-      ? lastViewedRaw
-      : null;
+
+  // pb.authStore.record is the cookie snapshot from login/signup. For
+  // HOME-03 we need the LATEST last_viewed_home_id — fetch fresh.
+  let lastViewedHomeId: string | null = null;
+  try {
+    const freshUser = await pb.collection('users').getOne(userId, {
+      fields: 'last_viewed_home_id',
+    });
+    const raw = freshUser.last_viewed_home_id;
+    lastViewedHomeId =
+      typeof raw === 'string' && raw.length > 0 ? raw : null;
+  } catch {
+    // Fallback to the cookie snapshot if the fresh read fails.
+    const raw = pb.authStore.record.last_viewed_home_id;
+    lastViewedHomeId =
+      typeof raw === 'string' && raw.length > 0 ? raw : null;
+  }
 
   const homes = await pb.collection('homes').getFullList({
     filter: `owner_id = "${userId}"`,

@@ -207,7 +207,24 @@ export function SortableAreaList({
   homeId: string;
   initial: SortableArea[];
 }) {
+  // Sync local items to the server-provided initial when the server
+  // re-renders with a new list (e.g. after NewAreaDialog submits and
+  // calls router.refresh()). Without this, useState(initial) would
+  // "capture" the mount-time list and newly-created areas never show.
+  //
+  // Using React's blessed "derived state" pattern: compare a shape key
+  // during render and call setState *during render* (not in an effect)
+  // to reset. React guarantees this re-renders the same component with
+  // the new state — no re-render storm. See
+  // https://react.dev/reference/react/useState#storing-information-from-previous-renders
+  const initialKey = initial.map((i) => `${i.id}:${i.sort_order}`).join('|');
+  const [prevKey, setPrevKey] = useState(initialKey);
   const [items, setItems] = useState<SortableArea[]>(initial);
+  if (prevKey !== initialKey) {
+    setPrevKey(initialKey);
+    setItems(initial);
+  }
+
   const [reorderPending, startReorder] = useTransition();
   const [deletePending, startDelete] = useTransition();
 

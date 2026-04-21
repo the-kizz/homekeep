@@ -31,14 +31,30 @@ export default async function AppLayout({
     redirect('/login');
   }
 
-  const record = pb.authStore.record;
-  const userName =
-    typeof record?.name === 'string' && record.name.length > 0
-      ? record.name
-      : undefined;
-  const userId = record?.id as string;
+  const cookieRecord = pb.authStore.record;
+  const userId = cookieRecord?.id as string;
 
-  const lastViewedRaw = record?.last_viewed_home_id;
+  // pb.authStore.record reflects the cookie snapshot from login/signup —
+  // it does NOT auto-refresh when the server later updates users.*
+  // (e.g. last_viewed_home_id on switchHome). Fetch a fresh user record
+  // so the HomeSwitcher's "current" indicator and the /h last-viewed
+  // redirect both see the latest value. One extra DB read per (app)
+  // request is a fair cost for correctness.
+  let freshRecord = cookieRecord;
+  try {
+    freshRecord = await pb.collection('users').getOne(userId, {
+      fields: 'id,name,last_viewed_home_id',
+    });
+  } catch {
+    // Fall through to the cookie snapshot if the fresh read fails.
+  }
+
+  const userName =
+    typeof freshRecord?.name === 'string' && freshRecord.name.length > 0
+      ? freshRecord.name
+      : undefined;
+
+  const lastViewedRaw = freshRecord?.last_viewed_home_id;
   const currentHomeId =
     typeof lastViewedRaw === 'string' && lastViewedRaw.length > 0
       ? lastViewedRaw

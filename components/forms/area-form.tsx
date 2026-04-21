@@ -1,6 +1,7 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { areaSchema, type AreaInput } from '@/lib/schemas/area';
@@ -83,14 +84,18 @@ export function AreaForm({
     },
   });
 
-  // When the action resolves ok:true (edit mode), the parent can close a
-  // dialog. Create mode redirects via the action's revalidatePath so the
-  // parent dialog being open is harmless.
-  if (state.ok && onDone) {
-    // Defer to a microtask so we don't call setState during render of the
-    // parent.
-    Promise.resolve().then(onDone);
-  }
+  const router = useRouter();
+
+  // On successful submit: refresh the Server Component tree so the new /
+  // updated area shows up in the list, then (if provided) close the
+  // parent dialog. useEffect keeps the side-effect out of render.
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+      onDone?.();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
 
   const serverFieldErrors = !state.ok ? state.fieldErrors : undefined;
   const serverFormError = !state.ok ? state.formError : undefined;
