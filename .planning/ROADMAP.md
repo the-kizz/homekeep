@@ -127,7 +127,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 05-01-PLAN.md — homes.onboarded migration + seed library + pure helpers (streak / area-coverage / history-filter) + nav shell (bottom nav + top tabs) + per-home layout
+- [x] 05-01-PLAN.md — homes.onboarded migration + seed library + pure helpers (streak / area-coverage / history-filter) + nav shell (bottom nav + top tabs) + per-home layout
 - [ ] 05-02-PLAN.md — By Area view (grid + pinned Whole Home) + Person view (assigned tasks + history + stats + prefs stub) + History view (timeline + URL-param filters) + E2E Suites B/C/D
 - [ ] 05-03-PLAN.md — Onboarding wizard (SeedTaskCard + OnboardingWizard) + batchCreateSeedTasks / skipOnboarding actions + dashboard redirect + E2E Suite A + backward-compat skip helper
 

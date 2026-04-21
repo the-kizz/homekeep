@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-04-21T04:09:48.497Z"
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-04-21T04:41:43.837Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 19
-  percent: 63
+  completed_phases: 4
+  total_plans: 21
+  completed_plans: 20
+  percent: 95
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 4 — Collaboration
+**Current focus:** Phase 5 — Views & Onboarding
 
 ## Current Position
 
-Phase: 5
-Plan: Not started
-Status: Ready to plan
+Phase: 5 (Views & Onboarding) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-04-21
 
-Progress: [██████████] 100%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [██████████] 100%
 | Phase 04 P04-01 | 7min | 2 tasks | 7 files |
 | Phase Phase 04 PP04-02 | 13min | 3 tasks | 21 files |
 | Phase 04 P03 | 25min | 3 tasks | 30 files |
+| Phase 05 P01 | 11min | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -163,6 +164,11 @@ Recent decisions affecting current work:
 - 04-03: acceptInvite drops revalidatePath — Next 16 rejects revalidate-during-RSC-render; redirect handles fresh render
 - 04-03: Playwright globalSetup shells to 'pocketbase superuser upsert' CLI — PB 0.37 REST refuses unauthed superuser creates
 - 04-03: LeaveHomeMenuItem renders raw <button> (not DropdownMenuItem) to avoid Radix auto-close dismissing Dialog
+- 05-01: Week-offset bucketing via self-computed local-week-start + Math.round on ms-ratio — DST-safe for 23h/25h weeks
+- 05-01: TopTabs hand-rolled as styled Link row (not shadcn Tabs primitive) — preserves prefetch + Cmd-click + route-driven active state
+- 05-01: homes.onboarded migration omits BoolField default (PB 0.37.1 default-semantics quirky); backfill existing rows to true explicitly; new rows rely on PB's unset=false storage default
+- 05-01: NavShell scoped at app/(app)/h/[homeId]/layout.tsx segment so /h, /h/new, /login, /signup, /invite/[token] are skipped automatically; onboarding wizard keeps nav visible as Skip escape hatch per D-13
+- 05-01: Disposable-PB port 18095 allocated for homes-onboarded integration test — slots after 18094 (04-02 invites-roundtrip)
 
 ### Pending Todos
 
@@ -181,8 +187,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T04:09:38.388Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-04-21T04:41:43.821Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
 
-**Planned Phase:** 4 (Collaboration) — 3 plans — 2026-04-21T03:08:12.524Z
+**Planned Phase:** 5 (Views & Onboarding) — 3 plans — 2026-04-21T04:27:26.096Z
