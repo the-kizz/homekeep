@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-04-21T01:57:33.554Z"
+status: verifying
+stopped_at: Completed 03-03-PLAN.md — Phase 3 DONE
+last_updated: "2026-04-21T02:34:44.638Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 15
-  completed_plans: 15
+  completed_plans: 16
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 
 Phase: 3 (Core Loop) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-21
 
 Progress: [██████████] 100%
@@ -66,6 +66,7 @@ Progress: [██████████] 100%
 | Phase 02 P02-05 | 16min | 4 tasks | 13 files |
 | Phase 03 P03-01 | 9min | 3 tasks | 13 files |
 | Phase 03 P03-02 | 7 | 5 tasks | 10 files |
+| Phase 03 P03-03 | 30min | 4 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,11 @@ Recent decisions affecting current work:
 - 03-02: No Pitfall 10 opt-out needed; useOptimistic reducer form compiles cleanly under React Compiler
 - 03-02: ClassifiedTask 'name' attached via Map-backed lookup in BandView (narrow engine type preserved from 03-01)
 - 03-02: HorizonStrip empty-cell policy = disabled+opacity-50 (grid stays 12 cells); empty-band policy = 'looking clear' copy replaces grid
+- 03-01: Completions collection uses updateRule=null + deleteRule=null
+- 03-03: Discriminated-union narrowing via 'requiresConfirm' in result — TS strict refuses to narrow on literal-true property
+- 03-03: Date/clock reads hoisted inside startTransition to satisfy react-hooks/purity without a 'use no memo' directive
+- 03-03: E2E URL regex {15} enforced PB id length — closes the /h/new ambiguity that let expect(toHaveURL) return before server-action redirect
+- 03-03: Seed-via-PB-REST pattern for E2E back-dated completions — the user's own auth token is sufficient, no superuser back-door needed
 
 ### Pending Todos
 
@@ -156,8 +162,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-21T01:57:33.536Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-04-21T02:34:35.601Z
+Stopped at: Completed 03-03-PLAN.md — Phase 3 DONE
 Resume file: None
 
 **Planned Phase:** 3 (Core Loop) — 3 plans — 2026-04-21T01:31:15.048Z
