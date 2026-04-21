@@ -1,234 +1,216 @@
 # HomeKeep
 
-[![CI](https://github.com/OWNER/homekeep/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/homekeep/actions/workflows/ci.yml)
-[![Release](https://github.com/OWNER/homekeep/actions/workflows/release.yml/badge.svg)](https://github.com/OWNER/homekeep/actions/workflows/release.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+> A calm, self-hosted household maintenance PWA for couples and families. Every recurring chore has a frequency, and HomeKeep spreads the year's work evenly across weeks so nothing piles up and nothing rots.
 
-Household maintenance that is visible, evenly distributed, and nothing falls through the cracks -- without anxiety or guilt.
+<p align="center">
+  <img src="docs/screenshots/03-dashboard-three-band.png" alt="HomeKeep dashboard — three-band view with coverage ring" width="85%">
+</p>
 
-Self-hosted. One Docker container. One folder to back up.
+<p align="center">
+  <a href="https://github.com/conroyke56/homekeep/actions"><img src="https://img.shields.io/github/actions/workflow/status/conroyke56/homekeep/ci.yml?branch=master&label=CI" alt="CI"></a>
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
+  <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16">
+  <img src="https://img.shields.io/badge/PocketBase-0.37-ff8c00" alt="PocketBase 0.37">
+  <img src="https://img.shields.io/badge/Docker-multi--arch-2496ed" alt="Docker multi-arch">
+</p>
 
-## Status
+---
 
-**Phase 1 of 7 -- Scaffold & Infrastructure.** The container builds, boots, and answers `/api/health`. No application features yet. See [ROADMAP](./.planning/ROADMAP.md) for the full plan.
+## What it is
+
+A small weekend project that grew into a full v1. Existing task apps (Apple Reminders, Todoist) treat a task due in 365 days the same as one due today — everything lives in the same list, so you either ignore it or get overwhelmed. HomeKeep separates **what's due now** from **what's coming eventually**, and turns the whole year of home maintenance into a steady rhythm instead of a guilt pile.
+
+Built for people who self-host things and want ownership of their data. MIT license, public repo, no cloud dependencies, no telemetry, no paid APIs.
+
+## Guiding principles
+
+1. **Calm over urgent.** Reduces anxiety, not creates it. No red badges on things that aren't actually overdue.
+2. **Shared, not competitive.** Streaks and progress are "us vs. the house," never partner-vs-partner.
+3. **Forgiveness built in.** Miss a week? The app redistributes, doesn't scold.
+
+## Feature tour
+
+### Three-band main view
+
+The core interaction. **Overdue** (shown only if anything actually is), **This Week**, and a 12-month **Horizon** strip — so you can see what's next without being nagged about a task due in November.
+
+![Dashboard](docs/screenshots/03-dashboard-three-band.png)
+
+### By Area — which part of the house needs love
+
+Coverage percent per area (Kitchen 100%, Backyard 60%). "Whole Home" pinned to top.
+
+![By Area](docs/screenshots/04-by-area.png)
+
+### Person — your slice
+
+Tasks assigned to you (via cascade: task-level → area default → anyone), your recent history, your personal streak, your notification prefs.
+
+![Person view](docs/screenshots/05-person.png)
+
+### History — who did what and when
+
+A filterable timeline of household completions. Settles the "did you ever actually do that?" conversation.
+
+![History](docs/screenshots/06-history.png)
+
+### Mobile
+
+Stock PWA. Installs to the home screen on iOS/Android under HTTPS deploys.
+
+<p align="center">
+  <img src="docs/screenshots/08-mobile-dashboard.png" alt="Mobile dashboard" width="35%">
+</p>
+
+## What's in the box
+
+- **Three-band view** (Overdue / This Week / Horizon) + household coverage ring
+- **Cycle vs. anchored** scheduling per task (cleaning benches resets the cycle; annual smoke alarm test sticks to its fixed calendar)
+- **Early-completion guard** — prompts "Are you sure?" if you mark a task done less than 25% into its cycle (catches double-taps and "did my partner already do this?")
+- **Collaboration** — invite links, member management, cascading assignment (task-level > area-default > "Anyone")
+- **By Area / Person / History views** — same data, different lenses
+- **First-run onboarding wizard** with ~30 seed tasks covering Kitchen, Bathroom, Living, Yards, and Whole Home
+- **Gentle gamification** — household streak, per-area coverage %, one-time celebration when an area first hits 100%, "most neglected" gentle nudge
+- **Push notifications** via [ntfy](https://ntfy.sh) — overdue, newly-assigned, partner-completed (opt-in), weekly Sunday summary (opt-in). No Firebase, no APNs, no paid services.
+- **Installable PWA** on HTTPS deployments; graceful HTTP degradation on LAN-only
+- **Append-only completion history** — nothing is ever deleted
+
+## Stack
+
+- Next.js 16 (App Router, Server Components, Server Actions) + React 19
+- PocketBase 0.37 (SQLite + migrations-as-code + JSVM hooks) — single binary, lives in the same container
+- Tailwind 4 + shadcn/ui — soft neutrals, one warm accent (#D4A574 terracotta-sand)
+- Zod + react-hook-form, @dnd-kit for drag-to-reorder
+- node-cron for the hourly scheduler, ntfy for push
+- s6-overlay supervises Caddy + PocketBase + Next.js inside one container
+- Vitest (unit) + Playwright (E2E); 311 unit + 23 E2E tests
 
 ## Quickstart
 
-### With `docker run` (standalone)
-
-One-liner form: `docker run -d -p 80:3000 -v ./data:/app/data --env-file .env ghcr.io/OWNER/homekeep:latest`
-
-Or with readable line-continuations:
+### Option 1 — `docker run` (fastest)
 
 ```bash
-# On any host with Docker:
-cp .env.example .env
-docker run -d \
+docker run -d -p 3000:3000 \
+  -v homekeep_data:/app/data \
+  -e SITE_URL=http://localhost:3000 \
+  -e NTFY_URL=https://ntfy.sh \
   --name homekeep \
-  -p 80:3000 \
-  -v "$(pwd)/data:/app/data" \
-  --env-file .env \
-  ghcr.io/OWNER/homekeep:latest
+  ghcr.io/conroyke56/homekeep:latest
 ```
 
-Replace `OWNER` with the GitHub user or org that published the image. Map `80:3000` to any host port you like (the app listens on 3000 inside the container).
+Open <http://localhost:3000>, sign up, create a home. The PocketBase admin UI lives at `/_/` — on first boot check the container logs for an installer link.
 
-### With Docker Compose
+### Option 2 — `docker compose up` (LAN)
 
 ```bash
-cp .env.example .env
+git clone https://github.com/conroyke56/homekeep.git
+cd homekeep
+cp .env.example docker/.env   # edit docker/.env as needed
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-Compose reads `HOST_PORT`, `GHCR_OWNER`, `TAG`, and `TZ` from `.env` (see `.env.example`). Defaults: `HOST_PORT=3000`, `TAG=latest`.
+The default compose runs on `HOST_PORT` (3000 by default). Data lives in the `homekeep_data` named volume — survives restarts.
 
-> **Compose-dir footgun.** Compose resolves `env_file: .env` and `./data` relative to the compose file's directory (`docker/`), not your current working directory. From the project root, either run with `--project-directory .` (so paths resolve to the repo root) or copy/symlink `.env` to `docker/.env`. The `docker run` flow above sidesteps this entirely.
+### Option 3 — HTTPS via Caddy
 
-### First boot: create the PocketBase admin
-
-After the container starts, PocketBase prints a one-time installer link to its logs. Open it to set up the superuser:
+Point a domain at your server and:
 
 ```bash
-# Tail the logs for the installer URL
-docker compose -f docker/docker-compose.yml logs homekeep | grep -i installer
-# or for docker run:
-docker logs homekeep | grep -i installer
+export DOMAIN=homekeep.example.com
+docker compose \
+  -f docker/docker-compose.yml \
+  -f docker/docker-compose.caddy.yml \
+  up -d
 ```
 
-Open the URL in a browser (replace `127.0.0.1:8090` with your host's address and port, e.g. `http://192.168.1.10/_/`). Pick an email and password. You are now the PocketBase admin; the admin UI lives at `/_/`.
+Caddy handles TLS automatically via Let's Encrypt. See [`docs/deployment.md`](docs/deployment.md) for tuning, or [`docker/docker-compose.tailscale.yml`](docker/docker-compose.tailscale.yml) for the Tailscale-funnel variant.
 
-## Configuration
+## Environment variables
 
-All runtime configuration is env-driven. Copy `.env.example` to `.env` and edit:
+Minimum:
 
-| Variable | Purpose | Default |
-|----------|---------|---------|
-| `SITE_URL` | Public URL users reach the app at; used for PWA manifest and ntfy notification links | `http://localhost:3000` |
-| `NTFY_URL` | ntfy server base URL (push notifications, Phase 6+) | `https://ntfy.sh` |
-| `TZ` | IANA timezone for scheduler and date display | `Etc/UTC` |
-| `PUID` | Host UID that owns the `./data` volume | `1000` |
-| `PGID` | Host GID that owns the `./data` volume | `1000` |
+| Var | Required | Default | Notes |
+|---|---|---|---|
+| `SITE_URL` | yes | — | Absolute URL (e.g. `https://homekeep.example.com`). Used in invite links. |
+| `NTFY_URL` | no | `https://ntfy.sh` | Override for self-hosted ntfy. |
+| `PB_ADMIN_EMAIL` | yes for invites | — | PocketBase superuser — the invite-acceptance path needs admin context. |
+| `PB_ADMIN_PASSWORD` | yes for invites | — | Paired with above. Create with `docker exec <container> pocketbase superuser upsert <email> <pass>`. |
+| `ADMIN_SCHEDULER_TOKEN` | no | — | 32+ char string. Lets you manually trigger the scheduler via `POST /api/admin/run-scheduler`. |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | no | — | Enables password-reset + (future) email notifications. If unset, password reset no-ops gracefully. |
+| `HOST_PORT` | no | `3000` | Host-side port when using docker-compose. |
+| `TZ` | no | `Etc/UTC` | Host timezone. Per-home timezone still comes from the home record. |
 
-No secrets are hardcoded anywhere in the image. `.env.example` is committed; real `.env` is gitignored.
-
-## Production deployment
-
-LAN-only (port 3000) is the default. For public HTTPS access, two compose overlays ship with HomeKeep and layer on top of the baseline `docker/docker-compose.yml`:
-
-| Variant | Command | When |
-|---|---|---|
-| LAN only | `docker compose -f docker/docker-compose.yml up -d` | Inside the house, no HTTPS needed |
-| Caddy + public domain | `docker compose -f docker/docker-compose.yml -f docker/docker-compose.caddy.yml up -d` | You have a domain + public VPS |
-| Tailscale | `docker compose -f docker/docker-compose.yml -f docker/docker-compose.tailscale.yml up -d` | Private access via your tailnet |
-
-Set `DOMAIN` (Caddy) or `TS_AUTHKEY` (Tailscale) in `.env` before starting the overlay — both are pre-documented in `.env.example`. HTTPS unlocks [installing HomeKeep as a PWA](./docs/pwa-install.md). On HTTP, a dismissible banner inside the app explains which features are unavailable.
-
-See [docs/deployment.md](./docs/deployment.md) for the full guide including prereqs, one-line refresh commands, troubleshooting, and the release/tagging flow (INFR-09).
-
-### If your host UID is not 1000
-
-The default `node` user inside the container is UID 1000. If your host user has a different UID, use **either** of the following one-time fixes (future versions will honor `PUID`/`PGID` at runtime -- Phase 7):
-
-**Option A -- chown from inside the container** (explicitly overrides the s6 `/init` entrypoint with `sh` so the chown can actually run -- `/init` alone would just start the services and never execute the trailing command):
-
-```bash
-docker run --rm --entrypoint sh -u 0 \
-  -v ./data:/app/data \
-  ghcr.io/OWNER/homekeep:latest \
-  -c "chown -R 1000:1000 /app/data"
-```
-
-**Option B -- chown from the host** (no container involved):
-
-```bash
-mkdir -p data && sudo chown -R 1000:1000 data
-```
-
-Either option leaves `./data/` owned by UID 1000, which matches the `node` user inside the container.
-
-## Backup
-
-The entire application state lives in `./data/`. Back it up by stopping the container and copying the folder:
-
-```bash
-docker compose -f docker/docker-compose.yml down
-cp -a data/ backups/data-$(date +%Y%m%d)/
-docker compose -f docker/docker-compose.yml up -d
-```
-
-**Important:** `./data/` must live on a local filesystem. NFS, SMB, and most NAS-mounted paths will silently corrupt the SQLite WAL. If your host is a Synology or Unraid, use a local docker volume rather than a bind mount to a shared path.
-
-## Development
-
-Day-to-day development runs natively (no Docker). Docker is only for building the production image.
-
-```bash
-# Requirements: Node 22+, unzip (for PocketBase download)
-npm install
-npm run dev
-```
-
-`npm run dev` uses `concurrently` to run two processes:
-- **Next.js** on `http://localhost:3001` (dev server)
-- **PocketBase** on `http://127.0.0.1:8090` (via `scripts/dev-pb.js`, which downloads the binary into `./.pb/` on first run)
-
-Other scripts:
-
-| Command | Purpose |
-|---------|---------|
-| `npm run dev:next` | Just Next.js |
-| `npm run dev:pb` | Just PocketBase |
-| `npm run lint` | ESLint via `eslint .` |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run test` | Vitest unit + integration tests |
-| `npm run test:watch` | Vitest watch mode |
-| `npm run test:e2e` | Playwright E2E tests |
-| `npm run build` | Next.js production build |
-| `npm run docker:build` | Build the Docker image locally (amd64) |
-| `npm run docker:run` | Run the locally built image |
-
-To build and run the image locally end-to-end:
-
-```bash
-npm run docker:build
-npm run docker:run
-# or with compose (expects .env + ./data to resolve correctly -- see Quickstart note above):
-docker compose -f docker/docker-compose.yml up -d
-```
-
-## Releases
-
-Tagged commits on `main` trigger a multi-arch (linux/amd64 + linux/arm64) image build and push to GHCR:
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-Images are published as:
-- `ghcr.io/OWNER/homekeep:v0.1.0` (exact)
-- `ghcr.io/OWNER/homekeep:0.1` (major.minor)
-- `ghcr.io/OWNER/homekeep:latest` (default branch)
+Full reference in [`.env.example`](.env.example).
 
 ## Architecture
 
-One container, two (plus one) processes managed by [s6-overlay v3](https://github.com/just-containers/s6-overlay):
+Single Docker image. Inside the container:
 
-- **Caddy** (port 3000, exposed) -- internal reverse proxy. Routes `/api/health` to Next.js, `/api/*` and `/_/*` to PocketBase with SSE-safe flushing, everything else to Next.js.
-- **Next.js** (port 3001, loopback) -- UI and the combined `/api/health` endpoint.
-- **PocketBase** (port 8090, loopback) -- SQLite database, auth, REST API, realtime, admin UI.
-
-Only port 3000 is exposed. The browser talks to both Next.js and PocketBase via the same origin.
-
-See [`SPEC.md`](./SPEC.md) for the full architectural spec.
-
-## Verifying your deployment
-
-After `up -d`, check the health endpoint:
-
-```bash
-curl -s http://localhost:3000/api/health
-# { "status": "ok", "nextjs": "ok", "pocketbase": "ok", "pbCode": 200 }
+```
+ ┌─────────────────────────────────────────────┐
+ │  s6-overlay (PID 1)                         │
+ │  ├── Caddy :3000   (path-based router)      │
+ │  │     ├─  /api/health → Next.js            │
+ │  │     ├─  /api/* + /_/* → PocketBase       │
+ │  │     └─  everything else → Next.js        │
+ │  ├── Next.js :3001 (standalone, loopback)   │
+ │  └── PocketBase :8090 (loopback)            │
+ │        ├─ /app/pb_migrations (schema)       │
+ │        └─ /app/pb_hooks (JSVM lifecycle)    │
+ │  /app/data → persistent volume               │
+ └─────────────────────────────────────────────┘
 ```
 
-If `pocketbase` is anything other than `"ok"`, check container logs.
+Read more in [`docs/deployment.md`](docs/deployment.md) and the per-phase summaries in [`.planning/phases/`](.planning/phases/).
 
-## Maintainer setup (forking the repo)
+## Development
 
-If you are forking HomeKeep into your own GitHub account or org and want the release pipeline to publish to your own GHCR namespace, apply these one-time settings in the GitHub web UI after pushing your first commit. None of these are scriptable from the repo itself -- they require an admin token.
+```bash
+npm install
+npm run dev          # Next.js + PocketBase side-by-side
+npm test             # Vitest
+npm run test:e2e     # Playwright (boots a disposable PB)
+npm run build        # production build (uses webpack for Serwist)
+npm run lint && npm run type-check
+```
 
-1. **Allow Actions to write packages.**
-   `Settings -> Actions -> General -> Workflow permissions` -> select **Read and write permissions**.
-   The release workflow needs `packages: write` on `GITHUB_TOKEN` to push images to `ghcr.io/<you>/homekeep`.
+PocketBase runs as a local binary under `./.pb/pocketbase` via `scripts/dev-pb.js`. Migrations live in `pocketbase/pb_migrations/`, hooks in `pocketbase/pb_hooks/`.
 
-2. **Protect `main`.**
-   `Settings -> Branches -> Add rule` with pattern `main`:
-   - Require a pull request before merging
-   - Require status checks to pass before merging -> select the `lint-test-build` check from `ci.yml`
-   - Require branches to be up to date before merging (recommended)
-   - Do not allow bypassing the above settings (recommended for public repos)
+## Project status
 
-3. **Make the GHCR package public** (after the first `v*` tag push publishes it).
-   `GitHub profile or org -> Packages -> homekeep -> Package settings -> Danger Zone -> Change visibility -> Public`.
-   GHCR defaults new packages to private; this flips it so `docker pull ghcr.io/<you>/homekeep:latest` works without credentials.
+v1.0.0-rc1. All 7 planned phases shipped:
 
-Once done, tag a release (`git tag v0.1.0 && git push origin v0.1.0`) and the multi-arch image will publish to GHCR automatically.
+| Phase | What it delivered |
+|---|---|
+| 1 | Docker + Next + PocketBase + Caddy + s6 + multi-arch CI |
+| 2 | Signup, homes, areas, tasks, computed next-due |
+| 3 | Three-band dashboard + one-tap complete + early-completion guard + coverage ring |
+| 4 | Invite links + members + cascading assignment |
+| 5 | By Area / Person / History views + onboarding wizard |
+| 6 | ntfy notifications + scheduler + streaks + celebrations |
+| 7 | PWA manifest + service worker + HTTP banner + Caddy/Tailscale compose overlays |
 
-## Notifications (Phase 6)
+Decimal phases (2.1, 3.1, …) are deploy checkpoints — build the image and stand it up on the VPS between features so you can actually look at the thing.
 
-HomeKeep pushes via [ntfy](https://ntfy.sh) — no account required.
+## Known limits
 
-1. Pick a hard-to-guess topic string (e.g. `homekeep-alice-a7b3c9`).
-2. Subscribe on your phone/desktop: install the ntfy app and enter the same topic.
-3. In HomeKeep, open `/h/<home>/person` → Notifications, paste the topic, save.
-4. Test manually: `curl -d "hi from HomeKeep" https://ntfy.sh/<your-topic>`.
-
-Self-host ntfy (optional): set `NTFY_URL=https://ntfy.your-domain.com` in `.env`.
-
-## License
-
-MIT -- see [LICENSE](./LICENSE).
+- Password-reset emails only work if you configure SMTP.
+- PWA install prompts only appear on HTTPS deployments (browser restriction — that's why the HTTP banner exists).
+- Multi-instance deploys aren't supported yet — the scheduler assumes one container.
+- Offline-writes is not in v1. You can read cached pages offline, but edits require a connection.
 
 ## Contributing
 
-This is an early-stage project. Check the [ROADMAP](./.planning/ROADMAP.md) and open an issue before sending PRs.
+This is a small fun project, not a startup. PRs welcome — keep it calm and read [CONTRIBUTING.md](CONTRIBUTING.md) first. Open an issue before any big change so we don't duplicate effort.
+
+If the app helps you keep your house, let me know — no tracking, no analytics, so the only feedback loop I have is people telling me.
+
+## License
+
+[MIT](LICENSE). Fork it, modify it, host it, sell a service around it — all fine.
+
+## Credits
+
+- Written during a few long evenings with [Claude Code](https://claude.com/claude-code) driving the build (the whole thing was scaffolded, researched, planned, and implemented via GSD — see `.planning/` for the phase-by-phase paper trail).
+- Inspired by every task app that nagged me about annual gutter cleaning in July.
+- Thanks to [PocketBase](https://pocketbase.io), [ntfy](https://ntfy.sh), [shadcn/ui](https://ui.shadcn.com), and [s6-overlay](https://github.com/just-containers/s6-overlay) for doing the heavy lifting.
