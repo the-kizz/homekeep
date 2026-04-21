@@ -250,20 +250,20 @@
 | VIEW-04 | Phase 3 | Complete (03-02) |
 | VIEW-05 | Phase 3 | Complete (03-01 + 03-02) |
 | VIEW-06 | Phase 3 | Complete (03-03) |
-| AREA-V-01 | Phase 5 | Pending |
-| AREA-V-02 | Phase 5 | Pending |
-| AREA-V-03 | Phase 5 | Pending |
-| PERS-01 | Phase 5 | Pending |
-| PERS-02 | Phase 5 | Pending |
-| PERS-03 | Phase 5 | Pending |
-| PERS-04 | Phase 5 | Pending |
-| HIST-01 | Phase 5 | Pending |
-| HIST-02 | Phase 5 | Pending |
-| HIST-03 | Phase 5 | Pending |
-| ONBD-01 | Phase 5 | Pending |
-| ONBD-02 | Phase 5 | Pending |
-| ONBD-03 | Phase 5 | Pending |
-| ONBD-04 | Phase 5 | Pending |
+| AREA-V-01 | Phase 5 | Complete |
+| AREA-V-02 | Phase 5 | Complete |
+| AREA-V-03 | Phase 5 | Complete |
+| PERS-01 | Phase 5 | Complete |
+| PERS-02 | Phase 5 | Complete |
+| PERS-03 | Phase 5 | Complete |
+| PERS-04 | Phase 5 | Complete |
+| HIST-01 | Phase 5 | Complete |
+| HIST-02 | Phase 5 | Complete |
+| HIST-03 | Phase 5 | Complete |
+| ONBD-01 | Phase 5 | Complete |
+| ONBD-02 | Phase 5 | Complete |
+| ONBD-03 | Phase 5 | Complete |
+| ONBD-04 | Phase 5 | Complete |
 | NOTF-01 | Phase 6 | Pending |
 | NOTF-02 | Phase 6 | Pending |
 | NOTF-03 | Phase 6 | Pending |

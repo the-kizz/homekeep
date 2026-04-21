@@ -174,6 +174,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 2. Auth & Core Data | 4/5 | In progress | - |
 | 3. Core Loop | 3/3 | Complete    | 2026-04-21 |
 | 4. Collaboration | 3/3 | Complete    | 2026-04-21 |
-| 5. Views & Onboarding | 0/3 | Not started | - |
+| 5. Views & Onboarding | 3/3 | Complete    | 2026-04-21 |
 | 6. Notifications & Gamification | 0/3 | Not started | - |
 | 7. PWA & Release | 0/2 | Not started | - |
