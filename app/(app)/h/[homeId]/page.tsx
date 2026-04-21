@@ -1,6 +1,9 @@
 import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/pocketbase-server';
-import { getCompletionsForHome } from '@/lib/completions';
+import {
+  getCompletionsForHome,
+  type CompletionRecord,
+} from '@/lib/completions';
 import { BandView, type TaskWithName } from '@/components/band-view';
 
 /**
@@ -73,7 +76,28 @@ export default async function HomeDashboardPage({
       (
         t.expand as Record<string, { name?: string }> | undefined
       )?.area_id?.name ?? undefined,
+    notes: (t.notes as string) ?? '',
   }));
+
+  // Build per-task last-5 completions map for TaskDetailSheet (03-03).
+  // `completions` is already sorted DESC by completed_at (getFullList
+  // sort: '-completed_at' in getCompletionsForHome), so slicing the
+  // first 5 after bucketing gives the correct "recent" ordering.
+  const byTask = new Map<string, CompletionRecord[]>();
+  for (const c of completions) {
+    const arr = byTask.get(c.task_id) ?? [];
+    arr.push(c);
+    byTask.set(c.task_id, arr);
+  }
+  const lastCompletionsByTaskId: Record<
+    string,
+    Array<{ id: string; completed_at: string }>
+  > = {};
+  for (const [taskId, arr] of byTask) {
+    lastCompletionsByTaskId[taskId] = arr
+      .slice(0, 5)
+      .map((c) => ({ id: c.id, completed_at: c.completed_at }));
+  }
 
   return (
     <BandView
@@ -84,6 +108,7 @@ export default async function HomeDashboardPage({
       timezone={home.timezone as string}
       now={now.toISOString()}
       emptyStateHref={`/h/${homeId}/tasks/new`}
+      lastCompletionsByTaskId={lastCompletionsByTaskId}
     />
   );
 }

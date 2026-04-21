@@ -116,4 +116,19 @@ describe('TaskRow', () => {
     );
     expect(screen.getByText(/Every 1 day/)).toBeDefined();
   });
+
+  it('invokes onDetail on contextmenu when onDetail is provided', () => {
+    const onDetail = vi.fn();
+    render(
+      <TaskRow
+        task={baseTask}
+        onComplete={() => {}}
+        onDetail={onDetail}
+        pending={false}
+        daysDelta={3}
+      />,
+    );
+    fireEvent.contextMenu(screen.getByRole('button'));
+    expect(onDetail).toHaveBeenCalledWith('t1');
+  });
 });

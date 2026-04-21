@@ -2,6 +2,8 @@
 
 import { useOptimistic, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import type { Task } from '@/lib/task-scheduling';
 import {
   reduceLatestByTask,
@@ -12,14 +14,20 @@ import {
   type ClassifiedTask,
 } from '@/lib/band-classification';
 import { computeCoverage } from '@/lib/coverage';
+import { completeTaskAction } from '@/lib/actions/completions';
 import { CoverageRing } from '@/components/coverage-ring';
 import { TaskBand } from '@/components/task-band';
 import { HorizonStrip } from '@/components/horizon-strip';
+import {
+  EarlyCompletionDialog,
+  type GuardState,
+} from '@/components/early-completion-dialog';
+import { TaskDetailSheet } from '@/components/task-detail-sheet';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 /**
- * BandView (03-02 Plan, D-11 + D-12 + D-18 + D-19, Pitfalls 1/7/10).
+ * BandView (03-02 / 03-03 Plans, D-11 + D-12 + D-18 + D-19, Pitfalls 1/4/5/6/7/10/12).
  *
  * Top-level Client Component for the authenticated landing page. Owns:
  *   - `useOptimistic(completions, reducerForm)` where the reducer is
@@ -30,14 +38,40 @@ import { Button } from '@/components/ui/button';
  *     a different dependency (Pitfall 7: otherwise the optimistic
  *     update would not flow through to the UI).
  *   - A `pendingTaskId` piece of state used to dim the tapped row
- *     until the server action returns (disables double-tap —
- *     Pitfall 4 surface, though 03-03 delivers the full
- *     defence-in-depth wiring).
+ *     until the server action returns (Pitfall 4: double-tap guard —
+ *     a second tap on the same pending row returns immediately).
+ *   - `guardState` for the EarlyCompletionDialog when the server
+ *     returns `{ requiresConfirm: true }` (Pitfall 5: discriminated
+ *     union handling — server NEVER throws for business outcomes).
+ *   - `detailTaskId` for the TaskDetailSheet (VIEW-06 / D-17).
  *
- * `onComplete` is accepted as a prop. When not provided (03-02
- * shipping state), tap is a no-op — the UI is interactive-ready
- * but does not mutate state. 03-03 wires the real
- * `completeTaskAction` server action + toast + router.refresh.
+ * Completion flow (03-03 wiring):
+ *   1. Row tap → `handleTap(taskId)` → double-tap guard via pendingId.
+ *   2. Optimistic completion synthesised and pushed through reducer.
+ *   3. `await completeTaskAction(taskId, { force })` inside
+ *      `startTransition` so React keeps the optimistic state live
+ *      until the action resolves.
+ *   4. Result is a discriminated union (Pitfall 5):
+ *        - `{ requiresConfirm: true, ... }` → open EarlyCompletionDialog.
+ *          React auto-rolls back the optimistic push because the
+ *          transition ends without a server-confirmed write.
+ *        - `{ ok: false, formError }` → toast.error.
+ *        - `{ ok: true, completion, nextDueFormatted }` → toast.success
+ *          + `router.refresh()` (Pitfall 6: complementary to the server
+ *          action's `revalidatePath` — Server Component re-fetches).
+ *   5. Catch block maps unexpected throws to a generic error toast.
+ *
+ * Guard confirm flow:
+ *   - User clicks "Mark done anyway" → `handleGuardConfirm` re-calls
+ *     `handleTap(guardState.taskId, { force: true })` → server action
+ *     skips the guard and records the completion.
+ *
+ * Detail sheet flow (Pitfall 12: Sheet + Dialog stacking):
+ *   - Row right-click / long-press → `setDetailTaskId(id)` opens sheet.
+ *   - Sheet's "Complete" button closes the sheet FIRST, THEN calls
+ *     handleTap. If the guard fires, the guard dialog opens cleanly
+ *     after the sheet has finished its close animation — no duelling
+ *     focus traps.
  *
  * Empty-state policy (03-CONTEXT §specifics):
  *   - `tasks.length === 0`: CoverageRing shows 100% (coverage pure
@@ -52,11 +86,12 @@ import { Button } from '@/components/ui/button';
  * read and passes `now` as an ISO string. BandView reconstructs
  * `new Date(now)` ONCE at the top of each render.
  *
- * React Compiler (Pitfall 10): this file intentionally uses
- * `useOptimistic` with a reducer form that the compiler is known
- * to handle correctly. If a compiler-induced regression is
- * observed during smoke, the first-line remediation is to add
- * `'use no memo';` at the top of this file.
+ * React Compiler (Pitfall 10, A5): `useOptimistic` with the reducer
+ * form compiles cleanly. No `'use no memo';` directive is required
+ * (03-02 smoke confirmed; 03-03 wiring does not introduce new
+ * compiler-hostile patterns). If a regression surfaces during live
+ * smoke, add `'use no memo';` at the top of this file as the
+ * first-line remediation.
  */
 export type TaskWithName = Task & {
   name: string;
@@ -64,6 +99,7 @@ export type TaskWithName = Task & {
   color: string;
   area_id: string;
   area_name?: string;
+  notes?: string;
 };
 
 export function BandView({
@@ -73,8 +109,8 @@ export function BandView({
   homeId,
   timezone,
   now,
-  onComplete,
   emptyStateHref,
+  lastCompletionsByTaskId,
 }: {
   tasks: TaskWithName[];
   completions: CompletionRecord[];
@@ -82,14 +118,21 @@ export function BandView({
   homeId: string;
   timezone: string;
   now: string;
-  onComplete?: (
-    taskId: string,
-    opts?: { force?: boolean },
-  ) => Promise<unknown>;
   emptyStateHref?: string;
+  /**
+   * Last 5 completions per task (sorted DESC by completed_at), used
+   * by TaskDetailSheet. Keyed by task id; missing task id = [].
+   */
+  lastCompletionsByTaskId: Record<
+    string,
+    Array<{ id: string; completed_at: string }>
+  >;
 }) {
+  const router = useRouter();
   const nowDate = new Date(now);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [guardState, setGuardState] = useState<GuardState | null>(null);
+  const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   // Reducer form — Pitfall 1 safe: no outer closure captured.
@@ -107,14 +150,15 @@ export function BandView({
   const coverage = computeCoverage(tasks, latestByTask, nowDate);
   const coveragePct = Math.round(coverage * 100);
 
-  async function handleTap(taskId: string) {
-    if (!onComplete) {
-      // 03-02 ships with tap wiring stubbed. 03-03 supplies the
-      // real handler invoking completeTaskAction + toast +
-      // router.refresh.
-      return;
-    }
+  async function handleTap(
+    taskId: string,
+    opts: { force?: boolean } = {},
+  ) {
+    // Pitfall 4 — double-tap guard. If the row is already in flight
+    // for this task id, swallow the second tap.
+    if (pendingTaskId === taskId) return;
     setPendingTaskId(taskId);
+
     const optimistic: CompletionRecord = {
       id: `optimistic-${taskId}-${Date.now()}`,
       task_id: taskId,
@@ -123,14 +167,59 @@ export function BandView({
       notes: '',
       via: 'tap',
     };
+
     startTransition(async () => {
+      // Optimistic state is scoped to this transition — React auto-
+      // rolls it back on transition end if the action path does not
+      // lead to a confirmed server write (e.g. guard fires).
       addOptimisticCompletion(optimistic);
       try {
-        await onComplete(taskId);
+        const result = await completeTaskAction(taskId, {
+          force: opts.force ?? false,
+        });
+        if ('requiresConfirm' in result) {
+          const task = tasks.find((t) => t.id === taskId);
+          setGuardState({
+            taskId,
+            taskName: task?.name ?? 'this task',
+            frequencyDays: result.frequency,
+            lastCompletedAt: result.lastCompletedAt,
+            nowDate,
+          });
+          return;
+        }
+        if (!result.ok) {
+          toast.error(result.formError || 'Could not complete task');
+          return;
+        }
+        toast.success(`Done — next due ${result.nextDueFormatted}`);
+        // Pitfall 6 complementarity with the server action's
+        // revalidatePath: the server invalidates the route's data
+        // cache; router.refresh() tells Next's client to re-fetch
+        // the Server Component output so the new completion lands
+        // in the non-optimistic parent state.
+        router.refresh();
+      } catch {
+        toast.error('Could not complete task');
       } finally {
         setPendingTaskId(null);
       }
     });
+  }
+
+  function handleGuardConfirm() {
+    if (!guardState) return;
+    const id = guardState.taskId;
+    setGuardState(null);
+    void handleTap(id, { force: true });
+  }
+
+  function handleGuardCancel() {
+    setGuardState(null);
+  }
+
+  function handleDetail(taskId: string) {
+    setDetailTaskId(taskId);
   }
 
   // Attach `name` to each ClassifiedTask so the band/horizon children
@@ -146,6 +235,12 @@ export function BandView({
   const thisWeekWithName = bands.thisWeek.map(attachName);
   const horizonWithName = bands.horizon.map(attachName);
 
+  const detailTask = detailTaskId
+    ? tasks.find((t) => t.id === detailTaskId)
+    : null;
+  const detailCompletions = detailTaskId
+    ? (lastCompletionsByTaskId[detailTaskId] ?? [])
+    : [];
   const hasAnyTasks = tasks.length > 0;
 
   return (
@@ -178,7 +273,8 @@ export function BandView({
           <TaskBand
             label="Overdue"
             tasks={overdueWithName}
-            onComplete={handleTap}
+            onComplete={(id) => handleTap(id)}
+            onDetail={handleDetail}
             pendingTaskId={pendingTaskId}
             timezone={timezone}
             variant="overdue"
@@ -187,7 +283,8 @@ export function BandView({
           <TaskBand
             label="This Week"
             tasks={thisWeekWithName}
-            onComplete={handleTap}
+            onComplete={(id) => handleTap(id)}
+            onDetail={handleDetail}
             pendingTaskId={pendingTaskId}
             timezone={timezone}
             variant="thisWeek"
@@ -200,6 +297,36 @@ export function BandView({
           />
         </>
       )}
+
+      {guardState && (
+        <EarlyCompletionDialog
+          state={guardState}
+          onConfirm={handleGuardConfirm}
+          onCancel={handleGuardCancel}
+        />
+      )}
+
+      <TaskDetailSheet
+        open={!!detailTaskId}
+        onOpenChange={(o) => !o && setDetailTaskId(null)}
+        task={
+          detailTask
+            ? {
+                id: detailTask.id,
+                name: detailTask.name,
+                frequency_days: detailTask.frequency_days,
+                schedule_mode: detailTask.schedule_mode,
+                anchor_date: detailTask.anchor_date,
+                notes: detailTask.notes ?? '',
+                area_name: detailTask.area_name,
+              }
+            : null
+        }
+        recentCompletions={detailCompletions}
+        timezone={timezone}
+        homeId={homeId}
+        onComplete={(id) => handleTap(id)}
+      />
     </div>
   );
 }

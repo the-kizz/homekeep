@@ -37,6 +37,7 @@ export function TaskBand({
   label,
   tasks,
   onComplete,
+  onDetail,
   pendingTaskId,
   timezone,
   variant,
@@ -46,6 +47,8 @@ export function TaskBand({
   label: string;
   tasks: ClassifiedTask[];
   onComplete: (taskId: string) => void;
+  /** 03-03 extension: forwarded to TaskRow for right-click / long-press. */
+  onDetail?: (taskId: string) => void;
   pendingTaskId: string | null;
   timezone: string;
   variant?: 'overdue' | 'thisWeek' | 'horizon';
@@ -75,6 +78,7 @@ export function TaskBand({
                 frequency_days: t.frequency_days,
               }}
               onComplete={onComplete}
+              onDetail={onDetail}
               pending={pendingTaskId === t.id}
               daysDelta={t.daysDelta}
               variant={variant}
@@ -142,6 +146,7 @@ export function TaskBand({
                       frequency_days: t.frequency_days,
                     }}
                     onComplete={onComplete}
+                    onDetail={onDetail}
                     pending={pendingTaskId === t.id}
                     daysDelta={t.daysDelta}
                     variant={variant}
