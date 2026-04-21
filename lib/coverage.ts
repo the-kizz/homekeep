@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
 

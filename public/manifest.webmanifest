@@ -1,7 +1,7 @@
 {
   "name": "HomeKeep",
   "short_name": "HomeKeep",
-  "description": "Household maintenance, visible and evenly distributed.",
+  "description": "Household maintenance, visible and evenly distributed. hk-1b6f3c0e-homekeep-public — github.com/conroyke56/homekeep",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

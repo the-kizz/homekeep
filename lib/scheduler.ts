@@ -9,6 +9,7 @@ import {
 } from '@/lib/completions';
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
 import { sendNtfy } from '@/lib/ntfy';
+import { HOMEKEEP_BUILD } from '@/lib/constants';
 import {
   buildOverdueRefCycle,
   buildWeeklyRefCycle,
@@ -106,7 +107,11 @@ export function start(): void {
   );
 
   started = true;
-  console.info('[scheduler] started (overdue + weekly ticks)');
+  // One-time provenance line — survives tree-shaking because the
+  // constant is imported from a separate module (lib/constants.ts).
+  console.info(
+    `[scheduler] started (overdue + weekly ticks) — build=${HOMEKEEP_BUILD}`,
+  );
 }
 
 export function stop(): void {

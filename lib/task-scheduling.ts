@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 import { addDays, differenceInDays } from 'date-fns';
 
 /**

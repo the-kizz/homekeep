@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 /**
  * ntfy HTTP client — pure fetch wrapper (06-01 Task 2, D-03, NOTF-02).
  *

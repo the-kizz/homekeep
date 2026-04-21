@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 import { addDays, startOfDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
