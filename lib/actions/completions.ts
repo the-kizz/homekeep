@@ -135,10 +135,13 @@ export async function completeTaskAction(
     try {
       const rec = await pb
         .collection('completions')
-        .getFirstListItem(`task_id = "${taskId}"`, {
-          sort: '-completed_at',
-          fields: 'id,completed_at',
-        });
+        .getFirstListItem(
+          pb.filter('task_id = {:tid}', { tid: taskId }),
+          {
+            sort: '-completed_at',
+            fields: 'id,completed_at',
+          },
+        );
       lastCompletion = {
         id: rec.id,
         completed_at: rec.completed_at as string,
@@ -182,7 +185,10 @@ export async function completeTaskAction(
     // snapshot via an overlay Map that swaps in the fresh completion.
     const areaId = task.area_id as string;
     const tasksInArea = (await pb.collection('tasks').getFullList({
-      filter: `home_id = "${homeId}" && area_id = "${areaId}" && archived = false`,
+      filter: pb.filter(
+        'home_id = {:hid} && area_id = {:aid} && archived = false',
+        { hid: homeId, aid: areaId },
+      ),
       fields: 'id,created,archived,frequency_days,schedule_mode,anchor_date',
     })) as unknown as Task[];
     const areaTaskIds = tasksInArea.map((t) => t.id);
