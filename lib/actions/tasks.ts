@@ -69,6 +69,15 @@ export async function createTask(
   // collapsible's "Last done" field. Empty string → null (schema
   // tolerates both via z.string().nullable().optional()).
   const rawLastDone = String(formData.get('last_done') ?? '').trim();
+  // Phase 14 (SEAS-07, T-14-01): read Active months from the Advanced
+  // collapsible. Strict digit regex before Number() blocks tampered
+  // inputs (e.g. "<script>", "-1") before the Phase 11 zod refine runs.
+  const rawActiveFromMonth = String(
+    formData.get('active_from_month') ?? '',
+  ).trim();
+  const rawActiveToMonth = String(
+    formData.get('active_to_month') ?? '',
+  ).trim();
 
   const raw = {
     home_id: String(formData.get('home_id') ?? '').trim(),
@@ -93,6 +102,18 @@ export async function createTask(
     // the smart-default path (TCSEM-03) takes over. Non-empty ISO date
     // string routes to the last_done + freq placement branch.
     last_done: rawLastDone.length > 0 ? rawLastDone : null,
+    // Phase 14 (SEAS-07): seasonal months. Strict /^\d+$/ regex on the
+    // raw string BEFORE Number() to reject '<script>' / '-1' / '13' at
+    // the parse edge. Phase 11 zod refine 2 then enforces paired-or-
+    // null + 1..12 range.
+    active_from_month:
+      rawActiveFromMonth.length > 0 && /^\d+$/.test(rawActiveFromMonth)
+        ? Number(rawActiveFromMonth)
+        : null,
+    active_to_month:
+      rawActiveToMonth.length > 0 && /^\d+$/.test(rawActiveToMonth)
+        ? Number(rawActiveToMonth)
+        : null,
   };
 
   const parsed = taskSchema.safeParse(raw);
@@ -295,6 +316,12 @@ export async function createTask(
       // Phase 13 (TCSEM-04): smoothed date, '' for bypass paths (PB
       // stores '' as null for nullable date fields).
       next_due_smoothed: nextDueSmoothed ?? '',
+      // Phase 14 (SEAS-07): seasonal window. '' for null (PB NumberField
+      // cleared-value) matches the anchor_date + next_due_smoothed
+      // convention used above. Paired-or-null already enforced by
+      // taskSchema refine 2 upstream.
+      active_from_month: parsed.data.active_from_month ?? '',
+      active_to_month: parsed.data.active_to_month ?? '',
     });
   } catch {
     return { ok: false, formError: 'Could not create task' };
@@ -325,6 +352,16 @@ export async function updateTask(
   // consume it. D-07 scope is task CREATION only; updateTask leaves
   // next_due_smoothed untouched (edit-time re-placement is Phase 15+).
   const rawLastDone = String(formData.get('last_done') ?? '').trim();
+  // Phase 14 (SEAS-07, T-14-01): active-months passthrough with the
+  // same /^\d+$/ regex guard as createTask. UNLIKE last_done these ARE
+  // consumed at update time — editing active months on an existing
+  // task is a legitimate user intent (SEAS-07 applies to edit flow).
+  const rawActiveFromMonth = String(
+    formData.get('active_from_month') ?? '',
+  ).trim();
+  const rawActiveToMonth = String(
+    formData.get('active_to_month') ?? '',
+  ).trim();
 
   const raw = {
     home_id: String(formData.get('home_id') ?? '').trim(),
@@ -343,6 +380,14 @@ export async function updateTask(
     assigned_to_id: rawAssigned.length > 0 ? rawAssigned : null,
     notes: rawNotes,
     last_done: rawLastDone.length > 0 ? rawLastDone : null,
+    active_from_month:
+      rawActiveFromMonth.length > 0 && /^\d+$/.test(rawActiveFromMonth)
+        ? Number(rawActiveFromMonth)
+        : null,
+    active_to_month:
+      rawActiveToMonth.length > 0 && /^\d+$/.test(rawActiveToMonth)
+        ? Number(rawActiveToMonth)
+        : null,
   };
 
   const parsed = taskSchema.safeParse(raw);
@@ -392,6 +437,11 @@ export async function updateTask(
       assigned_to_id: parsed.data.assigned_to_id ?? '',
       notes: parsed.data.notes ?? '',
       area_id: parsed.data.area_id,
+      // Phase 14 (SEAS-07): seasonal window — editable on update.
+      // Paired-or-null enforced by taskSchema refine 2 upstream;
+      // '' = clear (PB NumberField null).
+      active_from_month: parsed.data.active_from_month ?? '',
+      active_to_month: parsed.data.active_to_month ?? '',
       // SECURITY: never accept `archived` from formData on update either.
       // Archive is a separate explicit action.
     });

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { isInActiveWindow } from '@/lib/task-scheduling';
 import { cn } from '@/lib/utils';
 
 /**
@@ -61,6 +62,12 @@ type TaskRecord = {
   // smart-default at creation (TCSEM-03). Edit-form currently ignores
   // this on save (see lib/actions/tasks.ts updateTask comment).
   last_done?: string | null;
+  // Phase 14 (SEAS-07): optional seasonal window — paired-or-null
+  // validated by taskSchema refine 2. Both applicable to cycle AND
+  // anchored modes (seasonal is orthogonal to schedule_mode; e.g.
+  // a heater serviced on a fixed Nov 1 anchor with Oct-Mar window).
+  active_from_month?: number | null;
+  active_to_month?: number | null;
 };
 
 const QUICK_SELECT: { label: string; days: number }[] = [
@@ -69,6 +76,23 @@ const QUICK_SELECT: { label: string; days: number }[] = [
   { label: 'Quarterly', days: 90 },
   { label: 'Yearly', days: 365 },
 ];
+
+// Phase 14 (SEAS-07, D-01): month dropdown options (1..12 labels for
+// the Active months from/to selects). Ordered Jan..Dec.
+const MONTH_OPTIONS = [
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
+] as const;
 
 export function TaskForm({
   mode,
@@ -137,6 +161,11 @@ export function TaskForm({
       // (create). Create mode drives the TCSEM-03 smart-default branch
       // when left blank.
       last_done: task?.last_done ?? null,
+      // Phase 14 (SEAS-07): seasonal window. Null+null = year-round
+      // (both existing v1.0 rows and new-task defaults). Edit mode
+      // seeds from the task record if present.
+      active_from_month: task?.active_from_month ?? null,
+      active_to_month: task?.active_to_month ?? null,
     },
   });
 
@@ -347,7 +376,7 @@ export function TaskForm({
         Edit-time re-placement is Phase 15+ scope; match the form to
         the server's creation-only scope.
       */}
-      {mode === 'create' && scheduleMode === 'cycle' && (
+      {mode === 'create' && (
         <Collapsible className="space-y-3">
           <CollapsibleTrigger asChild>
             <Button
@@ -361,29 +390,119 @@ export function TaskForm({
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-3 rounded-md border border-border/60 bg-muted/30 p-3">
+            {/* Phase 13 (TCSEM-01): last_done — cycle-mode only. The
+                inner guard moved down from the outer Collapsible gate
+                so Phase 14's Active months can live alongside without
+                being hidden for anchored tasks. */}
+            {scheduleMode === 'cycle' && (
+              <div className="space-y-1.5">
+                <Label htmlFor="task-last-done">Last done (optional)</Label>
+                <Controller
+                  control={control}
+                  name="last_done"
+                  render={({ field }) => (
+                    <Input
+                      id="task-last-done"
+                      type="date"
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value.length > 0 ? e.target.value : null,
+                        )
+                      }
+                      name="last_done"
+                    />
+                  )}
+                />
+                <p className="text-xs text-muted-foreground">
+                  When did you last do this? Blank = HomeKeep picks a smart first-due.
+                </p>
+              </div>
+            )}
+
+            {/* Phase 14 (SEAS-07, D-01, D-02, D-03): Active months —
+                applies to both cycle and anchored modes. Paired-or-null
+                enforced by taskSchema refine 2 at submit; UX hint
+                disables "To month" until "From month" is selected (D-02).
+                Both blank = year-round. */}
             <div className="space-y-1.5">
-              <Label htmlFor="task-last-done">Last done (optional)</Label>
-              <Controller
-                control={control}
-                name="last_done"
-                render={({ field }) => (
-                  <Input
-                    id="task-last-done"
-                    type="date"
-                    value={field.value ?? ''}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value.length > 0 ? e.target.value : null,
-                      )
-                    }
-                    name="last_done"
-                  />
-                )}
-              />
+              <Label>Active months (optional)</Label>
+              <div className="flex items-center gap-2">
+                <Controller
+                  control={control}
+                  name="active_from_month"
+                  render={({ field }) => (
+                    <select
+                      id="task-active-from"
+                      name="active_from_month"
+                      aria-label="From month"
+                      value={field.value ?? ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        field.onChange(v.length > 0 ? Number(v) : null);
+                      }}
+                      className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <option value="">From — year-round</option>
+                      {MONTH_OPTIONS.map((m) => (
+                        <option key={m.value} value={m.value}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                />
+                <span className="text-xs text-muted-foreground">→</span>
+                <Controller
+                  control={control}
+                  name="active_to_month"
+                  render={({ field }) => {
+                    const fromValue = watch('active_from_month');
+                    return (
+                      <select
+                        id="task-active-to"
+                        name="active_to_month"
+                        aria-label="To month"
+                        disabled={fromValue == null}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          field.onChange(v.length > 0 ? Number(v) : null);
+                        }}
+                        className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                      >
+                        <option value="">To</option>
+                        {MONTH_OPTIONS.map((m) => (
+                          <option key={m.value} value={m.value}>
+                            {m.label}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  }}
+                />
+              </div>
+              {(errors.active_from_month?.message ||
+                serverFieldErrors?.active_from_month?.[0]) && (
+                <p className="text-sm text-destructive">
+                  {errors.active_from_month?.message ??
+                    serverFieldErrors?.active_from_month?.[0]}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
-                When did you last do this? Blank = HomeKeep picks a smart first-due.
+                Example: From October → To March covers Oct, Nov, Dec, Jan, Feb, Mar.
+                Leave blank for year-round.
               </p>
             </div>
+
+            {/* Phase 14 (SEAS-08, D-04, D-05, D-06): anchored-warning.
+                Only renders when schedule_mode === 'anchored' AND
+                anchor_date set AND both active months set AND projected
+                dormancy ratio STRICTLY > 50%. Non-blocking — save
+                succeeds regardless. */}
+            {scheduleMode === 'anchored' && (
+              <AnchoredWarningAlert watch={watch} />
+            )}
           </CollapsibleContent>
         </Collapsible>
       )}
@@ -418,5 +537,73 @@ export function TaskForm({
             : 'Save changes'}
       </Button>
     </form>
+  );
+}
+
+/**
+ * Phase 14 (SEAS-08, D-04, D-05, D-06): anchored-warning inline Alert.
+ *
+ * Renders an amber, non-blocking warning when all four conditions hold:
+ *   1. schedule_mode === 'anchored'  (gated by caller)
+ *   2. anchor_date is a non-empty ISO-like string
+ *   3. Both active_from_month and active_to_month are set
+ *   4. STRICTLY > 50% of 6 projected cycles fall outside the active
+ *      window (D-04 threshold: 4+ of 6 dormant).
+ *
+ * Projection math is bounded to 6 iterations (O(1)) — RHF watch()
+ * subscriptions debounce re-renders (T-14-03 accept disposition).
+ *
+ * The alert does NOT block save — it's purely advisory. The user
+ * may legitimately want a "service heater on Nov 1 with Oct-Mar
+ * window" config where the anchor falls inside the window and all
+ * 6 projections stay in Nov across 5 years; or they may knowingly
+ * want the warning case to materialize. Save succeeds regardless
+ * (SEAS-08 contract: warn, don't gate).
+ */
+function AnchoredWarningAlert({
+  watch,
+}: {
+  watch: ReturnType<typeof useForm<TaskInput>>['watch'];
+}) {
+  const anchorDate = watch('anchor_date');
+  const fromMonth = watch('active_from_month');
+  const toMonth = watch('active_to_month');
+  const freq = watch('frequency_days');
+
+  if (
+    typeof anchorDate !== 'string' ||
+    anchorDate.length === 0 ||
+    fromMonth == null ||
+    toMonth == null ||
+    typeof freq !== 'number' ||
+    freq <= 0
+  ) {
+    return null;
+  }
+
+  const anchor = new Date(anchorDate);
+  if (Number.isNaN(anchor.getTime())) return null;
+
+  let dormantCount = 0;
+  for (let k = 0; k < 6; k++) {
+    const projected = new Date(anchor.getTime() + k * freq * 86400000);
+    const month = projected.getUTCMonth() + 1;
+    if (!isInActiveWindow(month, fromMonth, toMonth)) dormantCount++;
+  }
+  const ratio = dormantCount / 6;
+  // D-04: STRICTLY greater than 50% — ratio=0.5 (3/6) does NOT trigger.
+  if (ratio <= 0.5) return null;
+
+  return (
+    <div
+      role="alert"
+      data-anchored-warning
+      data-dormant-ratio={ratio.toFixed(2)}
+      className="rounded-md border border-amber-500/60 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+    >
+      <strong className="font-medium">Heads up:</strong> Most scheduled
+      cycles fall outside the active window. The task will be dormant
+      for those dates.
+    </div>
   );
 }
