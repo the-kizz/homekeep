@@ -102,3 +102,41 @@ describe('SEED_LIBRARY', () => {
     expect(list.length).toBe(SEED_LIBRARY.length);
   });
 });
+
+describe('Phase 14 seasonal pairs (SEAS-09)', () => {
+  test('seed-mow-lawn-warm: freq=14, active_from=4, active_to=9', () => {
+    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-mow-lawn-warm');
+    expect(seed).toBeDefined();
+    expect(seed?.frequency_days).toBe(14);
+    expect(seed?.active_from_month).toBe(4);
+    expect(seed?.active_to_month).toBe(9);
+  });
+
+  test('seed-mow-lawn-cool: freq=30, active_from=10, active_to=3', () => {
+    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-mow-lawn-cool');
+    expect(seed).toBeDefined();
+    expect(seed?.frequency_days).toBe(30);
+    expect(seed?.active_from_month).toBe(10);
+    expect(seed?.active_to_month).toBe(3);
+  });
+
+  test('seed-service-ac: freq=365, active_from=10, active_to=3', () => {
+    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-service-ac');
+    expect(seed).toBeDefined();
+    expect(seed?.frequency_days).toBe(365);
+    expect(seed?.active_from_month).toBe(10);
+    expect(seed?.active_to_month).toBe(3);
+  });
+
+  test('seed-service-heater: freq=365, active_from=4, active_to=9', () => {
+    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-service-heater');
+    expect(seed).toBeDefined();
+    expect(seed?.frequency_days).toBe(365);
+    expect(seed?.active_from_month).toBe(4);
+    expect(seed?.active_to_month).toBe(9);
+  });
+
+  test('SEED_LIBRARY has exactly 34 entries (30 existing + 4 new seasonal)', () => {
+    expect(SEED_LIBRARY.length).toBe(34);
+  });
+});

@@ -100,6 +100,13 @@ export async function batchCreateSeedTasks(input: {
     }
   }
 
+  // Phase 14 (SEAS-09): build an id→entry Map for O(1) lookup while
+  // threading active_from/to into the tasks.create body below. Reads
+  // ONLY from SEED_LIBRARY — client-supplied active_from/to would be
+  // ignored even if present (T-14-02: cannot forge seasonal window
+  // for a non-seasonal seed).
+  const SEED_BY_ID_14 = new Map(SEED_LIBRARY.map((s) => [s.id, s] as const));
+
   // ─── Phase 13 TCSEM-05 + D-08: load-map threading ──────────────────
   // Pre-compute next_due_smoothed per seed, threading an in-memory load
   // Map forward across seeds so a cohort naturally distributes. Each
@@ -238,6 +245,17 @@ export async function batchCreateSeedTasks(input: {
         // Phase 13 (TCSEM-04): pre-computed smoothed date; '' for any
         // seed whose placement threw (D-06 fallback).
         next_due_smoothed: placedDates.get(i) ?? '',
+        // Phase 14 (SEAS-09): thread seasonal window from the matched
+        // SEED_LIBRARY entry. Non-seasonal seeds have these undefined,
+        // in which case we pass '' (PB NumberField cleared-value) so
+        // the Phase 11 zod refine 2 paired-or-null invariant holds at
+        // both storage and read sides (null + null = year-round =
+        // current v1.0 behaviour for all 30 existing seeds). Matches
+        // the `anchor_date: ''` convention used above.
+        active_from_month:
+          SEED_BY_ID_14.get(s.seed_id)?.active_from_month ?? '',
+        active_to_month:
+          SEED_BY_ID_14.get(s.seed_id)?.active_to_month ?? '',
       });
     }
     batch.collection('homes').update(parsed.data.home_id, {

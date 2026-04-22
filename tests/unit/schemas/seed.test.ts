@@ -115,6 +115,15 @@ describe('seedSelectionSchema', () => {
     });
     expect(r.success).toBe(false);
   });
+
+  test('SEAS-09: accepts active_from_month + active_to_month as paired optional numbers', () => {
+    const r = seedSelectionSchema.safeParse({
+      ...validSelection,
+      active_from_month: 4,
+      active_to_month: 9,
+    });
+    expect(r.success).toBe(true);
+  });
 });
 
 describe('batchCreateSeedsSchema', () => {

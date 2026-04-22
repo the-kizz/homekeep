@@ -34,6 +34,10 @@ import type { SeedTask, SeedAreaSuggestion } from '@/lib/seed-library';
 
 type SeedAction = 'add' | 'skip';
 
+// Phase 14 (SEAS-09): seasonal fields (active_from_month / active_to_month)
+// are propagated server-side from SEED_LIBRARY by seed_id inside
+// batchCreateSeedTasks — client payload shape unchanged (T-14-02 keeps
+// clients from forging a seasonal window for a non-seasonal seed).
 type Selection = {
   action: SeedAction;
   name: string;

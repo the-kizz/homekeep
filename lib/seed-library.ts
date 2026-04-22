@@ -41,6 +41,13 @@ export type SeedTask = {
   suggested_area: SeedAreaSuggestion;
   icon: string;
   description: string;
+  // Phase 14 (SEAS-09, D-11, D-12): optional seasonal window.
+  // Both set = seasonal; both omitted = year-round (backward-compat
+  // for the 30 existing entries). Values are 1..12 month indices.
+  // Northern-hemisphere convention per D-12 (warm = Apr-Sep,
+  // cool = Oct-Mar). Hemisphere-aware labels deferred to v1.2.
+  active_from_month?: number;
+  active_to_month?: number;
 };
 
 export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
@@ -292,5 +299,50 @@ export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
     suggested_area: 'whole_home',
     icon: 'home',
     description: 'Wash accessible outside window glass.',
+  },
+
+  // ─── Seasonal pairs (4) — Phase 14 SEAS-09 ────────────────────────
+  // Hemisphere convention: Northern (warm = Apr-Sep). v1.2 will invert
+  // labels by home.timezone region; for v1.1 the labels may feel
+  // inverted for Southern-hemisphere users (noted as D-12 deferred).
+  {
+    id: 'seed-mow-lawn-warm',
+    name: 'Mow lawn (warm season)',
+    frequency_days: 14,
+    suggested_area: 'yard',
+    icon: 'sprout',
+    description: 'Mow front and back lawns through the warm growing season.',
+    active_from_month: 4,
+    active_to_month: 9,
+  },
+  {
+    id: 'seed-mow-lawn-cool',
+    name: 'Mow lawn (cool season)',
+    frequency_days: 30,
+    suggested_area: 'yard',
+    icon: 'sprout',
+    description: 'Occasional mow through the cool season — grass grows slower.',
+    active_from_month: 10,
+    active_to_month: 3,
+  },
+  {
+    id: 'seed-service-ac',
+    name: 'Service air conditioner',
+    frequency_days: 365,
+    suggested_area: 'whole_home',
+    icon: 'wind',
+    description: 'Pre-summer service of the cooling system.',
+    active_from_month: 10,
+    active_to_month: 3,
+  },
+  {
+    id: 'seed-service-heater',
+    name: 'Service heater',
+    frequency_days: 365,
+    suggested_area: 'whole_home',
+    icon: 'flame',
+    description: 'Pre-winter service of the heating system.',
+    active_from_month: 4,
+    active_to_month: 9,
   },
 ];

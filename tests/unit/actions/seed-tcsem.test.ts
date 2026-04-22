@@ -365,6 +365,31 @@ describe('batchCreateSeedTasks TCSEM (Phase 13 Plan 13-01 Task 3)', () => {
     }
   });
 
+  test('SEAS-09: batchCreateSeedTasks threads active_from_month + active_to_month from SEED_LIBRARY into the tasks.create body', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [
+        makeSelection({
+          seed_id: 'seed-service-ac',
+          name: 'Service AC',
+          frequency_days: 365,
+        }),
+      ],
+    });
+    expect(result.ok).toBe(true);
+
+    const createOp = batchOps.find(
+      (o) => o.collection === 'tasks' && o.method === 'create',
+    );
+    expect(createOp).toBeDefined();
+    const body = createOp!.args[0] as Record<string, unknown>;
+    // seed-service-ac carries active_from_month=10, active_to_month=3 in
+    // SEED_LIBRARY; threaded verbatim into the create body.
+    expect(body.active_from_month).toBe(10);
+    expect(body.active_to_month).toBe(3);
+  });
+
   test('Test 6: SDST audit — no matches for the forbidden tokens in production code dirs', async () => {
     // Runtime grep via child_process. Scope: lib/ components/
     // pocketbase/ app/ with .ts/.tsx/.js/.jsx includes. This test file

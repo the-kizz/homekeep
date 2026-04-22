@@ -43,6 +43,15 @@ export const seedSelectionSchema = z.object({
     .min(1, 'Frequency must be at least 1 day')
     .max(365, 'Frequency must be at most 365 days'),
   area_id: z.string().length(15, 'Invalid area id'),
+  // Phase 14 (SEAS-09, D-11): optional seasonal window mirrored from
+  // the matched SEED_LIBRARY entry. Widened as optional-nullable to
+  // match taskSchema's paired-or-null invariant (enforced downstream
+  // at the task-create site via the Phase 11 refine 2). Client payload
+  // does NOT carry these — the server reads them from SEED_LIBRARY by
+  // seed_id after the Set-membership check (T-14-02: client cannot
+  // forge a seasonal window for a non-seasonal seed).
+  active_from_month: z.number().int().min(1).max(12).nullable().optional(),
+  active_to_month: z.number().int().min(1).max(12).nullable().optional(),
 });
 
 export const batchCreateSeedsSchema = z.object({
