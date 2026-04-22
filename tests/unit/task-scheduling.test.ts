@@ -381,3 +381,284 @@ describe('computeNextDue override branch (Phase 10, D-06 + D-10)', () => {
     expect(result).toEqual(snoozeUntilDate);
   });
 });
+
+// ─── Phase 11, D-05 + OOFT-05: OOFT branch ──────────────────────────────
+//
+// One-off tasks carry `frequency_days === null` and a concrete `due_date`.
+// computeNextDue OOFT branch:
+//   - no completion → returns due_date (or null if due_date is null — defensive)
+//   - any completion → returns null (the completeTaskAction batch archives the
+//     task atomically, so a reachable "completed OOFT" is a race-window only;
+//     return null keeps the task invisible to the scheduler)
+//   - past due_date is legitimate (D-22: "I forgot this, do it ASAP")
+
+describe('computeNextDue — OOFT branch (D-05, OOFT-05)', () => {
+  test('unborn OOFT (frequency_days=null, no completion) → returns due_date', () => {
+    const now = new Date('2026-04-15T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: null,
+      due_date: '2026-05-01T00:00:00.000Z',
+    });
+    const result = computeNextDue(task, null, now, undefined);
+    expect(result?.toISOString()).toBe('2026-05-01T00:00:00.000Z');
+  });
+
+  test('unborn OOFT with null due_date → returns null', () => {
+    const now = new Date('2026-04-15T00:00:00.000Z');
+    const task = makeTask({
+      frequency_days: null,
+      due_date: null,
+    });
+    expect(() => computeNextDue(task, null, now, undefined)).not.toThrow();
+    expect(computeNextDue(task, null, now, undefined)).toBeNull();
+  });
+
+  test('completed OOFT → returns null (archive semantic / race safety)', () => {
+    const now = new Date('2026-05-05T00:00:00.000Z');
+    const task = makeTask({
+      frequency_days: null,
+      due_date: '2026-05-01T00:00:00.000Z',
+    });
+    const result = computeNextDue(
+      task,
+      { completed_at: '2026-05-01T12:00:00.000Z' },
+      now,
+      undefined,
+    );
+    expect(result).toBeNull();
+  });
+
+  test('OOFT with past due_date → returns due_date (D-22; appears overdue immediately)', () => {
+    const now = new Date('2026-06-01T00:00:00.000Z');
+    const task = makeTask({
+      frequency_days: null,
+      due_date: '2026-04-01T00:00:00.000Z', // 2 months ago
+    });
+    const result = computeNextDue(task, null, now, undefined);
+    expect(result?.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+  });
+});
+
+// ─── Phase 11, D-12 + SEAS-02: seasonal-dormant branch ──────────────────
+//
+// When a task has a seasonal window AND now is outside it AND a prior
+// completion exists, return null (invisible to scheduler / coverage).
+// No-prior-completion case falls through to the wake-up branch.
+
+describe('computeNextDue — seasonal dormant (D-12, SEAS-02)', () => {
+  test('out-of-window with prior completion → null (Oct-Mar wrap, now=July)', () => {
+    const now = new Date('2026-07-15T12:00:00.000Z'); // July — dormant for Oct-Mar
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 10, // Oct
+      active_to_month: 3, // Mar (wrap)
+    });
+    const result = computeNextDue(
+      task,
+      { completed_at: '2026-01-10T00:00:00.000Z' }, // completed in Jan (prior season)
+      now,
+      undefined,
+      'UTC',
+    );
+    expect(result).toBeNull();
+  });
+
+  test('in-window with prior in-season completion → cycle branch (not null)', () => {
+    const now = new Date('2026-11-15T12:00:00.000Z'); // November — inside Oct-Mar wrap
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const result = computeNextDue(
+      task,
+      { completed_at: '2026-11-01T00:00:00.000Z' }, // completed 14d ago in-season
+      now,
+      undefined,
+      'UTC',
+    );
+    // Falls through to cycle branch: 2026-11-01 + 30d = 2026-12-01
+    expect(result).not.toBeNull();
+    expect(result?.toISOString()).toBe('2026-12-01T00:00:00.000Z');
+  });
+
+  test('out-of-window without prior completion → wake-up branch (not dormant)', () => {
+    const now = new Date('2026-07-15T12:00:00.000Z'); // July, outside Apr-Sep? no, IN Apr-Sep
+    // Use a different window to force out-of-window: Jan-Mar
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 1, // Jan
+      active_to_month: 3, // Mar
+    });
+    const result = computeNextDue(task, null, now, undefined, 'UTC');
+    // No completion → wake-up branch fires, returning Jan 1 of next year.
+    expect(result).not.toBeNull();
+    expect(result?.toISOString()).toBe('2027-01-01T00:00:00.000Z');
+  });
+});
+
+// ─── Phase 11, D-12 + SEAS-03: seasonal-wakeup branch ───────────────────
+//
+// When a task has a seasonal window AND (no completion OR last completion
+// in prior season), return the first-day-of-from-month-at-midnight in
+// home timezone.
+
+describe('computeNextDue — seasonal wake-up (D-12, SEAS-03)', () => {
+  test('no completion + Apr-Sep window, now=Feb (UTC) → Apr 1 00:00 UTC', () => {
+    const now = new Date('2026-02-15T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 4, // Apr
+      active_to_month: 9, // Sep
+    });
+    const result = computeNextDue(task, null, now, undefined, 'UTC');
+    expect(result?.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+  });
+
+  test('last completion 400d ago (prior season) → next window open', () => {
+    const now = new Date('2026-02-15T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 4,
+      active_to_month: 9,
+    });
+    // 400d ago = 2025-01-11 → out-of-window (Jan), so wasInPriorSeason = true.
+    const result = computeNextDue(
+      task,
+      { completed_at: '2025-01-11T00:00:00.000Z' },
+      now,
+      undefined,
+      'UTC',
+    );
+    expect(result?.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+  });
+
+  test('last completion in same active season → falls through to cycle branch', () => {
+    // Both last-completion and now are in April (in-window, same season).
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 4,
+      active_to_month: 9,
+    });
+    const result = computeNextDue(
+      task,
+      { completed_at: '2026-04-10T00:00:00.000Z' },
+      now,
+      undefined,
+      'UTC',
+    );
+    // Cycle branch: 2026-04-10 + 30d = 2026-05-10.
+    expect(result?.toISOString()).toBe('2026-05-10T00:00:00.000Z');
+  });
+
+  test('wrap window (Oct-Mar), no completion, now=July → Oct 1 of current year', () => {
+    const now = new Date('2026-07-15T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 10, // Oct
+      active_to_month: 3, // Mar (wrap)
+    });
+    const result = computeNextDue(task, null, now, undefined, 'UTC');
+    // nowMonth=7 < from=10 → same year, Oct 1 2026.
+    expect(result?.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('home-tz: Australia/Perth (+8) April 15 UTC noon, Oct-Mar wrap → Oct 1 Perth midnight (= Sep 30 16:00 UTC)', () => {
+    // Perth is UTC+8, no DST. April 15 UTC 12:00 = April 15 20:00 Perth → month=4.
+    // With Oct-Mar wrap + July-like month 4: nowMonth=4 < from=10 → same year.
+    // Oct 1 2026 00:00 Perth = Sep 30 2026 16:00 UTC.
+    const now = new Date('2026-04-15T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const result = computeNextDue(
+      task,
+      null,
+      now,
+      undefined,
+      'Australia/Perth',
+    );
+    expect(result?.toISOString()).toBe('2026-09-30T16:00:00.000Z');
+  });
+});
+
+// ─── Phase 11, D-16 + D-17: branch composition ──────────────────────────
+//
+// D-16 branch order: archived → freq-validation (null-safe) → override →
+// seasonal-dormant → seasonal-wakeup → OOFT → cycle → anchored.
+// D-17: override wins over dormancy — user intent beats inferred dormancy.
+
+describe('computeNextDue — branch composition (D-16, D-17)', () => {
+  test('override on dormant seasonal task → override wins (D-17)', () => {
+    const now = new Date('2026-07-15T12:00:00.000Z'); // July — dormant for Oct-Mar
+    const task = makeTask({
+      frequency_days: 30,
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const override: Override = {
+      id: 'o1',
+      task_id: 't1',
+      snooze_until: '2026-08-01T00:00:00.000Z',
+      consumed_at: null,
+      created_by_id: 'u1',
+      created: '2026-07-10T00:00:00.000Z',
+    };
+    const result = computeNextDue(
+      task,
+      { completed_at: '2026-01-10T00:00:00.000Z' },
+      now,
+      override,
+      'UTC',
+    );
+    // Override precedence: returns snooze_until, not null.
+    expect(result?.toISOString()).toBe('2026-08-01T00:00:00.000Z');
+  });
+
+  test('archived task with all Phase 11 fields set → still returns null (archived > everything)', () => {
+    const now = new Date('2026-04-15T12:00:00.000Z');
+    const task = makeTask({
+      archived: true,
+      frequency_days: null,
+      due_date: '2026-05-01T00:00:00.000Z',
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const result = computeNextDue(task, null, now, undefined, 'UTC');
+    expect(result).toBeNull();
+  });
+
+  test('OOFT with null due_date and null completion → returns null (not throw; freq-guard null-safe)', () => {
+    const now = new Date('2026-04-15T00:00:00.000Z');
+    const task = makeTask({
+      frequency_days: null,
+      due_date: null,
+    });
+    expect(() => computeNextDue(task, null, now, undefined)).not.toThrow();
+  });
+
+  test('seasonal-dormant wins over OOFT when completion in prior season (hybrid task, degenerate)', () => {
+    // A task with BOTH frequency_days=null AND a seasonal window is
+    // not a documented product shape (OOFT and seasonal are orthogonal),
+    // but defense-in-depth: dormant branch fires before OOFT branch,
+    // so a completed dormant OOFT returns null via dormant, not via OOFT.
+    const now = new Date('2026-07-15T12:00:00.000Z');
+    const task = makeTask({
+      frequency_days: null,
+      due_date: '2026-05-01T00:00:00.000Z',
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const result = computeNextDue(
+      task,
+      { completed_at: '2026-01-10T00:00:00.000Z' },
+      now,
+      undefined,
+      'UTC',
+    );
+    expect(result).toBeNull();
+  });
+});
