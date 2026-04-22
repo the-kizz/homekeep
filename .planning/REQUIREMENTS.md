@@ -257,20 +257,29 @@
 
 ### Household Load-Aware Scheduling (LOAD)
 
-- [ ] **LOAD-01**: New `tasks.next_due_smoothed DATE` field (nullable, additive migration). Stores the smoother's chosen date.
+- [x] **LOAD-01
+**: New `tasks.next_due_smoothed DATE` field (nullable, additive migration). Stores the smoother's chosen date.
 - [ ] **LOAD-02**: `computeNextDue` returns `next_due_smoothed` when set, falling back to natural; SNZE override still trumps
-- [ ] **LOAD-03**: New pure helper `placeNextDue(task, householdLoad, now)` returns a date within tolerance window of natural ideal
-- [ ] **LOAD-04**: Tolerance window = `min(0.15 * frequency_days, 5)` days each side of ideal (per rider 1 — initial ship; widen to `min(0.15 * freq, 14)` if Phase 12 validation against 30-task test household shows annual clusters remain bunched)
-- [ ] **LOAD-05**: PREF narrows candidate dates BEFORE load scoring (hard constraint preserved)
+- [x] **LOAD-03
+**: New pure helper `placeNextDue(task, householdLoad, now)` returns a date within tolerance window of natural ideal
+- [x] **LOAD-04
+**: Tolerance window = `min(0.15 * frequency_days, 5)` days each side of ideal (per rider 1 — initial ship; widen to `min(0.15 * freq, 14)` if Phase 12 validation against 30-task test household shows annual clusters remain bunched)
+- [x] **LOAD-05
+**: PREF narrows candidate dates BEFORE load scoring (hard constraint preserved)
 - [ ] **LOAD-06**: Anchored-mode tasks bypass smoothing entirely (byte-identical to v1.0)
 - [ ] **LOAD-07**: Seasonal tasks: anchor to window start at wake-up; smoother runs from second cycle onward
-- [ ] **LOAD-08**: Snoozed tasks: SNZE override trumps smoother; snooze date contributes to load map for OTHER tasks' placement
-- [ ] **LOAD-09**: One-off tasks: contribute to load map but not re-smoothable; first due determined by Phase 11 OOFT decision
+- [x] **LOAD-08
+**: Snoozed tasks: SNZE override trumps smoother; snooze date contributes to load map for OTHER tasks' placement
+- [x] **LOAD-09
+**: One-off tasks: contribute to load map but not re-smoothable; first due determined by Phase 11 OOFT decision
 - [ ] **LOAD-10**: Smoother runs on task creation AND on task completion (one placement call per event)
-- [ ] **LOAD-11**: Smoothing is forward-only — placing one task never modifies existing tasks' `next_due_smoothed` values
-- [ ] **LOAD-12**: Tiebreaker rules: closest-to-ideal wins, then earlier wins
+- [x] **LOAD-11
+**: Smoothing is forward-only — placing one task never modifies existing tasks' `next_due_smoothed` values
+- [x] **LOAD-12
+**: Tiebreaker rules: closest-to-ideal wins, then earlier wins
 - [ ] **LOAD-13**: Single placement call completes in <100ms for households with 100 active tasks (hard performance budget)
-- [ ] **LOAD-14**: New helper `computeHouseholdLoad(tasks, now, windowDays): Map<string, number>` builds the load map from a single PB query
+- [x] **LOAD-14
+**: New helper `computeHouseholdLoad(tasks, now, windowDays): Map<string, number>` builds the load map from a single PB query
 - [ ] **LOAD-15**: `computeNextDue` branch composition test matrix covers all 6 branches (override, smoothed, anchored, seasonal, one-off, natural) and every meaningful interaction — tests are a hard gate on Phase 12 completion
 
 ### Horizon Density Visualization (LVIZ)
