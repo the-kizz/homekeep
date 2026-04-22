@@ -232,7 +232,8 @@
 **: Cross-year wrap supported: a window like Oct→Mar correctly includes Dec, Jan, Feb
 - [x] **SEAS-05
 **: Coverage ring excludes dormant tasks from its mean (treats them like archived)
-- [ ] **SEAS-06**: Dormant tasks render dimmed with "Sleeps until <Mon Year>" badge in By Area and Person views
+- [x] **SEAS-06
+**: Dormant tasks render dimmed with "Sleeps until <Mon Year>" badge in By Area and Person views
 - [x] **SEAS-07
 **: Task form gains an optional "Active months" section (from/to month dropdowns)
 - [x] **SEAS-08

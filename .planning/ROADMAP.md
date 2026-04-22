@@ -34,7 +34,7 @@ v1.1 extends v1.0 with household-global load-aware scheduling (the SPEC thesis-d
 - [x] **Phase 11: Task Model Extensions** - Nullable `frequency_days`, `preferred_days`, `active_from_month`/`active_to_month` fields + scheduler logic for OOFT / PREF / SEAS behaviors. OOFT-01..03 finalized here after `/gsd-discuss-phase 11` locks first-due semantics (rider 2)
 - [x] **Phase 12: Load-Smoothing Engine** - `tasks.next_due_smoothed` field, `placeNextDue` + `computeHouseholdLoad` helpers, integration into `computeNextDue`; PREF/SEAS/SNZE/OOFT/anchored interactions. **Hard gate: branch-composition test matrix covers all 6 branches and meaningful interactions.**
 - [x] **Phase 13: Task Creation Semantics** - Task form "Last done" optional field (Advanced collapsible) + smart-default first-due + `batchCreateSeedTasks` rewrite calling TCSEM per seed with in-memory load map; SDST removal cleanup
-- [ ] **Phase 14: Seasonal UI & Seed Library** - Task form "Active months" section, dimmed + "Sleeps until" rendering in By Area / Person / dashboard, anchored-mode warning, seasonal seed pairs
+- [x] **Phase 14: Seasonal UI & Seed Library** - Task form "Active months" section, dimmed + "Sleeps until" rendering in By Area / Person / dashboard, anchored-mode warning, seasonal seed pairs
 - [ ] **Phase 15: One-Off & Reschedule UI** - Task form one-off toggle, Reschedule action sheet with date picker and "Just this time" / "From now on" radio; ExtendWindowDialog for cross-window snoozes
 - [ ] **Phase 16: Horizon Density Visualization** - HorizonStrip density indicators, ⚖️ badge on shifted tasks across BandView/By Area/Person, TaskDetailSheet ideal-vs-scheduled surface
 - [ ] **Phase 17: Manual Rebalance** - Settings → Scheduling → "Rebalance schedule" button + counts-only preview modal (breakdown by preservation reason) + apply (respects anchored, active snoozes, "From now on" marker)
@@ -304,6 +304,7 @@ Plans:
 
 Plans:
 - [x] 14-01-P01-PLAN.md — Wave 1 (data-adjacent): seed library +4 seasonal entries (SEAS-09) + task-form Active months subsection inside the Phase 13 Advanced collapsible (SEAS-07) + AnchoredWarningAlert non-blocking amber alert with >50% dormant-cycle projection math (SEAS-08) + filterCompletions SEAS-10 regression test locking dormancy-agnostic history
+- [x] 14-02-P01-PLAN.md — Wave 2 (UI rendering): classifyDormantTasks pure helper + DormantTaskRow presentational Client Component (opacity-50 dim + "Sleeps until MMM yyyy" badge + belt-and-braces no-op click) + Sleeping sections wired into BandView, PersonTaskList, and home-level By Area rollup (SEAS-06) + 3-scenario disposable-PB integration suite on port 18102 (S1 onboarding persists active_from/to, S2 classifier + badge literal "Sleeps until Oct 2026", S3 dormant completion survives history getFullList + filterCompletions)
 
 ### Phase 15: One-Off & Reschedule UI
 **Goal**: Users can create one-off tasks and rearrange any task's next occurrence from any view via a mobile-friendly action sheet — snoozing (one-off override) or permanently shifting ("From now on" mutates anchor / `next_due_smoothed` with a marker flag preserved by REBAL) without needing to edit the task, with a confirmation dialog when a snooze escapes the active season

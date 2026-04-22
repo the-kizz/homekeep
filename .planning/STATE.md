@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
-status: executing
-stopped_at: Completed 14-01-P01-PLAN.md
-last_updated: "2026-04-22T13:23:35.628Z"
+status: verifying
+stopped_at: Completed 14-02-P01-PLAN.md
+last_updated: "2026-04-22T13:42:38.148Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 19
-  completed_phases: 11
+  completed_phases: 12
   total_plans: 40
-  completed_plans: 42
+  completed_plans: 43
   percent: 100
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 Phase: 14 (Seasonal UI & Seed Library) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-22
 
 Progress: [██████████] 100%
@@ -108,6 +108,7 @@ Progress: [██████████] 100%
 | Phase 13 P01 | 10min | 3 tasks | 7 files |
 | Phase 13 P02 | ~8min | 2 tasks | 5 files |
 | Phase 14 P1 | 12min | 2 tasks | 10 files |
+| Phase 14 P02 | ~12min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -303,6 +304,9 @@ Recent decisions affecting current work:
 - Phase 13 Plan 02: Scenario 1 uses relative last_done (now-12d) + widened [now+10,now+26] assertion window — avoids time-travel test-flake and Rider-1 tolerance drift while preserving TCSEM-02 vs TCSEM-03 branch distinguishability
 - Phase 13 Plan 02: Port 18101 claimed for tcsem-integration.test.ts (allocation register now 18090..18101; 18102+ reserved for Phase 14+)
 - Phase 14 Plan 1: Advanced collapsible outer guard loosened from cycle-only to create-only, with inner fields self-gating (last_done cycle-only, Active months both-modes). AnchoredWarningAlert strictly >0.5 threshold per D-04. updateTask consumes active_from/to (unlike last_done). '' = clear PB convention preserved.
+- Phase 14 Wave 2: append-only BandView/PersonTaskList Sleeping section below HorizonStrip preserves Phase 13 baseline byte-identically when no dormant tasks exist
+- DormantTaskRow accepts NO onComplete prop (stricter than plan alternative) — T-14-06 mitigation by construction
+- By Area gets HOME-LEVEL dormant rollup (not per-area); per-area dormant detail deferred to Phase 15+ Reschedule scope
 
 ### Pending Todos
 
@@ -328,8 +332,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T13:23:29.213Z
-Stopped at: Completed 14-01-P01-PLAN.md
+Last session: 2026-04-22T13:42:31.336Z
+Stopped at: Completed 14-02-P01-PLAN.md
 Resume file: None
 
 **Planned Phase:** 14 () — 0 plans — 2026-04-22T13:08:37.267Z
