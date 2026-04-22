@@ -299,12 +299,12 @@
 ### Task Creation Semantics (TCSEM)
 
 - [ ] **TCSEM-01**: Task form gains optional "Last done" date field in an Advanced collapsible (default collapsed)
-- [ ] **TCSEM-02**: When "Last done" provided in cycle mode: `first_ideal = last_done + frequency_days`, then load-smoothed
-- [ ] **TCSEM-03**: When "Last done" blank: smart-default first-due based on cycle length (≤7d → tomorrow; 8-90d → cycle/4; >90d → cycle/3), then load-smoothed
-- [ ] **TCSEM-04**: New tasks ALWAYS have `next_due_smoothed` populated by TCSEM at creation time
-- [ ] **TCSEM-05**: `batchCreateSeedTasks` calls TCSEM individually per task, updating in-memory load map between tasks, producing a naturally distributed cohort
-- [ ] **TCSEM-06**: SDST is removed: no synthetic `via='seed-stagger'` completions; no `completions.via` enum extension; History/stats/notification filters from SDST are not implemented
-- [ ] **TCSEM-07**: v1.0 task migration: zero changes. Existing tasks with `next_due_smoothed = NULL` continue with natural cadence; LOAD writes a smoothed date at their next post-upgrade completion
+- [x] **TCSEM-02**: When "Last done" provided in cycle mode: `first_ideal = last_done + frequency_days`, then load-smoothed
+- [x] **TCSEM-03**: When "Last done" blank: smart-default first-due based on cycle length (≤7d → tomorrow; 8-90d → cycle/4; >90d → cycle/3), then load-smoothed
+- [x] **TCSEM-04**: New tasks ALWAYS have `next_due_smoothed` populated by TCSEM at creation time
+- [x] **TCSEM-05**: `batchCreateSeedTasks` calls TCSEM individually per task, updating in-memory load map between tasks, producing a naturally distributed cohort
+- [x] **TCSEM-06**: SDST is removed: no synthetic `via='seed-stagger'` completions; no `completions.via` enum extension; History/stats/notification filters from SDST are not implemented
+- [x] **TCSEM-07**: v1.0 task migration: zero changes. Existing tasks with `next_due_smoothed = NULL` continue with natural cadence; LOAD writes a smoothed date at their next post-upgrade completion
 
 ### Manual Rebalance (REBAL)
 
@@ -502,12 +502,12 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 | LOAD-14 | Phase 12 | Pending |
 | LOAD-15 | Phase 12 | Pending (hard gate) |
 | TCSEM-01 | Phase 13 | Pending |
-| TCSEM-02 | Phase 13 | Pending |
-| TCSEM-03 | Phase 13 | Pending |
-| TCSEM-04 | Phase 13 | Pending |
-| TCSEM-05 | Phase 13 | Pending |
-| TCSEM-06 | Phase 13 | Pending |
-| TCSEM-07 | Phase 13 | Pending |
+| TCSEM-02 | Phase 13 | Complete (13-01) |
+| TCSEM-03 | Phase 13 | Complete (13-01) |
+| TCSEM-04 | Phase 13 | Complete (13-01) |
+| TCSEM-05 | Phase 13 | Complete (13-01) |
+| TCSEM-06 | Phase 13 | Complete (13-01) |
+| TCSEM-07 | Phase 13 | Complete (13-01) |
 | SEAS-06 | Phase 14 | Pending |
 | SEAS-07 | Phase 14 | Pending |
 | SEAS-08 | Phase 14 | Pending |

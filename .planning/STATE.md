@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
-status: verifying
-stopped_at: Completed 12-04-P01-PLAN.md — Phase 12 Wave 4 integration + perf + rider-1 GREEN; 464 tests green (+6); Phase 12 ready for /gsd-verify-work
-last_updated: "2026-04-22T11:40:44.720Z"
+status: executing
+stopped_at: Completed 13-01-P01-PLAN.md
+last_updated: "2026-04-22T12:24:59.696Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 19
   completed_phases: 10
-  total_plans: 36
-  completed_plans: 39
+  total_plans: 38
+  completed_plans: 40
   percent: 100
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 12 — Load-Smoothing Engine
+**Current focus:** Phase 13 — Task Creation Semantics
 
 ## Current Position
 
-Phase: 12 (Load-Smoothing Engine) — EXECUTING
-Plan: 4 of 4
-Status: Phase complete — ready for verification
+Phase: 13 (Task Creation Semantics) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-04-22
 
 Progress: [██████████] 100%
@@ -105,6 +105,7 @@ Progress: [██████████] 100%
 | Phase 12 P02 | 8min | 2 tasks | 3 files |
 | Phase 12 P03 | 5min | 2 tasks | 2 files |
 | Phase 12 P04 | 10min | 3 tasks | 2 files |
+| Phase 13 P01 | 10min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -292,6 +293,9 @@ Recent decisions affecting current work:
 - 12-04: Rider-1 tolerance decision GREEN — 1 cluster (≤7 threshold) observed in 30-task validation; default tolerance cap of 5 ships unchanged, no code/doc widening required
 - 12-04: Scenario 2 seed Rule-1 fix — back-dated completion -20d caused naturalIdeal=-6d (past); changed to -5d so naturalIdeal=+9d future; assertion window widened to [+5d,+14d] for CI tolerance + forward-compat
 - 12-04: Port 18100 claimed for LOAD integration suite — allocation log 18090..18100; 18101+ reserved for Phase 13+
+- Phase 13 Plan 01: single-op create instead of pb.createBatch() for createTask — D-05 Approach A
+- Phase 13 Plan 01: TCSEM bridge via synthetic lastCompletion.completed_at = firstIdeal - freq reverses placeNextDue's internal naturalIdeal math
+- Phase 13 Plan 01: SDST audit codified as runtime test (grep via child_process) scoped to production code dirs — token-concat obfuscation keeps test file clean of literal matches
 
 ### Pending Todos
 
@@ -317,8 +321,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T11:40:44.696Z
-Stopped at: Completed 12-04-P01-PLAN.md — Phase 12 Wave 4 integration + perf + rider-1 GREEN; 464 tests green (+6); Phase 12 ready for /gsd-verify-work
+Last session: 2026-04-22T12:24:59.678Z
+Stopped at: Completed 13-01-P01-PLAN.md
 Resume file: None
 
-**Planned Phase:** 12 () — 0 plans — 2026-04-22T10:54:34.569Z
+**Planned Phase:** 13 () — 0 plans — 2026-04-22T12:08:50.461Z

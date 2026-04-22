@@ -282,11 +282,12 @@ Plans:
   3. Accepting all 30+ seed tasks in onboarding produces a cohort whose first-due dates are naturally distributed — no two same-frequency seeds share a first-due day — and zero synthetic `via='seed-stagger'` completion rows are written (SDST gone)
   4. Every newly-created task (custom or seeded) has `next_due_smoothed` populated at write time; History view is empty immediately after onboarding; personal stats counters are zero for the just-onboarded user
   5. v1.0 tasks are untouched by this phase — their `next_due_smoothed` remains `NULL` until their own next post-upgrade completion (TCSEM-07)
-**Plans**: TBD (estimate 2-3)
+**Plans**: 2 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 13-01: TBD
+- [x] 13-01-P01-PLAN.md — Wave 1: computeFirstIdealDate helper (TCSEM-02/TCSEM-03 formulas) + createTask TCSEM placement (mirrors completeTaskAction step 7.5) + batchCreateSeedTasks in-memory load-map threading + SDST audit/removal (code-level ZERO matches)
+- [ ] 13-02-P01-PLAN.md — Wave 2: shadcn Collapsible primitive + task-form Advanced collapsible with Last done date field (cycle-mode only) + 3-scenario disposable-PB integration suite on port 18101 (custom create atomicity / 5-seed cohort distribution / SDST runtime absence)
 
 ### Phase 14: Seasonal UI & Seed Library
 **Goal**: Seasonal tasks are first-class in the UI — authors can set active months on the task form, dormant tasks render as distinct "sleeping" rows across By Area / Person / dashboard views, and the onboarding seed library ships two seasonal task pairs so a new household tastes the feature without custom work
