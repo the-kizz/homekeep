@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { computeCoverage } from '@/lib/coverage';
 import type { Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * 03-01 Task 2 RED→GREEN: computeCoverage pure function (Pattern 8, D-06).
@@ -17,6 +18,11 @@ import type { CompletionRecord } from '@/lib/completions';
  *  - Mix of healthy and overdue → correct mean.
  *  - Archived tasks are ignored.
  *  - Rounding / arithmetic sanity on three equal-weight tasks.
+ *
+ * 10-02 Plan: mechanical churn — every call now passes `new Map()` as the
+ * 3rd `overridesByTask` argument (D-14 regression gate). A new describe
+ * block at the bottom covers SNZE-09: a snoozed overdue task contributes
+ * 1.0 health (snooze makes it not-yet-overdue).
  */
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -45,13 +51,13 @@ function makeCompletion(taskId: string, iso: string): CompletionRecord {
 describe('computeCoverage', () => {
   test('empty tasks array → 1.0 (empty-home invariant D-06)', () => {
     const now = new Date('2026-04-20T12:00:00.000Z');
-    expect(computeCoverage([], new Map(), now)).toBe(1.0);
+    expect(computeCoverage([], new Map(), new Map(), now)).toBe(1.0);
   });
 
   test('all tasks archived → 1.0 (no active tasks)', () => {
     const now = new Date('2026-04-20T12:00:00.000Z');
     const t = makeTask({ id: 't-a', archived: true });
-    expect(computeCoverage([t], new Map(), now)).toBe(1.0);
+    expect(computeCoverage([t], new Map(), new Map(), now)).toBe(1.0);
   });
 
   test('single on-schedule task (completed today) → 1.0', () => {
@@ -62,7 +68,7 @@ describe('computeCoverage', () => {
       't-healthy',
       makeCompletion('t-healthy', '2026-04-20T12:00:00.000Z'),
     );
-    expect(computeCoverage([t], latest, now)).toBeCloseTo(1.0, 10);
+    expect(computeCoverage([t], latest, new Map(), now)).toBeCloseTo(1.0, 10);
   });
 
   test('single task never completed, created 14d ago, freq=7 → health clamps to 0 → coverage 0', () => {
@@ -72,7 +78,7 @@ describe('computeCoverage', () => {
       created: '2026-04-06T12:00:00.000Z', // 14d ago; due 14d ago → 7d overdue, overdueRatio = 7/7 = 1 → clamps to 0.
       frequency_days: 7,
     });
-    expect(computeCoverage([t], new Map(), now)).toBeCloseTo(0, 10);
+    expect(computeCoverage([t], new Map(), new Map(), now)).toBeCloseTo(0, 10);
   });
 
   test('single task, freq=10, overdueDays=5 → health = 0.5', () => {
@@ -85,7 +91,7 @@ describe('computeCoverage', () => {
     });
     const latest = new Map<string, CompletionRecord>();
     latest.set('t-half', makeCompletion('t-half', '2026-04-05T12:00:00.000Z'));
-    const cov = computeCoverage([t], latest, now);
+    const cov = computeCoverage([t], latest, new Map(), now);
     expect(cov).toBeCloseTo(0.5, 10);
   });
 
@@ -104,7 +110,7 @@ describe('computeCoverage', () => {
     latest.set('t-h', makeCompletion('t-h', '2026-04-20T12:00:00.000Z'));
     // Half-overdue: lastCompletion at now - 15d, freq=10 → nextDue at now-5d → overdueDays=5, ratio=0.5, health=0.5
     latest.set('t-50', makeCompletion('t-50', '2026-04-05T12:00:00.000Z'));
-    const cov = computeCoverage([healthy, half], latest, now);
+    const cov = computeCoverage([healthy, half], latest, new Map(), now);
     expect(cov).toBeCloseTo(0.75, 10);
   });
 
@@ -122,7 +128,7 @@ describe('computeCoverage', () => {
     const latest = new Map<string, CompletionRecord>();
     latest.set('t-ok', makeCompletion('t-ok', '2026-04-20T12:00:00.000Z'));
     expect(
-      computeCoverage([archivedOverdue, healthy], latest, now),
+      computeCoverage([archivedOverdue, healthy], latest, new Map(), now),
     ).toBeCloseTo(1.0, 10);
   });
 
@@ -139,7 +145,7 @@ describe('computeCoverage', () => {
     latest.set('th', makeCompletion('th', '2026-04-20T12:00:00.000Z'));
     latest.set('thalf', makeCompletion('thalf', '2026-04-05T12:00:00.000Z'));
     // tZero never completed.
-    const cov = computeCoverage([tHealthy, tHalf, tZero], latest, now);
+    const cov = computeCoverage([tHealthy, tHalf, tZero], latest, new Map(), now);
     expect(cov).toBeCloseTo(0.5, 10);
   });
 
@@ -152,7 +158,7 @@ describe('computeCoverage', () => {
       created: '2026-03-21T12:00:00.000Z',
       frequency_days: 7,
     });
-    expect(computeCoverage([t], new Map(), now)).toBeCloseTo(0, 10);
+    expect(computeCoverage([t], new Map(), new Map(), now)).toBeCloseTo(0, 10);
   });
 
   test('early completion (before nextDue) → health clamps to 1.0 (no negative overdue)', () => {
@@ -164,6 +170,93 @@ describe('computeCoverage', () => {
     const latest = new Map<string, CompletionRecord>();
     // Completed 1 day ago → nextDue = 6 days from now → overdueDays = max(0, -6) = 0
     latest.set('t-early', makeCompletion('t-early', '2026-04-19T12:00:00.000Z'));
-    expect(computeCoverage([t], latest, now)).toBeCloseTo(1.0, 10);
+    expect(computeCoverage([t], latest, new Map(), now)).toBeCloseTo(1.0, 10);
+  });
+});
+
+// ─── Phase 10, D-06 / D-08 / D-09: override branch (SNZE-09) ────────────
+//
+// A snoozed overdue task must contribute 1.0 health to the coverage mean,
+// not its pre-snooze overdue health. computeCoverage threads the override
+// Map into computeNextDue which returns snooze_until, turning the task
+// into "due in the future" relative to `now` — clamped to health=1.0.
+
+function makeOverride(overrides: Partial<Override> = {}): Override {
+  return {
+    id: 'o-default',
+    task_id: 't1',
+    snooze_until: '2026-05-15T00:00:00.000Z',
+    consumed_at: null,
+    created_by_id: null,
+    created: '2026-04-22T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('computeCoverage with override (SNZE-09)', () => {
+  test('C-OV-1: snoozed overdue task contributes 1.0 health → coverage = 1.0', () => {
+    // Without override: task created 30d ago, freq=7 → 23d overdue → health=0.
+    // With override snooze_until = now+7d → next-due in the future → health=1.0.
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const t = makeTask({
+      id: 't-snoozed',
+      created: '2026-03-21T12:00:00.000Z', // 30d ago
+      frequency_days: 7,
+    });
+    const snoozeUntil = new Date(now.getTime() + 7 * 86400000).toISOString();
+    const overrides = new Map<string, Override>();
+    overrides.set(
+      't-snoozed',
+      makeOverride({ task_id: 't-snoozed', snooze_until: snoozeUntil }),
+    );
+    expect(
+      computeCoverage([t], new Map(), overrides, now),
+    ).toBeCloseTo(1.0, 10);
+
+    // Sanity: confirm that without the override, coverage is 0.
+    expect(
+      computeCoverage([t], new Map(), new Map(), now),
+    ).toBeCloseTo(0, 10);
+  });
+
+  test('C-OV-2: consumed override does NOT resurrect (natural overdue health wins)', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const t = makeTask({
+      id: 't-still-overdue',
+      created: '2026-03-21T12:00:00.000Z', // 30d ago → full-cycle overdue → health=0
+      frequency_days: 7,
+    });
+    const snoozeUntil = new Date(now.getTime() + 7 * 86400000).toISOString();
+    const overrides = new Map<string, Override>();
+    overrides.set(
+      't-still-overdue',
+      makeOverride({
+        task_id: 't-still-overdue',
+        snooze_until: snoozeUntil,
+        consumed_at: new Date(now.getTime() - 3600_000).toISOString(),
+      }),
+    );
+    expect(
+      computeCoverage([t], new Map(), overrides, now),
+    ).toBeCloseTo(0, 10);
+  });
+
+  test('C-OV-3: override with task_id not in overridesByTask falls through to natural', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const t = makeTask({ id: 't-untouched', frequency_days: 7 });
+    const latest = new Map<string, CompletionRecord>();
+    latest.set(
+      't-untouched',
+      makeCompletion('t-untouched', '2026-04-20T12:00:00.000Z'),
+    );
+    // overridesByTask has an entry for a DIFFERENT task id.
+    const overrides = new Map<string, Override>();
+    overrides.set(
+      'other-task',
+      makeOverride({ task_id: 'other-task' }),
+    );
+    expect(
+      computeCoverage([t], latest, overrides, now),
+    ).toBeCloseTo(1.0, 10);
   });
 });

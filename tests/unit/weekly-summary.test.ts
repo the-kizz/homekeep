@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { computeWeeklySummary } from '@/lib/weekly-summary';
 import type { Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * 06-01 Task 2 RED→GREEN: computeWeeklySummary pure fn (D-12, GAME-03).
@@ -19,6 +20,11 @@ import type { CompletionRecord } from '@/lib/completions';
  *   - mostNeglected ties on daysOverdue → newer `created` wins.
  *
  * Empty-home invariant (D-06) flows through: zero tasks → coverage 100.
+ *
+ * 10-02 Plan: mechanical churn — every call now passes `new Map()` as the
+ * 4th `overridesByTask` argument (before `now`), matching the family
+ * convention in coverage / band-classification / area-coverage. D-14
+ * regression gate. One new test asserts the override thread-through.
  */
 
 type TaskWithArea = Task & { area_id: string; name: string };
@@ -48,13 +54,25 @@ function c(taskId: string, iso: string, userId = 'u1'): CompletionRecord {
   };
 }
 
+function makeOverride(overrides: Partial<Override> = {}): Override {
+  return {
+    id: 'o-default',
+    task_id: 't1',
+    snooze_until: '2026-05-15T00:00:00.000Z',
+    consumed_at: null,
+    created_by_id: null,
+    created: '2026-04-22T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 const TZ_UTC = 'UTC';
 const TZ_MELB = 'Australia/Melbourne';
 const NOW = new Date('2026-04-22T12:00:00.000Z'); // Wed 22 Apr, week starts Sun 19 Apr
 
 describe('computeWeeklySummary', () => {
   test('empty inputs → zero counts, coverage 100, no-area label, null neglected', () => {
-    const result = computeWeeklySummary([], [], [], NOW, TZ_UTC);
+    const result = computeWeeklySummary([], [], [], new Map(), NOW, TZ_UTC);
     expect(result).toEqual({
       completionsCount: 0,
       coveragePercent: 100,
@@ -82,6 +100,7 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -106,6 +125,7 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -130,6 +150,7 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -170,6 +191,7 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -208,6 +230,7 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -219,6 +242,7 @@ describe('computeWeeklySummary', () => {
       [],
       [],
       [{ id: 'a', name: 'Kitchen' }],
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -239,6 +263,7 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       NOW,
       TZ_UTC,
     );
@@ -258,9 +283,64 @@ describe('computeWeeklySummary', () => {
       completions,
       tasks,
       areas,
+      new Map(),
       now,
       TZ_MELB,
     );
     expect(result.completionsCount).toBe(1);
+  });
+});
+
+// ─── Phase 10: override thread-through (SNZE-09 coverage + neglected) ───
+
+describe('computeWeeklySummary with override', () => {
+  test('W-OV-1: snoozed overdue task stops being most-neglected + stops pulling coverage down', () => {
+    // Single task, no completions, 60d old, freq=30 → overdue=30d.
+    // Without override: mostNeglectedTask set, coveragePercent clamped low.
+    // With active override snooze_until = NOW + 7d: override wins in
+    // computeNextDue, task moves to "due in 7d" → overdueDays=0 → not
+    // neglected, and health=1.0 → coveragePercent=100.
+    const createdIso = new Date(NOW.getTime() - 60 * 86400000).toISOString();
+    const tasks = [
+      t({
+        id: 't-snoozed',
+        name: 'Dust bookshelves',
+        frequency_days: 30,
+        created: createdIso,
+        area_id: 'a-study',
+      }),
+    ];
+    const areas = [{ id: 'a-study', name: 'Study' }];
+    const completions: CompletionRecord[] = [];
+
+    // Baseline (no override): neglected set, coverage 0%.
+    const baseline = computeWeeklySummary(
+      completions,
+      tasks,
+      areas,
+      new Map(),
+      NOW,
+      TZ_UTC,
+    );
+    expect(baseline.mostNeglectedTask?.id).toBe('t-snoozed');
+    expect(baseline.coveragePercent).toBe(0);
+
+    // With override: neglected null, coverage 100%.
+    const snoozeUntil = new Date(NOW.getTime() + 7 * 86400000).toISOString();
+    const overrides = new Map<string, Override>();
+    overrides.set(
+      't-snoozed',
+      makeOverride({ task_id: 't-snoozed', snooze_until: snoozeUntil }),
+    );
+    const withOverride = computeWeeklySummary(
+      completions,
+      tasks,
+      areas,
+      overrides,
+      NOW,
+      TZ_UTC,
+    );
+    expect(withOverride.mostNeglectedTask).toBeNull();
+    expect(withOverride.coveragePercent).toBe(100);
   });
 });

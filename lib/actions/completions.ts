@@ -196,7 +196,19 @@ export async function completeTaskAction(
     let celebration:
       | { kind: 'area-100'; areaId: string; areaName: string }
       | undefined;
-    if (detectAreaCelebration(tasksInArea, latestBefore, latestAfter, now)) {
+    // 10-02 Plan: pass an empty Map for now — Plan 10-03 will fetch the
+    // home's active overrides inside completeTaskAction (atomic consumption
+    // path). For Plan 10-02, this keeps the celebration predicate byte-
+    // identical to v1.0: no override Map = D-06 default-behavior contract.
+    if (
+      detectAreaCelebration(
+        tasksInArea,
+        latestBefore,
+        latestAfter,
+        new Map(),
+        now,
+      )
+    ) {
       try {
         const area = await pb
           .collection('areas')

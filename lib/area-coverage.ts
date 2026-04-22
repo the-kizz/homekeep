@@ -2,9 +2,11 @@ import { computeCoverage } from '@/lib/coverage';
 import { computeTaskBands } from '@/lib/band-classification';
 import type { Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
- * Per-area coverage and band counts (05-01 Task 2, D-04 + AREA-V-01/02).
+ * Per-area coverage and band counts (05-01 Task 2, D-04 + AREA-V-01/02;
+ * 10-02 Plan threads the override Map through the wrappers).
  *
  * THIN WRAPPERS over the Phase 3 algorithms — do NOT re-implement. The
  * By-Area grid in 05-02 iterates over the home's areas and calls each
@@ -19,14 +21,20 @@ import type { CompletionRecord } from '@/lib/completions';
  * to users as "upcoming" — this wrapper renames the projection so the
  * By-Area card reads correctly without touching the band-classification
  * internals.
+ *
+ * Override wiring (Phase 10, D-06 / D-08 / D-09): the `overridesByTask`
+ * Map flows through to `computeCoverage` / `computeTaskBands`; each
+ * consumes `.get(task.id)` per-iteration. Passing an empty Map yields
+ * byte-identical v1.0 behavior.
  */
 
 export function computeAreaCoverage(
   tasksInArea: Task[],
   latestByTask: Map<string, CompletionRecord>,
+  overridesByTask: Map<string, Override>,
   now: Date,
 ): number {
-  return computeCoverage(tasksInArea, latestByTask, now);
+  return computeCoverage(tasksInArea, latestByTask, overridesByTask, now);
 }
 
 export type AreaCounts = {
@@ -38,10 +46,17 @@ export type AreaCounts = {
 export function computeAreaCounts(
   tasksInArea: Task[],
   latestByTask: Map<string, CompletionRecord>,
+  overridesByTask: Map<string, Override>,
   now: Date,
   timezone: string,
 ): AreaCounts {
-  const bands = computeTaskBands(tasksInArea, latestByTask, now, timezone);
+  const bands = computeTaskBands(
+    tasksInArea,
+    latestByTask,
+    overridesByTask,
+    now,
+    timezone,
+  );
   return {
     overdue: bands.overdue.length,
     thisWeek: bands.thisWeek.length,

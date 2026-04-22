@@ -5,6 +5,7 @@ import {
 } from '@/lib/area-coverage';
 import type { Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * 05-01 Task 2 RED→GREEN: area-scoped coverage + band-count helpers
@@ -23,6 +24,10 @@ import type { CompletionRecord } from '@/lib/completions';
  * ≥8 cases per plan: empty, on-schedule, half-overdue mix, archived
  * exclusion, full-cycle clamp, single-task boundaries (0 & 1.0),
  * per-band count, count sum matches.
+ *
+ * 10-02 Plan: mechanical churn — every call now passes `new Map()` as the
+ * 3rd `overridesByTask` argument (D-14 regression gate). A new A-OV-1
+ * test confirms the wrapper forwards override through.
  */
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -51,7 +56,7 @@ function makeCompletion(taskId: string, iso: string): CompletionRecord {
 describe('computeAreaCoverage', () => {
   test('empty area tasks → 1.0 (D-06 empty-home invariant flows through)', () => {
     const now = new Date('2026-04-20T12:00:00.000Z');
-    expect(computeAreaCoverage([], new Map(), now)).toBe(1.0);
+    expect(computeAreaCoverage([], new Map(), new Map(), now)).toBe(1.0);
   });
 
   test('single on-schedule task → 1.0', () => {
@@ -59,7 +64,7 @@ describe('computeAreaCoverage', () => {
     const t = makeTask({ id: 't-ok', frequency_days: 7 });
     const latest = new Map<string, CompletionRecord>();
     latest.set('t-ok', makeCompletion('t-ok', '2026-04-20T12:00:00.000Z'));
-    expect(computeAreaCoverage([t], latest, now)).toBeCloseTo(1.0, 10);
+    expect(computeAreaCoverage([t], latest, new Map(), now)).toBeCloseTo(1.0, 10);
   });
 
   test('single full-cycle overdue task → 0.0', () => {
@@ -69,7 +74,7 @@ describe('computeAreaCoverage', () => {
       created: '2026-04-06T12:00:00.000Z', // 14d ago, freq=7 → 7d overdue → clamp 0
       frequency_days: 7,
     });
-    expect(computeAreaCoverage([t], new Map(), now)).toBeCloseTo(0, 10);
+    expect(computeAreaCoverage([t], new Map(), new Map(), now)).toBeCloseTo(0, 10);
   });
 
   test('archived task in the area is excluded (delegated to computeCoverage)', () => {
@@ -83,7 +88,7 @@ describe('computeAreaCoverage', () => {
     const latest = new Map<string, CompletionRecord>();
     latest.set('t-ok', makeCompletion('t-ok', '2026-04-20T12:00:00.000Z'));
     expect(
-      computeAreaCoverage([archivedOverdue, healthy], latest, now),
+      computeAreaCoverage([archivedOverdue, healthy], latest, new Map(), now),
     ).toBeCloseTo(1.0, 10);
   });
 
@@ -95,7 +100,7 @@ describe('computeAreaCoverage', () => {
     latest.set('t-h', makeCompletion('t-h', '2026-04-20T12:00:00.000Z'));
     latest.set('t-50', makeCompletion('t-50', '2026-04-05T12:00:00.000Z'));
     expect(
-      computeAreaCoverage([healthy, half], latest, now),
+      computeAreaCoverage([healthy, half], latest, new Map(), now),
     ).toBeCloseTo(0.75, 10);
   });
 });
@@ -103,7 +108,7 @@ describe('computeAreaCoverage', () => {
 describe('computeAreaCounts', () => {
   test('empty area → 0/0/0', () => {
     const now = new Date('2026-04-20T12:00:00.000Z');
-    expect(computeAreaCounts([], new Map(), now, 'UTC')).toEqual({
+    expect(computeAreaCounts([], new Map(), new Map(), now, 'UTC')).toEqual({
       overdue: 0,
       thisWeek: 0,
       upcoming: 0,
@@ -122,7 +127,7 @@ describe('computeAreaCounts', () => {
       created: '2026-04-02T00:00:00.000Z',
       frequency_days: 7,
     });
-    const result = computeAreaCounts([a, b], new Map(), now, 'UTC');
+    const result = computeAreaCounts([a, b], new Map(), new Map(), now, 'UTC');
     expect(result.overdue).toBe(2);
     expect(result.thisWeek).toBe(0);
     expect(result.upcoming).toBe(0);
@@ -148,6 +153,7 @@ describe('computeAreaCounts', () => {
     const result = computeAreaCounts(
       [overdue, thisWeekTask, upcomingTask],
       new Map(),
+      new Map(),
       now,
       'UTC',
     );
@@ -172,6 +178,7 @@ describe('computeAreaCounts', () => {
     });
     const result = computeAreaCounts(
       [archivedOverdue, thisWeekTask],
+      new Map(),
       new Map(),
       now,
       'UTC',
@@ -205,7 +212,7 @@ describe('computeAreaCounts', () => {
         frequency_days: 3,
       }),
     ];
-    const result = computeAreaCounts(tasks, new Map(), now, 'UTC');
+    const result = computeAreaCounts(tasks, new Map(), new Map(), now, 'UTC');
     expect(result.overdue + result.thisWeek + result.upcoming).toBe(
       tasks.length,
     );
@@ -224,10 +231,84 @@ describe('computeAreaCounts', () => {
     const result = computeAreaCounts(
       [boundary],
       new Map(),
+      new Map(),
       now,
       'Australia/Melbourne',
     );
     // Band contract: nextDue >= localMidnightToday ⇒ thisWeek.
     expect(result.thisWeek + result.overdue).toBe(1);
+  });
+});
+
+// ─── Phase 10, D-06: area wrappers forward override Map (SNZE-09) ───────
+
+function makeOverride(overrides: Partial<Override> = {}): Override {
+  return {
+    id: 'o-default',
+    task_id: 't1',
+    snooze_until: '2026-05-15T00:00:00.000Z',
+    consumed_at: null,
+    created_by_id: null,
+    created: '2026-04-22T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
+describe('area wrappers forward override Map', () => {
+  test('A-OV-1: computeAreaCoverage forwards override → snoozed task scores 1.0', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const t = makeTask({
+      id: 't-snoozed',
+      created: '2026-03-21T12:00:00.000Z', // overdue without override
+      frequency_days: 7,
+    });
+    const overrides = new Map<string, Override>();
+    overrides.set(
+      't-snoozed',
+      makeOverride({
+        task_id: 't-snoozed',
+        snooze_until: new Date(now.getTime() + 7 * 86400000).toISOString(),
+      }),
+    );
+    expect(
+      computeAreaCoverage([t], new Map(), overrides, now),
+    ).toBeCloseTo(1.0, 10);
+  });
+
+  test('A-OV-2: computeAreaCounts forwards override → snoozed overdue task moves to thisWeek/upcoming', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const t = makeTask({
+      id: 't-snoozed-ac',
+      created: '2026-03-21T12:00:00.000Z',
+      frequency_days: 7,
+    });
+    // Baseline: overdue=1 without override.
+    const baseline = computeAreaCounts(
+      [t],
+      new Map(),
+      new Map(),
+      now,
+      'UTC',
+    );
+    expect(baseline.overdue).toBe(1);
+
+    // With a 3-day snooze → thisWeek.
+    const overrides = new Map<string, Override>();
+    overrides.set(
+      't-snoozed-ac',
+      makeOverride({
+        task_id: 't-snoozed-ac',
+        snooze_until: new Date(now.getTime() + 3 * 86400000).toISOString(),
+      }),
+    );
+    const withOverride = computeAreaCounts(
+      [t],
+      new Map(),
+      overrides,
+      now,
+      'UTC',
+    );
+    expect(withOverride.overdue).toBe(0);
+    expect(withOverride.thisWeek).toBe(1);
   });
 });

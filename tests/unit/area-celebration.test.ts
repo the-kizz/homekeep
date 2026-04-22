@@ -2,6 +2,7 @@ import { describe, test, expect } from 'vitest';
 import { detectAreaCelebration } from '@/lib/area-celebration';
 import type { Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * 06-01 Task 2 RED→GREEN: detectAreaCelebration pure fn (D-13, GAME-04).
@@ -11,6 +12,12 @@ import type { CompletionRecord } from '@/lib/completions';
  * returns false — critically the "already at 100% before" case that must
  * NOT spam the user with celebrations every time they re-complete a task
  * in an already-healthy area.
+ *
+ * 10-02 Plan: mechanical churn — every call now passes `new Map()` as the
+ * 4th `overridesByTask` argument (D-14 regression gate). Behavior is
+ * unchanged for an empty override Map (the D-06 default-behavior contract).
+ * One new test (P-OV-1) confirms the override is respected for cross-area
+ * snoozed tasks.
  */
 
 const NOW = new Date('2026-04-22T12:00:00.000Z');
@@ -45,6 +52,7 @@ describe('detectAreaCelebration', () => {
         [],
         new Map<string, CompletionRecord>(),
         new Map<string, CompletionRecord>(),
+        new Map<string, Override>(),
         NOW,
       ),
     ).toBe(false);
@@ -66,7 +74,7 @@ describe('detectAreaCelebration', () => {
       ['t1', c('t1', today)],
       ['t2', c('t2', today)],
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(true);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(true);
   });
 
   test('already 100 before → stays 100 after → FALSE (anti-spam)', () => {
@@ -85,7 +93,7 @@ describe('detectAreaCelebration', () => {
       ['t1', c('t1', today)],
       ['t2', c('t2', earlier)],
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(false);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(false);
   });
 
   test('<100 before → still <100 after → FALSE (no crossover)', () => {
@@ -102,7 +110,7 @@ describe('detectAreaCelebration', () => {
       ['t1', c('t1', today)],
       ['t2', c('t2', today)], // still missing t3 → < 1.0
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(false);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(false);
   });
 
   test('single-task area: overdue before → completed today → TRUE', () => {
@@ -113,7 +121,7 @@ describe('detectAreaCelebration', () => {
     const after = new Map<string, CompletionRecord>([
       ['t1', c('t1', NOW.toISOString())],
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(true);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(true);
   });
 
   test('multi-task: already-healthy task + the OTHER just completed crosses to 100 → TRUE', () => {
@@ -131,7 +139,7 @@ describe('detectAreaCelebration', () => {
       ['t-healthy', c('t-healthy', earlier)],
       ['t-overdue', c('t-overdue', today)],
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(true);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(true);
   });
 
   test('already 100; new completion on DIFFERENT task in same healthy area → FALSE', () => {
@@ -149,7 +157,7 @@ describe('detectAreaCelebration', () => {
       ['t1', c('t1', today)], // re-completed; area was already healthy
       ['t2', c('t2', earlier)],
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(false);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(false);
   });
 
   test('partial recovery (0.5 → 0.75) → FALSE', () => {
@@ -169,6 +177,48 @@ describe('detectAreaCelebration', () => {
       ['t2', c('t2', today)],
       ['t3', c('t3', today)], // 3/4 healthy
     ]);
-    expect(detectAreaCelebration(tasks, before, after, NOW)).toBe(false);
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(false);
+  });
+
+  test('P-OV-1: override on OTHER task in area turns celebration from FALSE→TRUE', () => {
+    // Before: t1 healthy (today), t2 overdue → coverage < 1.
+    // After: t1 re-completed; t2 still overdue.
+    // Without override: no crossover (still < 1.0 after) → FALSE.
+    // With active snooze on t2: t2 becomes not-yet-overdue → coverage = 1.0
+    // in BOTH snapshots → FALSE (no crossover, already at 1.0). Confirms
+    // the override Map is consulted by both before/after branches.
+    const tasks = [
+      t({ id: 't1', frequency_days: 7 }),
+      t({
+        id: 't2',
+        frequency_days: 7,
+        created: new Date(NOW.getTime() - 30 * 86400000).toISOString(),
+      }),
+    ];
+    const earlier = new Date(NOW.getTime() - 3 * 86400000).toISOString();
+    const today = NOW.toISOString();
+    const before = new Map<string, CompletionRecord>([
+      ['t1', c('t1', earlier)],
+    ]);
+    const after = new Map<string, CompletionRecord>([
+      ['t1', c('t1', today)],
+    ]);
+
+    // Baseline (no override): before=0.5, after=0.5 → FALSE.
+    expect(detectAreaCelebration(tasks, before, after, new Map(), NOW)).toBe(false);
+
+    // With a snooze on t2 → before=1.0, after=1.0 → still FALSE (no
+    // crossover), but this proves the override is consulted (otherwise
+    // `before` would be 0.5 and `after` 0.5 with no shift).
+    const overrides = new Map<string, Override>();
+    overrides.set('t2', {
+      id: 'o-t2',
+      task_id: 't2',
+      snooze_until: new Date(NOW.getTime() + 14 * 86400000).toISOString(),
+      consumed_at: null,
+      created_by_id: null,
+      created: NOW.toISOString(),
+    });
+    expect(detectAreaCelebration(tasks, before, after, overrides, NOW)).toBe(false);
   });
 });

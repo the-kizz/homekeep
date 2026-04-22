@@ -2,11 +2,13 @@
 // HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
- * Household coverage formula (03-01 Plan, Pattern 8, D-06, VIEW-05).
+ * Household coverage formula (03-01 Plan, Pattern 8, D-06, VIEW-05;
+ * 10-02 Plan wires the override Map through per D-06 + D-08 + D-09).
  *
- * PURE module: deterministic from (tasks, latestByTask, now).
+ * PURE module: deterministic from (tasks, latestByTask, overridesByTask, now).
  *
  * Per-task health:
  *   overdueDays = max(0, (now - nextDue) / 86400000)
@@ -30,11 +32,19 @@ import type { CompletionRecord } from '@/lib/completions';
  * longer-cycle tasks (yearly gutter clean) contribute equally on the
  * final mean — which matches the product intention documented in
  * PROJECT.md Key Decisions.
+ *
+ * Override wiring (Phase 10, D-06 / D-08 / D-09, SNZE-09): an active,
+ * unconsumed override for a task replaces its natural next-due inside
+ * computeNextDue — so a snoozed overdue task contributes 1.0 health to
+ * the coverage mean instead of 0.0. Callers pass an empty Map when no
+ * overrides apply; `overridesByTask.get(task.id)` returns `undefined`
+ * then, and computeNextDue runs byte-identical to v1.0.
  */
 
 export function computeCoverage(
   tasks: Task[],
   latestByTask: Map<string, CompletionRecord>,
+  overridesByTask: Map<string, Override>,
   now: Date,
 ): number {
   const active = tasks.filter((t) => !t.archived);
@@ -44,7 +54,8 @@ export function computeCoverage(
   let counted = 0;
   for (const task of active) {
     const last = latestByTask.get(task.id) ?? null;
-    const nextDue = computeNextDue(task, last, now);
+    const override = overridesByTask.get(task.id);
+    const nextDue = computeNextDue(task, last, now, override);
     if (!nextDue) continue;
     const overdueDays = Math.max(
       0,

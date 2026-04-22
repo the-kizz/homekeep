@@ -4,6 +4,7 @@ import { addDays, startOfDay } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * Band classification (03-01 Plan, Pattern 7, D-04 + D-05, Pitfall 2).
@@ -45,9 +46,20 @@ export type Bands = {
   horizon: ClassifiedTask[];
 };
 
+/**
+ * 10-02 Plan: Accepts `overridesByTask: Map<string, Override>` as the 3rd
+ * argument (before `now`, matching the family convention in coverage /
+ * area-coverage / weekly-summary). Inside the per-task loop,
+ * `overridesByTask.get(task.id)` is passed as the 4th arg to
+ * `computeNextDue`; an active, unconsumed override replaces the natural
+ * next-due (D-06 + D-10). Passing an empty Map preserves v1.0 behavior
+ * byte-for-byte — `Map.get` of a missing key returns `undefined`, which
+ * computeNextDue treats as "no override".
+ */
 export function computeTaskBands(
   tasks: Task[],
   latestByTask: Map<string, CompletionRecord>,
+  overridesByTask: Map<string, Override>,
   now: Date,
   timezone: string,
 ): Bands {
@@ -64,7 +76,8 @@ export function computeTaskBands(
   for (const task of tasks) {
     if (task.archived) continue;
     const last = latestByTask.get(task.id) ?? null;
-    const nextDue = computeNextDue(task, last, now);
+    const override = overridesByTask.get(task.id);
+    const nextDue = computeNextDue(task, last, now, override);
     if (!nextDue) continue;
     const daysDelta =
       (nextDue.getTime() - localMidnightTodayUtc.getTime()) / 86400000;

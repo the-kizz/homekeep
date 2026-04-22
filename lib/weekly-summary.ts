@@ -3,6 +3,7 @@ import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import { computeCoverage } from '@/lib/coverage';
 import { computeNextDue, type Task } from '@/lib/task-scheduling';
 import { reduceLatestByTask, type CompletionRecord } from '@/lib/completions';
+import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * Weekly summary (06-01 Task 2, D-12, GAME-03).
@@ -48,10 +49,21 @@ export type WeeklySummary = {
   } | null;
 };
 
+/**
+ * 10-02 Plan: Accepts `overridesByTask: Map<string, Override>` as the 4th
+ * argument (BEFORE `now`, matching the family convention in coverage /
+ * band-classification / area-coverage). The Map is forwarded into
+ * `computeCoverage` for the coverage mean, AND consulted per-task in the
+ * mostNeglectedTask reducer via `overridesByTask.get(task.id)` passed to
+ * `computeNextDue`. An active, unconsumed override shifts that task's
+ * next-due to `snooze_until`, so SNZE-09-style snoozed-overdue tasks
+ * stop being "most neglected" and stop pulling the coverage mean down.
+ */
 export function computeWeeklySummary(
   completions: CompletionRecord[],
   tasks: TaskWithAreaName[],
   areas: Array<{ id: string; name: string }>,
+  overridesByTask: Map<string, Override>,
   now: Date,
   timezone: string,
 ): WeeklySummary {
@@ -78,7 +90,9 @@ export function computeWeeklySummary(
 
   // 2) coveragePercent — round(computeCoverage * 100)
   const latestByTask = reduceLatestByTask(completions);
-  const coveragePercent = Math.round(computeCoverage(tasks, latestByTask, now) * 100);
+  const coveragePercent = Math.round(
+    computeCoverage(tasks, latestByTask, overridesByTask, now) * 100,
+  );
 
   // 3) topArea — MAX perAreaCount; alphabetical tie-break; fallback when
   //    no completions this week.
@@ -109,7 +123,8 @@ export function computeWeeklySummary(
   for (const task of tasks) {
     if (task.archived) continue;
     const last = latestByTask.get(task.id) ?? null;
-    const nextDue = computeNextDue(task, last, now);
+    const override = overridesByTask.get(task.id);
+    const nextDue = computeNextDue(task, last, now, override);
     if (!nextDue) continue;
     const daysOverdue = Math.max(
       0,
