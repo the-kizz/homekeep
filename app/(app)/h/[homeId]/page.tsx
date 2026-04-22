@@ -103,7 +103,7 @@ export default async function HomeDashboardPage({
     filter: `home_id = "${homeId}" && archived = false`,
     expand: 'area_id',
     fields:
-      'id,name,frequency_days,schedule_mode,anchor_date,archived,created,icon,color,area_id,notes,assigned_to_id,expand.area_id.name',
+      'id,name,frequency_days,schedule_mode,anchor_date,archived,created,icon,color,area_id,notes,assigned_to_id,active_from_month,active_to_month,expand.area_id.name',
   });
 
   const now = new Date();
@@ -157,6 +157,8 @@ export default async function HomeDashboardPage({
         )?.area_id?.name ?? undefined,
       notes: (t.notes as string) ?? '',
       assigned_to_id: assignedToId,
+      active_from_month: (t.active_from_month as number) ?? null,
+      active_to_month: (t.active_to_month as number) ?? null,
       effective,
     };
   });
