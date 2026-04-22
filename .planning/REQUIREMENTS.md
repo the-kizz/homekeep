@@ -365,39 +365,39 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AUTH-01 | Phase 2 | Pending |
-| AUTH-02 | Phase 2 | Pending |
+| AUTH-01 | Phase 2 | Complete |
+| AUTH-02 | Phase 2 | Complete |
 | AUTH-03 | Phase 2 | Complete |
-| AUTH-04 | Phase 2 | Pending |
-| HOME-01 | Phase 2 | Pending |
-| HOME-02 | Phase 2 | Pending |
-| HOME-03 | Phase 2 | Pending |
-| HOME-04 | Phase 2 | Pending |
+| AUTH-04 | Phase 2 | Complete |
+| HOME-01 | Phase 2 | Complete |
+| HOME-02 | Phase 2 | Complete |
+| HOME-03 | Phase 2 | Complete |
+| HOME-04 | Phase 2 | Complete |
 | HOME-05 | Phase 4 | Complete |
 | HOME-06 | Phase 4 | Complete |
 | HOME-07 | Phase 4 | Complete |
-| AREA-01 | Phase 2 | Pending |
-| AREA-02 | Phase 2 | Pending |
-| AREA-03 | Phase 2 | Pending |
-| AREA-04 | Phase 2 | Pending |
-| AREA-05 | Phase 2 | Pending |
-| TASK-01 | Phase 2 | Pending |
+| AREA-01 | Phase 2 | Complete |
+| AREA-02 | Phase 2 | Complete |
+| AREA-03 | Phase 2 | Complete |
+| AREA-04 | Phase 2 | Complete |
+| AREA-05 | Phase 2 | Complete |
+| TASK-01 | Phase 2 | Complete |
 | TASK-02 | Phase 4 | Complete |
 | TASK-03 | Phase 4 | Complete |
 | TASK-04 | Phase 4 | Complete |
-| TASK-05 | Phase 2 | Pending |
-| TASK-06 | Phase 2 | Pending |
-| TASK-07 | Phase 2 | Pending |
-| TASK-08 | Phase 2 | Pending |
-| COMP-01 | Phase 3 | Complete (03-03) |
-| COMP-02 | Phase 3 | Complete (03-01 + 03-03) |
-| COMP-03 | Phase 3 | Complete (03-01) |
-| VIEW-01 | Phase 3 | Complete (03-02) |
-| VIEW-02 | Phase 3 | Complete (03-02) |
-| VIEW-03 | Phase 3 | Complete (03-02) |
-| VIEW-04 | Phase 3 | Complete (03-02) |
-| VIEW-05 | Phase 3 | Complete (03-01 + 03-02) |
-| VIEW-06 | Phase 3 | Complete (03-03) |
+| TASK-05 | Phase 2 | Complete |
+| TASK-06 | Phase 2 | Complete |
+| TASK-07 | Phase 2 | Complete |
+| TASK-08 | Phase 2 | Complete |
+| COMP-01 | Phase 3 | Complete |
+| COMP-02 | Phase 3 | Complete |
+| COMP-03 | Phase 3 | Complete |
+| VIEW-01 | Phase 3 | Complete |
+| VIEW-02 | Phase 3 | Complete |
+| VIEW-03 | Phase 3 | Complete |
+| VIEW-04 | Phase 3 | Complete |
+| VIEW-05 | Phase 3 | Complete |
+| VIEW-06 | Phase 3 | Complete |
 | AREA-V-01 | Phase 5 | Complete |
 | AREA-V-02 | Phase 5 | Complete |
 | AREA-V-03 | Phase 5 | Complete |
@@ -424,22 +424,27 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 | GAME-03 | Phase 6 | Complete |
 | GAME-04 | Phase 6 | Complete |
 | GAME-05 | Phase 6 | Complete |
-| INFR-01 | Phase 1 | Complete (01-02) |
-| INFR-02 | Phase 1 | Complete (01-02) |
-| INFR-03 | Phase 1 | Complete (01-02) |
-| INFR-04 | Phase 1 | Complete (01-02) |
-| INFR-05 | Phase 1 | Complete (01-01) |
-| INFR-06 | Phase 1 | Complete (01-05) |
+| INFR-01 | Phase 1 | Complete |
+| INFR-02 | Phase 1 | Complete |
+| INFR-03 | Phase 1 | Complete |
+| INFR-04 | Phase 1 | Complete |
+| INFR-05 | Phase 1 | Complete |
+| INFR-06 | Phase 1 | Complete |
 | INFR-07 | Phase 7 | Complete |
 | INFR-08 | Phase 7 | Complete |
 | INFR-09 | Phase 7 | Complete |
-| INFR-10 | Phase 1 | Complete (01-02) |
-| INFR-11 | Phase 1 | Complete (01-01) |
-| INFR-12 | Phase 1 | Complete (01-01) |
-| OOFT-01 | Phase 11 | Pending |
-| OOFT-02 | Phase 11 | Pending |
-| OOFT-03 | Phase 11 | Pending |
-| OOFT-04 | Phase 13 | Pending |
+| INFR-10 | Phase 1 | Complete |
+| INFR-11 | Phase 1 | Complete |
+| INFR-12 | Phase 1 | Complete |
+| SNZE-04 | Phase 10 | Pending |
+| SNZE-05 | Phase 10 | Pending |
+| SNZE-06 | Phase 10 | Pending |
+| SNZE-09 | Phase 10 | Pending |
+| SNZE-10 | Phase 10 | Pending |
+| OOFT-01 | Phase 11 | Pending (draft — Phase 11 discuss locks shape) |
+| OOFT-02 | Phase 11 | Pending (draft — Phase 11 discuss locks shape) |
+| OOFT-03 | Phase 11 | Pending (draft — Phase 11 discuss locks shape) |
+| OOFT-05 | Phase 11 | Pending |
 | PREF-01 | Phase 11 | Pending |
 | PREF-02 | Phase 11 | Pending |
 | PREF-03 | Phase 11 | Pending |
@@ -449,41 +454,79 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 | SEAS-03 | Phase 11 | Pending |
 | SEAS-04 | Phase 11 | Pending |
 | SEAS-05 | Phase 11 | Pending |
-| SEAS-06 | Phase 12 | Pending |
-| SEAS-07 | Phase 12 | Pending |
-| SEAS-08 | Phase 12 | Pending |
-| SEAS-09 | Phase 12 | Pending |
-| SEAS-10 | Phase 12 | Pending |
-| SNZE-01 | Phase 13 | Pending |
-| SNZE-02 | Phase 13 | Pending |
-| SNZE-03 | Phase 13 | Pending |
-| SNZE-04 | Phase 10 | Pending |
-| SNZE-05 | Phase 10 | Pending |
-| SNZE-06 | Phase 10 | Pending |
-| SNZE-07 | Phase 13 | Pending |
-| SNZE-08 | Phase 13 | Pending |
-| SNZE-09 | Phase 10 | Pending |
-| SNZE-10 | Phase 10 | Pending |
-| ~~SDST-01~~ | ~~Phase 11~~ | **REMOVED** (superseded by TCSEM per addendum) |
-| ~~SDST-02..07~~ | ~~Phase 14~~ | **REMOVED** (superseded by TCSEM per addendum) |
-| LOAD-01..15 | TBD | Pending — re-roadmapper will assign |
-| LVIZ-01..05 | TBD | Pending — re-roadmapper will assign |
-| TCSEM-01..07 | TBD | Pending — re-roadmapper will assign |
-| REBAL-01..07 | TBD | Pending — re-roadmapper will assign |
-| OOFT-05 | TBD | Pending — re-roadmapper will assign |
-| PREF-01..04 (reframed) | TBD | Pending — re-roadmapper will reassign per LOAD interaction |
-| SNZE-07 (extended) | TBD | Pending — re-roadmapper will reassign per REBAL preservation flag |
-| DOCS-06 | TBD | Pending — re-roadmapper will assign |
-| DOCS-01 | Phase 15 | Pending — bumped to v0.4 per addendum |
-| DOCS-02..05 | Phase 15 | Pending |
-
-> **Traceability table partial — will be fully regenerated by the re-roadmapper after addendum approval.** Removed SDST rows are marked above for audit history; the rewritten table will drop them entirely.
+| LOAD-01 | Phase 12 | Pending |
+| LOAD-02 | Phase 12 | Pending |
+| LOAD-03 | Phase 12 | Pending |
+| LOAD-04 | Phase 12 | Pending |
+| LOAD-05 | Phase 12 | Pending |
+| LOAD-06 | Phase 12 | Pending |
+| LOAD-07 | Phase 12 | Pending |
+| LOAD-08 | Phase 12 | Pending |
+| LOAD-09 | Phase 12 | Pending |
+| LOAD-10 | Phase 12 | Pending |
+| LOAD-11 | Phase 12 | Pending |
+| LOAD-12 | Phase 12 | Pending |
+| LOAD-13 | Phase 12 | Pending |
+| LOAD-14 | Phase 12 | Pending |
+| LOAD-15 | Phase 12 | Pending (hard gate) |
+| TCSEM-01 | Phase 13 | Pending |
+| TCSEM-02 | Phase 13 | Pending |
+| TCSEM-03 | Phase 13 | Pending |
+| TCSEM-04 | Phase 13 | Pending |
+| TCSEM-05 | Phase 13 | Pending |
+| TCSEM-06 | Phase 13 | Pending |
+| TCSEM-07 | Phase 13 | Pending |
+| SEAS-06 | Phase 14 | Pending |
+| SEAS-07 | Phase 14 | Pending |
+| SEAS-08 | Phase 14 | Pending |
+| SEAS-09 | Phase 14 | Pending |
+| SEAS-10 | Phase 14 | Pending |
+| OOFT-04 | Phase 15 | Pending |
+| SNZE-01 | Phase 15 | Pending |
+| SNZE-02 | Phase 15 | Pending |
+| SNZE-03 | Phase 15 | Pending |
+| SNZE-07 | Phase 15 | Pending |
+| SNZE-08 | Phase 15 | Pending |
+| LVIZ-01 | Phase 16 | Pending |
+| LVIZ-02 | Phase 16 | Pending |
+| LVIZ-03 | Phase 16 | Pending |
+| LVIZ-04 | Phase 16 | Pending |
+| LVIZ-05 | Phase 16 | Pending |
+| REBAL-01 | Phase 17 | Pending |
+| REBAL-02 | Phase 17 | Pending |
+| REBAL-03 | Phase 17 | Pending |
+| REBAL-04 | Phase 17 | Pending |
+| REBAL-05 | Phase 17 | Pending |
+| REBAL-06 | Phase 17 | Pending |
+| REBAL-07 | Phase 17 | Pending |
+| DOCS-01 | Phase 18 | Pending |
+| DOCS-02 | Phase 18 | Pending |
+| DOCS-03 | Phase 18 | Pending |
+| DOCS-04 | Phase 18 | Pending |
+| DOCS-05 | Phase 18 | Pending |
+| DOCS-06 | Phase 18 | Pending |
 
 **Coverage:**
 - v1.0 requirements: 71 total → all mapped, all complete
-- v1.1 requirements: 69 total → 30 partially mapped (Phase 10/11/13/15 stable from initial roadmap), 39 awaiting re-roadmap with revised phase shape (LOAD/LVIZ/TCSEM/REBAL inserted, SDST removed, ~9 phases total)
-- OOFT-01..03 are draft pending Phase 11 discuss decision (rider 2)
+- v1.1 requirements: 69 total → all 69 mapped to phases 10-18 (9 v1.1 phases), 0 unmapped
+- OOFT-01..03 are draft pending Phase 11 discuss decision (rider 2); phase assignment locked (Phase 11), shape locked in Phase 11 CONTEXT.md
+- SDST (seed-stagger) removed per v1.1 addendum — superseded by TCSEM (no synthetic completions)
+
+**v1.1 phase distribution:**
+
+| Phase | REQs | Count |
+|-------|------|-------|
+| 10 Schedule Override Foundation | SNZE-04,05,06,09,10 | 5 |
+| 11 Task Model Extensions | OOFT-01,02,03,05 + PREF-01..04 + SEAS-01..05 | 14 |
+| 12 Load-Smoothing Engine | LOAD-01..15 | 15 |
+| 13 Task Creation Semantics | TCSEM-01..07 | 7 |
+| 14 Seasonal UI & Seed Library | SEAS-06..10 | 5 |
+| 15 One-Off & Reschedule UI | OOFT-04 + SNZE-01,02,03,07,08 | 6 |
+| 16 Horizon Density Visualization | LVIZ-01..05 | 5 |
+| 17 Manual Rebalance | REBAL-01..07 | 7 |
+| 18 SPEC v0.4 + AGPL Drift + Changelog | DOCS-01..06 | 6 |
+| **Total v1.1** | | **69** |
 
 ---
 *Requirements defined: 2026-04-20*
-*Last updated: 2026-04-22 — v1.1 scope expanded per LOAD addendum + 3 riders (LOAD/LVIZ/TCSEM/REBAL added, SDST removed, PREF reframed, OOFT draft, DOCS bumped to v0.4). Traceability table partial; re-roadmap pending. Total: 69 v1.1 REQs.*
+*Last updated: 2026-04-22 — v1.1 roadmap re-locked: 9 v1.1 phases (10-18), 69 REQ-IDs, traceability fully regenerated. LOAD/LVIZ/TCSEM/REBAL added, SDST removed, PREF reframed, OOFT-01..03 draft (Phase 11 discuss locks shape), DOCS bumped to v0.4.*

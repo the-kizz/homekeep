@@ -7,11 +7,11 @@ stopped_at: roadmap_complete
 last_updated: "2026-04-22T00:00:00.000Z"
 last_activity: 2026-04-22
 progress:
-  total_phases: 15
+  total_phases: 18
   completed_phases: 9
-  total_plans: 39
+  total_plans: 46
   completed_plans: 26
-  percent: 67
+  percent: 57
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** v1.1 — Scheduling & Flexibility (roadmap complete; Phase 10 next)
+**Current focus:** v1.1 — Scheduling & Flexibility (roadmap re-locked for addendum scope; Phase 10 next)
 
 ## Current Position
 
 Phase: 10 — Schedule Override Foundation — Not started
 Plan: —
 Status: Ready to plan Phase 10 (`/gsd-plan-phase 10`)
-Last activity: 2026-04-22 — v1.1 roadmap locked (phases 10-15); retroactive entries for phases 8-9 (post-v1.0.0-rc1 UX polish) appended to ROADMAP.md
+Last activity: 2026-04-22 — v1.1 roadmap re-locked after LOAD addendum + 3 riders (phases 10-18, 9 v1.1 phases, 69 REQ-IDs); retroactive entries for phases 8-9 (post-v1.0.0-rc1 UX polish) preserved
 
-Progress: [██████▋░░░] 67%
+Progress: [█████▋░░░░] 57%
 
 ## Performance Metrics
 
@@ -53,11 +53,20 @@ Progress: [██████▋░░░] 67%
 | 7 | 2 | - | - |
 | 8 | 1 (inline, 9 commits) | 28min | - |
 | 9 | 1 (inline, 14 commits) | ~80min | - |
+| 10 | 0/3 (est) | - | - |
+| 11 | 0/4 (est) | - | - |
+| 12 | 0/5 (est) | - | - |
+| 13 | 0/3 (est) | - | - |
+| 14 | 0/3 (est) | - | - |
+| 15 | 0/3 (est) | - | - |
+| 16 | 0/2 (est) | - | - |
+| 17 | 0/3 (est) | - | - |
+| 18 | 0/2 (est) | - | - |
 
 **Recent Trend:**
 
 - Last 5 plans: 07-01, 07-02, 08 (UX polish), 09 (UX audit fix), (next: 10-01)
-- Trend: v1.0 shipped, two post-rc1 polish passes landed, v1.1 scheduling milestone now open
+- Trend: v1.0 shipped, two post-rc1 polish passes landed, v1.1 scheduling milestone re-scoped per LOAD addendum
 
 *Updated after each plan completion*
 | Phase 01 P01-01 | 9min | 2 tasks | 25 files |
@@ -100,8 +109,14 @@ Recent decisions affecting current work:
 - v1.1: preferred_days as hard constraint (not nudge) — scheduler searches forward up to +6 days
 - v1.1: seasonal via two-task-per-season pattern — data model stays boring
 - v1.1: action-sheet reschedule, no drag — mobile-first PWA
-- v1.1: seed-stagger via `completions.via='seed-stagger'` — smaller schema delta
 - v1.1: phase numbering continues from 10 (phases 8-9 were post-v1.0.0-rc1 UX polish passes, retroactively logged)
+- v1.1: scope expanded — LOAD/LVIZ/TCSEM/REBAL added, SDST removed, PREF reframed, 6→9 phases (10-18)
+- v1.1 LOAD: `tasks.next_due_smoothed DATE` nullable; TCSEM sets on creation, LOAD updates on completion; single source of truth
+- v1.1 LOAD: forward-only smoothing — placing/completing one task never modifies others' smoothed dates
+- v1.1 LOAD: tolerance window `min(0.15 * freq, 5)` initial (per rider 1); validate in Phase 12 against 30-task household; widen to ±14 if annual clusters bunched
+- v1.1 OOFT: first-due semantics deferred to Phase 11 discuss (rider 2) — 3 candidate shapes, user leans explicit "do by" date
+- v1.1 REBAL: own phase (17, per rider 3) — Settings button + counts-only preview + apply; richer features deferred to v1.2+
+- v1.1 SPEC bump v0.3 → v0.4 — addendum changes the spec materially
 - Two-in-one container (PB + Next.js via supervisord)
 - Direct PB SDK from browser (client-side auth)
 - Link-only invites (no SMTP)
@@ -247,7 +262,8 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-- Plan Phase 10 (`/gsd-plan-phase 10`) — schedule_overrides collection + computeNextDue signature extension
+- Plan Phase 10 (`/gsd-plan-phase 10`) — schedule_overrides collection + computeNextDue override branch
+- Run `/gsd-discuss-phase 11` BEFORE planning Phase 11 — lock OOFT-01..03 first-due semantics (rider 2)
 
 ### Blockers/Concerns
 
@@ -259,13 +275,17 @@ None.
 |----------|------|--------|-------------|
 | v1.1 | Idea 2 (`preferred_days` as ±1 day nudge) reshaped to hard constraint | Accepted reshape | v1.1 audit |
 | v1.1 | Idea 4 (drag-to-reschedule in 12-month strip) reshaped to action-sheet snooze | Accepted reshape | v1.1 audit |
+| v1.1 | SDST (seed-stagger via synthetic completions) removed — superseded by TCSEM | Removed | v1.1 addendum |
 | v1.2+ | DRAG-01 drag-to-reschedule (re-evaluate after v1.1 telemetry) | Deferred | v1.1 audit |
+| v1.2+ | REBAL extensions (per-task preview, undo, auto-trigger, area-scoped) | Deferred | v1.1 addendum rider 3 |
+| v1.2+ | LOAD extensions (effort weighting, household capacity, completion feedback, learned frequency) | Deferred | v1.1 addendum |
+| v1.2+ | "Rebalance all" auto-trigger (manual Settings-only in v1.1) | Deferred | v1.1 addendum |
 | v1.2+ | AGRP area groups, TROT task rotation, API-01/02 public API + webhooks | Deferred | REQUIREMENTS.md |
 
 ## Session Continuity
 
 Last session: 2026-04-22T00:00:00.000Z
-Stopped at: v1.1 roadmap complete (phases 10-15 defined; retroactive 8-9 entries appended)
+Stopped at: v1.1 roadmap re-locked (phases 10-18, 9 v1.1 phases, 69 REQ-IDs mapped); retroactive 8-9 entries preserved
 Resume file: None
 
 **Planned Phase:** 10 (Schedule Override Foundation) — estimated 3 plans — next action: `/gsd-plan-phase 10`

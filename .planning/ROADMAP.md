@@ -4,7 +4,7 @@
 
 HomeKeep delivers a self-hosted household maintenance PWA in 7 phases, starting with Docker infrastructure, building single-user task management, adding the differentiating three-band UI, enabling household collaboration, layering secondary views and onboarding, adding notifications and gamification, and finishing with PWA polish and release tooling. Each phase delivers a coherent, verifiable capability that builds on the previous.
 
-**v1.1 (Scheduling & Flexibility)** extends the v1.0 foundation with one-off tasks, preferred-weekday constraints, seasonal dormancy, manual reschedule via action sheet, first-run seed-stagger, and a documentation refresh — all via additive, backward-compatible migrations.
+**v1.1 (Scheduling & Flexibility)** extends the v1.0 foundation with household load-aware scheduling (the SPEC thesis — "spread the year's work evenly across weeks"), per-task flexibility (one-off, preferred-days, seasonal, snooze, permanent reschedule), horizon density visualization, a manual rebalance escape hatch, and a documentation refresh — all via additive, backward-compatible migrations. Forward-only smoothing on existing v1.0 tasks (`tasks.next_due_smoothed = NULL` → natural fallback; adopts at next post-upgrade completion). Anchored-mode tasks byte-identical to v1.0.
 
 ## Phases
 
@@ -28,14 +28,17 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ## v1.1: Scheduling & Flexibility
 
-v1.1 extends v1.0 with finer scheduling control. All migrations are additive; v1.0.0 installs upgrading via `:1` or `:latest` lose nothing. The milestone ends by cutting `v1.1.0-rc1` per the GHCR tiered tag strategy.
+v1.1 extends v1.0 with household-global load-aware scheduling (the SPEC thesis-deliverer), per-task flexibility (one-off, preferred-days, seasonal, snooze, permanent reschedule), horizon density visualization, and a manual rebalance escape hatch. All migrations are additive; v1.0.0 installs upgrading via `:1` or `:latest` lose nothing. Anchored-mode tasks remain byte-identical to v1.0 (explicit opt-out from smoothing). The milestone ends by cutting `v1.1.0-rc1` per the GHCR tiered tag strategy.
 
-- [ ] **Phase 10: Schedule Override Foundation** - `schedule_overrides` PB collection + `computeNextDue` signature extension threaded through every caller (coverage, scheduler, horizon, band classification)
-- [ ] **Phase 11: Task Model Extensions** - Nullable `frequency_days`, `preferred_days`, `active_from_month`/`active_to_month`, `completions.via='seed-stagger'` enum value, and all scheduler logic for one-off / preferred-days / seasonal behaviors
-- [ ] **Phase 12: Seasonal UI & Seed Library** - Task form "Active months" section, dimmed + "Sleeps until" rendering in By Area / Person / dashboard, anchored-mode warning, seasonal seed pairs
-- [ ] **Phase 13: One-Off & Reschedule UI** - Task form one-off toggle, Reschedule action sheet with date picker and "Just this time" / "From now on" radio, ExtendWindowDialog for cross-window snoozes
-- [ ] **Phase 14: Seed-Stagger & History/Stats Filters** - `batchCreateSeedTasks` writes synthetic `via='seed-stagger'` completions with cohort-distribution + season-aware offsets; History, personal stats, and notifications skip those rows
-- [ ] **Phase 15: SPEC v0.3, AGPL Drift Fix & v1.1 Changelog** - SPEC.md bump, three MIT→AGPL corrections, full v1.1 changelog, PROJECT.md INFR-12 correction
+- [ ] **Phase 10: Schedule Override Foundation** - `schedule_overrides` PB collection + `computeNextDue` override branch threaded through every caller (coverage, scheduler, horizon, band classification)
+- [ ] **Phase 11: Task Model Extensions** - Nullable `frequency_days`, `preferred_days`, `active_from_month`/`active_to_month` fields + scheduler logic for OOFT / PREF / SEAS behaviors. OOFT-01..03 finalized here after `/gsd-discuss-phase 11` locks first-due semantics (rider 2)
+- [ ] **Phase 12: Load-Smoothing Engine** - `tasks.next_due_smoothed` field, `placeNextDue` + `computeHouseholdLoad` helpers, integration into `computeNextDue`; PREF/SEAS/SNZE/OOFT/anchored interactions. **Hard gate: branch-composition test matrix covers all 6 branches and meaningful interactions.**
+- [ ] **Phase 13: Task Creation Semantics** - Task form "Last done" optional field (Advanced collapsible) + smart-default first-due + `batchCreateSeedTasks` rewrite calling TCSEM per seed with in-memory load map; SDST removal cleanup
+- [ ] **Phase 14: Seasonal UI & Seed Library** - Task form "Active months" section, dimmed + "Sleeps until" rendering in By Area / Person / dashboard, anchored-mode warning, seasonal seed pairs
+- [ ] **Phase 15: One-Off & Reschedule UI** - Task form one-off toggle, Reschedule action sheet with date picker and "Just this time" / "From now on" radio; ExtendWindowDialog for cross-window snoozes
+- [ ] **Phase 16: Horizon Density Visualization** - HorizonStrip density indicators, ⚖️ badge on shifted tasks across BandView/By Area/Person, TaskDetailSheet ideal-vs-scheduled surface
+- [ ] **Phase 17: Manual Rebalance** - Settings → Scheduling → "Rebalance schedule" button + counts-only preview modal (breakdown by preservation reason) + apply (respects anchored, active snoozes, "From now on" marker)
+- [ ] **Phase 18: SPEC v0.4, AGPL Drift Fix & v1.1 Changelog** - SPEC.md bump to v0.4, three MIT→AGPL corrections, full v1.1 changelog (LOAD/LVIZ/TCSEM/REBAL/OOFT/PREF/SEAS/SNZE), PROJECT.md INFR-12 + SMTP nit corrections
 
 ## Phase Details
 
@@ -213,7 +216,7 @@ Plans:
 **Requirements**: SNZE-04, SNZE-05, SNZE-06, SNZE-09, SNZE-10
 **Success Criteria** (what must be TRUE):
   1. A new `schedule_overrides` PocketBase collection exists with `(id, task_id, snooze_until, consumed_at, created)` and is queryable under the same member-gated access rules as `tasks`
-  2. `computeNextDue` returns the latest active (unconsumed) override date instead of the natural next-due when one exists, and falls back to natural logic otherwise
+  2. `computeNextDue` returns the latest active (unconsumed) override date BEFORE any smoothed-date or natural branch, and falls back to downstream logic when no active override exists
   3. Writing a completion whose `completed_at` lands after an override marks that override consumed (never reused for a subsequent cycle)
   4. The coverage ring reads the snoozed (later) next-due — a snoozed task does not drag household health down while snoozed
   5. The ntfy scheduler's `ref_cycle` key resolves to the effective (post-override) next-due, so a snoozed task fires exactly one "now overdue" notification on the new date (idempotent re-firing preserved)
@@ -224,24 +227,63 @@ Plans:
 - [ ] 10-01: TBD
 
 ### Phase 11: Task Model Extensions
-**Goal**: The task data model and `computeNextDue` absorb one-off semantics, preferred-weekday constraints, and seasonal-window dormancy in a single coherent schema pass — no UI work, all scheduler logic unit-tested before any surface shows it
+**Goal**: The task data model and `computeNextDue` absorb one-off semantics, preferred-weekday constraints (as hard narrowing constraint), and seasonal-window dormancy in a single coherent schema pass — no UI work, all scheduler logic unit-tested before any surface shows it. OOFT first-due semantics (OOFT-01..03) are locked by `/gsd-discuss-phase 11` BEFORE plans are written
 **Depends on**: Phase 10
-**Requirements**: OOFT-01, OOFT-02, OOFT-03, PREF-01, PREF-02, PREF-03, PREF-04, SEAS-01, SEAS-02, SEAS-03, SEAS-04, SEAS-05, SDST-01
+**Requirements**: OOFT-01, OOFT-02, OOFT-03, OOFT-05, PREF-01, PREF-02, PREF-03, PREF-04, SEAS-01, SEAS-02, SEAS-03, SEAS-04, SEAS-05
 **Success Criteria** (what must be TRUE):
-  1. Creating a task with `frequency_days = null` succeeds; that task appears in Overdue from creation, and completing it archives it atomically (auto-removed from every view)
-  2. Setting `preferred_days = weekend` on a 14-day task whose natural next-due lands on a Tuesday shifts the result forward to the next Saturday; natural weekend dates are never shifted earlier
-  3. A task with `active_from_month = 10, active_to_month = 3` correctly reports dormant for April through September and returns start-of-October as its first next-due when the window opens
-  4. The coverage ring excludes dormant tasks from its mean (identical treatment to archived tasks)
-  5. A newly-added `completions.via` enum value `seed-stagger` exists and is writable; no existing completion rows are invalidated
-  6. All 311 unit + 23 E2E tests still pass; a new unit suite of roughly 25-30 cases covers the one-off / preferred-days / seasonal / cross-year-wrap matrix
+  1. Creating a task without a recurring frequency succeeds; that task appears in the appropriate surface per the locked-in first-due semantics, and completing it archives it atomically (auto-removed from every view)
+  2. Setting `preferred_days = weekend` on a 14-day task whose natural next-due lands on a Tuesday narrows candidates to the next Saturday/Sunday BEFORE load scoring; natural weekend dates are never shifted earlier
+  3. When `preferred_days` eliminates every day in the tolerance window, the scheduler searches forward in 1-day increments up to +6 days from natural ideal
+  4. A task with `active_from_month = 10, active_to_month = 3` correctly reports dormant for April through September and returns start-of-October as its first next-due when the window opens (cross-year wrap supported)
+  5. The coverage ring excludes dormant tasks from its mean (identical treatment to archived tasks)
+  6. One-off tasks contribute `1` to the household load density on their due date but their own `next_due_smoothed` is never re-smoothed by LOAD (contract surfaced for Phase 12)
+  7. All 311 unit + 23 E2E tests still pass; a new unit suite of roughly 25-30 cases covers the one-off / preferred-days / seasonal / cross-year-wrap matrix
 **Plans**: TBD (estimate 3-4)
+
+> **Pre-planning gate (rider 2):** Before any Phase 11 plans are written, `/gsd-discuss-phase 11` must debate the three candidate shapes for one-off task first-due semantics — (a) explicit "do by" date required, (b) default `creation + 7 days` editable, (c) separate "To-do" list with promote-to-scheduled. User leans (a). Whichever shape locks into Phase 11 CONTEXT.md becomes the data model for OOFT-01..03.
 
 Plans:
 - [ ] 11-01: TBD
 
-### Phase 12: Seasonal UI & Seed Library
-**Goal**: Seasonal tasks are first-class in the UI — authors can set active months on the task form, dormant tasks render as distinct "sleeping" rows across By Area / Person / dashboard views, and the onboarding seed library ships two seasonal task pairs so a new household tastes the feature without custom work
+### Phase 12: Load-Smoothing Engine
+**Goal**: Deliver the SPEC thesis — *"spread the year's work evenly across weeks"* — by making `computeNextDue` consult a stored `tasks.next_due_smoothed` that is chosen by a forward-only placement algorithm over a per-day household load map. All 6 branches (override, smoothed, anchored, seasonal, one-off, natural) short-circuit in a documented order; anchored tasks bypass smoothing entirely
 **Depends on**: Phase 11
+**Requirements**: LOAD-01, LOAD-02, LOAD-03, LOAD-04, LOAD-05, LOAD-06, LOAD-07, LOAD-08, LOAD-09, LOAD-10, LOAD-11, LOAD-12, LOAD-13, LOAD-14, LOAD-15
+**Success Criteria** (what must be TRUE):
+  1. Adding a new 7-day task to a household that already has 5 other 7-day tasks lands the new task on the day with the fewest existing tasks within ±5 days of the natural ideal date (closest-to-ideal tiebreak, earlier-wins second tiebreak)
+  2. Completing a task writes its next cycle's `next_due_smoothed` in the same batch as the completion write; placing one task never modifies any other task's `next_due_smoothed` value (forward-only contract)
+  3. An anchored-mode task's placement, next-due, and every observable behavior is byte-identical to v1.0 (LOAD-06): smoothing is bypassed, anchored tasks still contribute to the load map for other tasks' placement
+  4. A single `placeNextDue` call for a household with 100 active tasks completes in under 100ms end-to-end (measured budget, asserted in tests)
+  5. `computeNextDue` branch composition test matrix is complete: all 6 branches (override, smoothed, anchored, seasonal, one-off, natural) and every meaningful interaction between them are explicitly tested, no implicit fall-through assumptions — this matrix is a hard gate on phase completion (LOAD-15)
+  6. v1.0 tasks with `next_due_smoothed = NULL` continue to read natural cadence until their next post-upgrade completion, at which point LOAD writes a smoothed date (TCSEM-07 precondition holds for Phase 13)
+**Plans**: TBD (estimate 4-5)
+
+> **Hard gate (user-flagged, highest-risk code in v1.1):** Phase 12 plan must include a complete branch-composition test matrix covering every combination — this is the highest-risk code in v1.1. Any branch interaction not explicitly tested is a future bug. Phase is not complete until LOAD-15 is green.
+
+> **Rider 1 — tolerance window validation:** Tolerance window ships at `min(0.15 * freq, 5)` initially. During Phase 12 verification, validate against a 30-task realistic test household (1 / 7 / 14 / 30 / 90 / 365-day frequencies). If annual-cycle clusters remain bunched, widen to `min(0.15 * freq, 14)` before phase complete. The default ±5 → upgrade ±14 decision may require updating LOAD-04 REQ text and tests.
+
+Plans:
+- [ ] 12-01: TBD
+
+### Phase 13: Task Creation Semantics
+**Goal**: Every new task — whether custom or seed-batched — enters the system with a load-smoothed `next_due_smoothed` already populated, eliminating the v1.0 onboarding clumping problem at its source. "Last done" becomes an optional Advanced field; smart defaults handle the common case; SDST synthetic completions are fully removed
+**Depends on**: Phase 12
+**Requirements**: TCSEM-01, TCSEM-02, TCSEM-03, TCSEM-04, TCSEM-05, TCSEM-06, TCSEM-07
+**Success Criteria** (what must be TRUE):
+  1. The task form's Advanced collapsible (default collapsed) exposes an optional "Last done" date field; providing it sets `first_ideal = last_done + frequency_days`, then runs through the load smoother
+  2. When "Last done" is blank in cycle mode, smart-default first-due resolves per cycle length (≤7d → tomorrow; 8-90d → cycle/4; >90d → cycle/3), then runs through the load smoother
+  3. Accepting all 30+ seed tasks in onboarding produces a cohort whose first-due dates are naturally distributed — no two same-frequency seeds share a first-due day — and zero synthetic `via='seed-stagger'` completion rows are written (SDST gone)
+  4. Every newly-created task (custom or seeded) has `next_due_smoothed` populated at write time; History view is empty immediately after onboarding; personal stats counters are zero for the just-onboarded user
+  5. v1.0 tasks are untouched by this phase — their `next_due_smoothed` remains `NULL` until their own next post-upgrade completion (TCSEM-07)
+**Plans**: TBD (estimate 2-3)
+**UI hint**: yes
+
+Plans:
+- [ ] 13-01: TBD
+
+### Phase 14: Seasonal UI & Seed Library
+**Goal**: Seasonal tasks are first-class in the UI — authors can set active months on the task form, dormant tasks render as distinct "sleeping" rows across By Area / Person / dashboard views, and the onboarding seed library ships two seasonal task pairs so a new household tastes the feature without custom work
+**Depends on**: Phase 13
 **Requirements**: SEAS-06, SEAS-07, SEAS-08, SEAS-09, SEAS-10
 **Success Criteria** (what must be TRUE):
   1. Task form exposes an optional "Active months" section with from/to month selectors; leaving both blank keeps the task year-round
@@ -253,58 +295,73 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 12-01: TBD
+- [ ] 14-01: TBD
 
-### Phase 13: One-Off & Reschedule UI
-**Goal**: Users can create one-off tasks and rearrange any task's next occurrence from any view via a mobile-friendly action sheet — snoozing or permanently shifting a task without needing to edit the task, and with a confirmation dialog when a snooze escapes the active season
-**Depends on**: Phase 12
+### Phase 15: One-Off & Reschedule UI
+**Goal**: Users can create one-off tasks and rearrange any task's next occurrence from any view via a mobile-friendly action sheet — snoozing (one-off override) or permanently shifting ("From now on" mutates anchor / `next_due_smoothed` with a marker flag preserved by REBAL) without needing to edit the task, with a confirmation dialog when a snooze escapes the active season
+**Depends on**: Phase 14
 **Requirements**: OOFT-04, SNZE-01, SNZE-02, SNZE-03, SNZE-07, SNZE-08
 **Success Criteria** (what must be TRUE):
   1. Task form cleanly distinguishes "Recurring" (frequency required) vs "One-off" (frequency disabled/null); anchored mode is disallowed for one-off tasks
   2. Tapping a "Reschedule" affordance on any task (in BandView, PersonTaskList, TaskDetailSheet, By Area) opens an action sheet with a date picker defaulting to the natural next-due and a "Just this time" / "From now on" radio (default: Just this time)
-  3. Choosing "Just this time" writes a `schedule_overrides` row; choosing "From now on" mutates `tasks.anchor_date` directly (no override row written)
+  3. Choosing "Just this time" writes a `schedule_overrides` row; choosing "From now on" mutates `tasks.anchor_date` (anchored mode) or `tasks.next_due_smoothed` with a marker flag (cycle mode) directly — no override row written, marker flag detectable by REBAL preservation rules
   4. Picking a date outside a seasonal task's active window surfaces an "Extend the active window?" confirmation dialog before any write happens — cancelling closes the sheet with no state change
   5. After a snooze lands, the task reappears on the chosen date across every view and the ntfy scheduler fires one overdue notification at that new date (not the original)
 **Plans**: TBD (estimate 2-3)
 **UI hint**: yes
 
 Plans:
-- [ ] 13-01: TBD
+- [ ] 15-01: TBD
 
-### Phase 14: Seed-Stagger & History/Stats Filters
-**Goal**: New households no longer see their first-due dates clump — `batchCreateSeedTasks` writes synthetic `via='seed-stagger'` completions with a cohort-distribution offset that respects each task's active months, and those synthetic rows are invisible to History, personal stats, and partner-completed notifications
-**Depends on**: Phase 13
-**Requirements**: SDST-02, SDST-03, SDST-04, SDST-05, SDST-06, SDST-07
+### Phase 16: Horizon Density Visualization
+**Goal**: Give users an honest visual read of household load — the Horizon strip shows per-month density, and any task that LOAD shifted from its natural date wears a ⚖️ badge that users can inspect to see the ideal-vs-scheduled dates. This is the UI half of the LOAD thesis
+**Depends on**: Phase 15
+**Requirements**: LVIZ-01, LVIZ-02, LVIZ-03, LVIZ-04, LVIZ-05
 **Success Criteria** (what must be TRUE):
-  1. A fresh household accepting all 30+ seed tasks sees those tasks' first-due dates spread across the cycle window (no two same-frequency tasks share a first-due date)
-  2. A seasonal seed task's stagger offset never places its first-due inside a dormant month
-  3. The History timeline shows zero entries immediately after onboarding — the synthetic seed-stagger completions are filtered out
-  4. Personal stats counters do not inflate by the seed-batch size; a just-onboarded user shows zero completions on their profile
-  5. No partner-completed or area-celebration notifications fire as a result of the seed batch (scheduler + notification hooks skip `via='seed-stagger'` rows)
+  1. HorizonStrip month cells render a density indicator (e.g. background tint or dot count) that scales monotonically with the number of tasks due that month; tapping any cell opens the existing Sheet drawer with density-aware rendering
+  2. A task whose `next_due_smoothed` differs from its natural ideal by more than zero days displays a ⚖️ badge in every view where it appears (BandView, By Area, Person, HorizonStrip sheet)
+  3. Tasks whose scheduled date equals their natural ideal show no badge — the surface only signals when there's a story to tell
+  4. Tapping a task with a ⚖️ badge opens TaskDetailSheet whose "Schedule" section shows both the ideal date and the scheduled date, with short copy explaining the shift
+**Plans**: TBD (estimate 2)
+**UI hint**: yes
+
+Plans:
+- [ ] 16-01: TBD
+
+### Phase 17: Manual Rebalance
+**Goal**: Ship the manual escape hatch for forward-only smoothing — users can open Settings → Scheduling → "Rebalance schedule", see a counts-only preview with preservation breakdown, and apply a re-placement that respects anchored tasks, active snoozes, and "From now on" user intent. This is the v1.1 minimal surface; per-task preview, undo, auto-trigger, and area-scoped rebalance are deferred to v1.2+
+**Depends on**: Phase 16
+**Requirements**: REBAL-01, REBAL-02, REBAL-03, REBAL-04, REBAL-05, REBAL-06, REBAL-07
+**Success Criteria** (what must be TRUE):
+  1. Settings → Scheduling surfaces a "Rebalance schedule" button that opens a preview modal before any write
+  2. The preview modal shows counts only — e.g. "Will update: 18 / Will preserve: 7 (3 anchored, 2 active snoozes, 2 from-now-on shifts)" — with the breakdown attributing each preserved task to exactly one reason
+  3. Anchored-mode tasks, tasks with an unconsumed `schedule_overrides` row, and tasks whose `next_due_smoothed` carries the "From now on" marker flag (set by SNZE-07) are never re-placed by rebalance
+  4. Applying the rebalance re-runs `placeNextDue` against a fresh `computeHouseholdLoad` map for every non-preserved task in ascending ideal-date order, updating the in-memory load map between placements (deterministic; matches TCSEM batch pattern)
+  5. After Apply, the main view reflects the new distribution on next render; running rebalance a second time immediately after is a no-op (load map is already smooth)
 **Plans**: TBD (estimate 2-3)
 **UI hint**: yes
 
 Plans:
-- [ ] 14-01: TBD
+- [ ] 17-01: TBD
 
-### Phase 15: SPEC v0.3, AGPL Drift Fix & v1.1 Changelog
-**Goal**: SPEC.md catches up to reality — bumped to v0.3, three stale MIT references corrected to AGPL-3.0, and a full v1.1 changelog documents every new field, collection, form control, and semantic introduced in phases 10-14 — leaving the milestone release-ready for `v1.1.0-rc1`
-**Depends on**: Phase 14
-**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05
+### Phase 18: SPEC v0.4, AGPL Drift Fix & v1.1 Changelog
+**Goal**: SPEC.md catches up to reality — bumped to v0.4 (not v0.3, because the addendum changes the spec materially), three stale MIT references corrected to AGPL-3.0, full v1.1 changelog documents every new field, collection, algorithm, and UI surface introduced in phases 10-17, PROJECT.md INFR-12 + SMTP nit corrected — leaving the milestone release-ready for `v1.1.0-rc1`
+**Depends on**: Phase 17
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05, DOCS-06
 **Success Criteria** (what must be TRUE):
-  1. SPEC.md's frontmatter / version tag reads `v0.3` and every remaining reference to "MIT" in SPEC.md is corrected to AGPL-3.0
-  2. SPEC.md contains a dedicated v1.1 changelog section listing the new task fields (`preferred_days`, `active_from_month`, `active_to_month`, nullable `frequency_days`), the `schedule_overrides` collection, the `completions.via='seed-stagger'` enum value, and the seed-stagger semantic
-  3. PROJECT.md's INFR-12 entry reads AGPL-3.0 (not MIT)
-  4. A new reader can understand — from SPEC.md alone — how to snooze a task, how a seasonal window wraps across year-end, and why History is empty immediately after onboarding
+  1. SPEC.md's frontmatter / version tag reads `v0.4` and every remaining reference to "MIT" in SPEC.md is corrected to AGPL-3.0
+  2. SPEC.md contains a dedicated v1.1 changelog section listing the new task fields (`next_due_smoothed`, `preferred_days`, `active_from_month`, `active_to_month`, nullable `frequency_days`), the `schedule_overrides` collection, the LOAD placement algorithm (tolerance window, tiebreakers, forward-only), and REBAL semantics
+  3. PROJECT.md's INFR-12 entry reads AGPL-3.0 (not MIT) and the SMTP constraint reads "SMTP optional, never required"
+  4. A new reader can understand — from SPEC.md alone — how to snooze a task, how LOAD picks a smoothed date, why anchored tasks bypass smoothing, how a seasonal window wraps across year-end, and how to trigger a manual rebalance
 **Plans**: TBD (estimate 1-2)
 
 Plans:
-- [ ] 15-01: TBD
+- [ ] 18-01: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -319,7 +376,10 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 9. UX Audit Fix | 1/1 | Complete    | 2026-04-21 |
 | 10. Schedule Override Foundation | 0/3 | Not started | - |
 | 11. Task Model Extensions | 0/4 | Not started | - |
-| 12. Seasonal UI & Seed Library | 0/3 | Not started | - |
-| 13. One-Off & Reschedule UI | 0/3 | Not started | - |
-| 14. Seed-Stagger & History/Stats Filters | 0/3 | Not started | - |
-| 15. SPEC v0.3, AGPL Drift Fix & v1.1 Changelog | 0/2 | Not started | - |
+| 12. Load-Smoothing Engine | 0/5 | Not started | - |
+| 13. Task Creation Semantics | 0/3 | Not started | - |
+| 14. Seasonal UI & Seed Library | 0/3 | Not started | - |
+| 15. One-Off & Reschedule UI | 0/3 | Not started | - |
+| 16. Horizon Density Visualization | 0/2 | Not started | - |
+| 17. Manual Rebalance | 0/3 | Not started | - |
+| 18. SPEC v0.4, AGPL Drift Fix & v1.1 Changelog | 0/2 | Not started | - |
