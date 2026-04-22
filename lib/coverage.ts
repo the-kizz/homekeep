@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // HomeKeep (c) 2026 — github.com/conroyke56/homekeep
-import { computeNextDue, type Task } from '@/lib/task-scheduling';
+import {
+  computeNextDue,
+  isInActiveWindow,
+  type Task,
+} from '@/lib/task-scheduling';
 import type { CompletionRecord } from '@/lib/completions';
 import type { Override } from '@/lib/schedule-overrides';
 
 /**
  * Household coverage formula (03-01 Plan, Pattern 8, D-06, VIEW-05;
- * 10-02 Plan wires the override Map through per D-06 + D-08 + D-09).
+ * 10-02 Plan wires the override Map through per D-06 + D-08 + D-09;
+ * 11-02 Plan adds the dormant-task filter per D-14 + SEAS-05).
  *
  * PURE module: deterministic from (tasks, latestByTask, overridesByTask, now).
  *
@@ -19,12 +24,25 @@ import type { Override } from '@/lib/schedule-overrides';
  *   - Overdue by half a cycle → health = 0.5
  *   - Overdue by a full cycle or more → health = 0.0 (clamped)
  *
- * Household coverage = mean(per-task health) across NON-ARCHIVED tasks.
+ * Household coverage = mean(per-task health) across NON-ARCHIVED,
+ * NON-DORMANT tasks.
  *
- * Empty-home invariant (D-06): when there are no non-archived tasks OR
- * no tasks produce a valid nextDue, return `1.0` — "an empty house is
- * perfectly maintained". The UI overlays an "Add your first task" CTA
- * on top of the 100% ring.
+ * Phase 11 dormant filter (D-14, SEAS-05): tasks with a seasonal active
+ * window (active_from_month AND active_to_month both non-null) that do
+ * NOT include the current UTC month are excluded from the mean —
+ * treated identically to archived tasks. Rationale: "lawn mowing is
+ * perfectly fine in winter" — don't drag the coverage number down for
+ * a task the user doesn't expect to see in this season. Home-timezone
+ * precision is deferred (UTC-month fallback differs from the home-tz
+ * exact result by at most one day at month boundaries — acceptable
+ * for coverage-ring rendering; the resulting flip of a single task in/
+ * out of dormancy on one boundary day is a known v1.1 imprecision).
+ * Year-round tasks (v1.0 row shape, no window) are NEVER excluded.
+ *
+ * Empty-home invariant (D-06): when there are no non-archived,
+ * non-dormant tasks OR no such tasks produce a valid nextDue, return
+ * `1.0` — "an empty house is perfectly maintained". The UI overlays an
+ * "Add your first task" CTA on top of the 100% ring.
  *
  * Weighting: equal-weight across tasks (per D-06 and SPEC §8.1).
  * Frequency-normalisation is already baked in via `overdueDays /
@@ -47,7 +65,21 @@ export function computeCoverage(
   overridesByTask: Map<string, Override>,
   now: Date,
 ): number {
-  const active = tasks.filter((t) => !t.archived);
+  // Phase 11 (D-14, SEAS-05): dormant-task check. UTC month used (caller
+  // does not pass timezone — acceptable per module-level JSDoc).
+  const nowMonth = now.getUTCMonth() + 1;
+  const isDormant = (t: Task): boolean => {
+    const hasWindow =
+      t.active_from_month != null && t.active_to_month != null;
+    if (!hasWindow) return false;
+    return !isInActiveWindow(
+      nowMonth,
+      t.active_from_month!,
+      t.active_to_month!,
+    );
+  };
+
+  const active = tasks.filter((t) => !t.archived && !isDormant(t));
   if (active.length === 0) return 1.0;
 
   let sum = 0;
