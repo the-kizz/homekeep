@@ -2,11 +2,27 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { addDays } from 'date-fns';
 import { createServerClient } from '@/lib/pocketbase-server';
 import { createAdminClient } from '@/lib/pocketbase-admin';
 import { assertMembership } from '@/lib/membership';
 import { taskSchema } from '@/lib/schemas/task';
 import type { ActionState } from '@/lib/schemas/auth';
+import {
+  isOoftTask,
+  type Completion,
+  type Task,
+} from '@/lib/task-scheduling';
+import {
+  getCompletionsForHome,
+  reduceLatestByTask,
+} from '@/lib/completions';
+import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
+import {
+  computeFirstIdealDate,
+  computeHouseholdLoad,
+  placeNextDue,
+} from '@/lib/load-smoothing';
 
 /**
  * Task server actions (02-05 Plan).
@@ -100,6 +116,119 @@ export async function createTask(
       return { ok: false, formError: 'Selected area does not belong to this home' };
     }
 
+    // ─── Phase 13 (TCSEM-04): pre-compute next_due_smoothed ─────────
+    // Guarded on cycle + non-OOFT (LOAD-06 + LOAD-09 bypasses). Pure
+    // upstream compute — the placedDate lands in the same tasks.create
+    // body below, so atomicity is by construction (single DB write).
+    //
+    // Placement errors swallow to console.warn with null fallback (D-06);
+    // createTask NEVER fails on placement error. v1.0 natural-cadence
+    // read behavior resumes; first completion writes smoothed via
+    // Phase 12 Plan 12-03's completeTaskAction step 7.5.
+    //
+    // Plan 13-02 Wave 2 will wire the form's new last_done field through
+    // to computeFirstIdealDate's 3rd arg. This wave passes null — smart-
+    // default kicks in per TCSEM-03.
+    const now = new Date();
+    const isOoft = isOoftTask({
+      frequency_days: parsed.data.frequency_days,
+    });
+    let nextDueSmoothed: string | null = null;
+
+    if (parsed.data.schedule_mode === 'cycle' && !isOoft) {
+      try {
+        // Fetch home timezone for placement Map key alignment (Pitfall 7
+        // — same tz on write + lookup sides).
+        const home = await pb
+          .collection('homes')
+          .getOne(parsed.data.home_id, { fields: 'id,timezone' });
+
+        // Fetch sibling tasks + completions + overrides for load map.
+        // Same 10-field projection as completeTaskAction Step 7.5.
+        const homeTasks = (await pb.collection('tasks').getFullList({
+          filter: pb.filter('home_id = {:hid} && archived = false', {
+            hid: parsed.data.home_id,
+          }),
+          fields: [
+            'id', 'created', 'archived',
+            'frequency_days', 'schedule_mode', 'anchor_date',
+            'preferred_days', 'active_from_month', 'active_to_month',
+            'due_date', 'next_due_smoothed',
+          ].join(','),
+        })) as unknown as Task[];
+
+        const homeTaskIds = homeTasks.map((t) => t.id);
+        const homeCompletions = await getCompletionsForHome(
+          pb, homeTaskIds, now,
+        );
+        const homeLatestByTask = reduceLatestByTask(homeCompletions);
+        const overridesByTask = await getActiveOverridesForHome(
+          pb, parsed.data.home_id,
+        );
+
+        const householdLoad = computeHouseholdLoad(
+          homeTasks,
+          homeLatestByTask,
+          overridesByTask,
+          now,
+          120,
+          home.timezone as string,
+        );
+
+        // TCSEM-02/TCSEM-03: derive first_ideal. last_done is absent
+        // in the Wave 1 form schema (Plan 13-02 adds it); Wave 1 calls
+        // computeFirstIdealDate with lastDone=null — smart-default
+        // kicks in per TCSEM-03.
+        const firstIdeal = computeFirstIdealDate(
+          parsed.data.schedule_mode,
+          parsed.data.frequency_days,
+          null, // Plan 13-02 wires the form's last_done field here.
+          now,
+        );
+
+        // Synthesize a Task shape + lastCompletion so placeNextDue's
+        // internal naturalIdeal (lastCompletion.completed_at + freq)
+        // equals firstIdeal. See computeFirstIdealDate JSDoc for the
+        // offset math — addDays is invertible on UTC epoch.
+        const freq = parsed.data.frequency_days as number;
+        const syntheticLastCompletion: Completion = {
+          completed_at: addDays(firstIdeal, -freq).toISOString(),
+        };
+        const syntheticTask: Task = {
+          id: 'pending-new-task',
+          created: now.toISOString(),
+          archived: false,
+          frequency_days: freq,
+          schedule_mode: 'cycle',
+          anchor_date: null,
+          preferred_days: null,
+        };
+
+        const placedDate = placeNextDue(
+          syntheticTask,
+          syntheticLastCompletion,
+          householdLoad,
+          now,
+          {
+            preferredDays: undefined,
+            timezone: home.timezone as string,
+          },
+        );
+
+        nextDueSmoothed = placedDate.toISOString();
+      } catch (e) {
+        console.warn(
+          '[createTask] placement failed (falling back to natural):',
+          (e as Error).message,
+        );
+        // Swallow — nextDueSmoothed stays null. computeNextDue's
+        // read-side D-02 natural fallback takes over (Phase 12 Plan
+        // 12-02). First-completion placement (Phase 12 Plan 12-03)
+        // will fix on first completion.
+      }
+    }
+    // ─── end Phase 13 TCSEM block ────────────────────────────────────
+
     await pb.collection('tasks').create({
       home_id: parsed.data.home_id,
       area_id: parsed.data.area_id,
@@ -119,6 +248,9 @@ export async function createTask(
       notes: parsed.data.notes ?? '',
       // SECURITY: archived is server-controlled, never from formData.
       archived: false,
+      // Phase 13 (TCSEM-04): smoothed date, '' for bypass paths (PB
+      // stores '' as null for nullable date fields).
+      next_due_smoothed: nextDueSmoothed ?? '',
     });
   } catch {
     return { ok: false, formError: 'Could not create task' };
