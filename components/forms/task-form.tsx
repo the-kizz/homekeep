@@ -576,6 +576,7 @@ function AnchoredWarningAlert({
     fromMonth == null ||
     toMonth == null ||
     typeof freq !== 'number' ||
+    !Number.isFinite(freq) ||
     freq <= 0
   ) {
     return null;
