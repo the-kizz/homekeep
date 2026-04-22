@@ -23,13 +23,17 @@ import type { Task, Completion } from '@/lib/task-scheduling';
 const NOW = new Date('2026-04-20T12:00:00Z');
 const TZ = 'Australia/Perth';
 
-// Helper to build a Task row with sensible defaults.
+// Helper to build a Task row with sensible defaults. Note: we use
+// `'frequency_days' in partial ? partial.frequency_days : 14` (NOT
+// nullish-coalesce) so `frequency_days: null` can be explicitly passed
+// through for the OOFT branch — `?? 14` would silently upgrade null → 14.
 function mkTask(partial: Partial<Task> & { id: string }): Task {
   return {
     id: partial.id,
     created: partial.created ?? '2026-03-01T00:00:00Z',
     archived: partial.archived ?? false,
-    frequency_days: partial.frequency_days ?? 14,
+    frequency_days:
+      'frequency_days' in partial ? partial.frequency_days! : 14,
     schedule_mode: partial.schedule_mode ?? 'cycle',
     anchor_date: partial.anchor_date ?? null,
     due_date: partial.due_date ?? null,
