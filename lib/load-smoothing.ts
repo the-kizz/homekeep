@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // HomeKeep (c) 2026 — github.com/conroyke56/homekeep
 import { addDays, differenceInDays } from 'date-fns';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone } from 'date-fns-tz';
 import {
   computeNextDue,
   effectivePreferredDays,
-  isInActiveWindow,
   isOoftTask,
   narrowToPreferredDays,
   type Completion,
@@ -195,9 +194,16 @@ export function placeNextDue(
  *   - cycle + no smooth→ natural next_due (v1.0 holdover fallback)
  *
  * All of the above reduce cleanly to: `computeNextDue(task, last, now,
- * override, tz)`. We call it and accumulate. Exception: dormant-seasonal
- * pre-filter avoids a computeNextDue call for tasks that definitionally
- * don't contribute (wakeup tasks DO contribute via the wakeup branch).
+ * override, tz)`. We call it for every non-archived task and accumulate
+ * on the returned date (or skip if null). Prior versions of this function
+ * carried a local dormant-seasonal pre-filter as a cheap shortcut, but it
+ * was too aggressive — it dropped prior-season wake-up tasks (e.g. seasonal
+ * task completed last September, now June, active Oct-Mar) whose
+ * computeNextDue-reported wake-up date (next Oct 1) falls inside windowEnd
+ * and should contribute to load. computeNextDue already distinguishes
+ * same-season dormant (returns null) from prior-season wake-up (returns
+ * nextWindowOpenDate) via the `lastInPriorSeason` gate, so delegating to
+ * it is both correct and simpler (REVIEW-12 WR-01).
  *
  * windowDays: bound iteration — we DON'T include tasks whose effective
  * next-due is >windowDays out (they don't interact with placements in
@@ -223,34 +229,16 @@ export function computeHouseholdLoad(
   for (const task of tasks) {
     if (task.archived) continue;
 
-    // Dormant-seasonal pre-filter — cheap. Mirrors computeCoverage's
-    // isDormant check in lib/coverage.ts: if the task has a window, the
-    // current home-tz month is outside it, AND a prior completion exists,
-    // skip — computeNextDue would return null anyway.
-    //
-    // If no prior completion exists, fall through to computeNextDue; the
-    // seasonal-wakeup branch will return nextWindowOpenDate which may
-    // legitimately land inside `windowEnd` (e.g. now=Sep, window=Oct-Mar
-    // → wakeup is Oct 1, a ~30-day lookahead).
-    if (
-      task.active_from_month != null &&
-      task.active_to_month != null
-    ) {
-      const nowMonth =
-        toZonedTime(now, timezone).getMonth() + 1;
-      if (
-        !isInActiveWindow(
-          nowMonth,
-          task.active_from_month,
-          task.active_to_month,
-        )
-      ) {
-        const last = latestByTask.get(task.id) ?? null;
-        if (last) continue; // prior completion → dormant → skip
-        // else: first-cycle wake-up → fall through to computeNextDue below.
-      }
-    }
-
+    // Dormant-seasonal pre-filter REMOVED (REVIEW-12 WR-01). The previous
+    // shortcut skipped any out-of-window task with any prior completion,
+    // but that under-counted prior-season wake-ups whose wake-up date
+    // (next from-window open) legitimately falls inside windowEnd. The
+    // seasonal block inside computeNextDue already gates dormant-vs-
+    // wake-up via lastInPriorSeason (same-season → null; prior-season →
+    // nextWindowOpenDate). Delegating to computeNextDue is both correct
+    // and simpler — the only cost is a handful of extra calls per
+    // computeHouseholdLoad invocation (windowDays+task count are the
+    // real perf guards, not this shortcut).
     const last = latestByTask.get(task.id) ?? null;
     // CompletionRecord has more fields than Completion; pass the subset.
     const lastCompletion: Completion | null = last

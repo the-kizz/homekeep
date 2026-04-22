@@ -402,6 +402,50 @@ describe('computeHouseholdLoad', () => {
     expect(load.size).toEqual(0);
   });
 
+  test('T3b: prior-season wake-up task contributes on start-of-window date (REVIEW-12 WR-01)', () => {
+    // Regression guard for the dropped dormant pre-filter (REVIEW-12 WR-01).
+    // Setup: seasonal task with active window Oct-Mar (wrap). Last
+    // completion in SEPTEMBER of the prior year — out-of-window ⇒ a
+    // prior-season cycle that is about to wake up. NOW = June 15 2026,
+    // which is also out-of-window (dormant summer month). computeNextDue's
+    // seasonal-wakeup branch fires (lastInPriorSeason=true via the
+    // out-of-window month short-circuit) and returns
+    // nextWindowOpenDate(now, 10, 3, 'UTC') = Oct 1 2026.
+    //
+    // Before the fix, computeHouseholdLoad's dormant pre-filter would
+    // skip this task outright (out-of-window + prior completion ⇒
+    // "dormant"), under-counting the Oct 1 slot for sibling placements.
+    // After the fix the task contributes 1 on Oct 1.
+    const now = new Date('2026-06-15T00:00:00.000Z');
+    const wakeup = makeTask({
+      id: 't-wakeup',
+      frequency_days: 30,
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const latest = new Map<string, CompletionRecord>();
+    latest.set(
+      wakeup.id,
+      // September is dormant-month for Oct-Mar window ⇒ prior-season.
+      makeCompletionRecord(wakeup.id, '2025-09-15T00:00:00.000Z'),
+    );
+
+    const load = computeHouseholdLoad(
+      [wakeup],
+      latest,
+      new Map(),
+      now,
+      120, // windowEnd = Oct 13, comfortably covers Oct 1 wake-up.
+      TZ,
+    );
+    const expectedKey = isoDateKey(
+      new Date('2026-10-01T00:00:00.000Z'),
+      TZ,
+    );
+    expect(load.get(expectedKey)).toEqual(1);
+    expect(load.size).toEqual(1);
+  });
+
   test('T4: OOFT task contributes 1 on due_date ISO key (LOAD-09)', () => {
     // OOFT = frequency_days null + due_date set. No completion →
     // computeNextDue returns due_date. Contributes 1 on that date.
