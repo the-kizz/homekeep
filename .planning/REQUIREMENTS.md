@@ -374,11 +374,51 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 | INFR-10 | Phase 1 | Complete (01-02) |
 | INFR-11 | Phase 1 | Complete (01-01) |
 | INFR-12 | Phase 1 | Complete (01-01) |
+| OOFT-01 | Phase 11 | Pending |
+| OOFT-02 | Phase 11 | Pending |
+| OOFT-03 | Phase 11 | Pending |
+| OOFT-04 | Phase 13 | Pending |
+| PREF-01 | Phase 11 | Pending |
+| PREF-02 | Phase 11 | Pending |
+| PREF-03 | Phase 11 | Pending |
+| PREF-04 | Phase 11 | Pending |
+| SEAS-01 | Phase 11 | Pending |
+| SEAS-02 | Phase 11 | Pending |
+| SEAS-03 | Phase 11 | Pending |
+| SEAS-04 | Phase 11 | Pending |
+| SEAS-05 | Phase 11 | Pending |
+| SEAS-06 | Phase 12 | Pending |
+| SEAS-07 | Phase 12 | Pending |
+| SEAS-08 | Phase 12 | Pending |
+| SEAS-09 | Phase 12 | Pending |
+| SEAS-10 | Phase 12 | Pending |
+| SNZE-01 | Phase 13 | Pending |
+| SNZE-02 | Phase 13 | Pending |
+| SNZE-03 | Phase 13 | Pending |
+| SNZE-04 | Phase 10 | Pending |
+| SNZE-05 | Phase 10 | Pending |
+| SNZE-06 | Phase 10 | Pending |
+| SNZE-07 | Phase 13 | Pending |
+| SNZE-08 | Phase 13 | Pending |
+| SNZE-09 | Phase 10 | Pending |
+| SNZE-10 | Phase 10 | Pending |
+| SDST-01 | Phase 11 | Pending |
+| SDST-02 | Phase 14 | Pending |
+| SDST-03 | Phase 14 | Pending |
+| SDST-04 | Phase 14 | Pending |
+| SDST-05 | Phase 14 | Pending |
+| SDST-06 | Phase 14 | Pending |
+| SDST-07 | Phase 14 | Pending |
+| DOCS-01 | Phase 15 | Pending |
+| DOCS-02 | Phase 15 | Pending |
+| DOCS-03 | Phase 15 | Pending |
+| DOCS-04 | Phase 15 | Pending |
+| DOCS-05 | Phase 15 | Pending |
 
 **Coverage:**
 - v1.0 requirements: 71 total → all mapped, all complete
-- v1.1 requirements: 40 total → mapping pending (roadmapper next)
+- v1.1 requirements: 40 total → all mapped (Phase 10: 5, Phase 11: 13, Phase 12: 5, Phase 13: 6, Phase 14: 6, Phase 15: 5)
 
 ---
 *Requirements defined: 2026-04-20*
-*Last updated: 2026-04-22 — v1.1 requirements added (OOFT, PREF, SEAS, SNZE, SDST, DOCS)*
+*Last updated: 2026-04-22 — v1.1 REQ-IDs mapped to phases 10-15 (roadmapper locked)*

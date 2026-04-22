@@ -4,11 +4,14 @@
 
 HomeKeep delivers a self-hosted household maintenance PWA in 7 phases, starting with Docker infrastructure, building single-user task management, adding the differentiating three-band UI, enabling household collaboration, layering secondary views and onboarding, adding notifications and gamification, and finishing with PWA polish and release tooling. Each phase delivers a coherent, verifiable capability that builds on the previous.
 
+**v1.1 (Scheduling & Flexibility)** extends the v1.0 foundation with one-off tasks, preferred-weekday constraints, seasonal dormancy, manual reschedule via action sheet, first-run seed-stagger, and a documentation refresh — all via additive, backward-compatible migrations.
+
 ## Phases
 
 **Phase Numbering:**
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+- Phases 8 and 9 are post-v1.0.0-rc1 UX polish passes (retroactively logged after-the-fact)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
@@ -20,6 +23,19 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 5: Views & Onboarding** - By Area, Person, and History views plus seed task library wizard (completed 2026-04-21)
 - [x] **Phase 6: Notifications & Gamification** - ntfy push notifications, scheduler, streaks, and celebrations (completed 2026-04-21)
 - [x] **Phase 7: PWA & Release** - PWA manifest, HTTPS compose variants, graceful degradation, CI/CD publish (completed 2026-04-21)
+- [x] **Phase 8: UX Polish** - Lora display serif, typography hierarchy, horizon scannability, canary provenance markers, fresh screenshots (completed 2026-04-21)
+- [x] **Phase 9: UX Audit Fix** - Warm-only palette tightening, accessibility fixes, button hierarchy, avatar/streak visual separation (completed 2026-04-21)
+
+## v1.1: Scheduling & Flexibility
+
+v1.1 extends v1.0 with finer scheduling control. All migrations are additive; v1.0.0 installs upgrading via `:1` or `:latest` lose nothing. The milestone ends by cutting `v1.1.0-rc1` per the GHCR tiered tag strategy.
+
+- [ ] **Phase 10: Schedule Override Foundation** - `schedule_overrides` PB collection + `computeNextDue` signature extension threaded through every caller (coverage, scheduler, horizon, band classification)
+- [ ] **Phase 11: Task Model Extensions** - Nullable `frequency_days`, `preferred_days`, `active_from_month`/`active_to_month`, `completions.via='seed-stagger'` enum value, and all scheduler logic for one-off / preferred-days / seasonal behaviors
+- [ ] **Phase 12: Seasonal UI & Seed Library** - Task form "Active months" section, dimmed + "Sleeps until" rendering in By Area / Person / dashboard, anchored-mode warning, seasonal seed pairs
+- [ ] **Phase 13: One-Off & Reschedule UI** - Task form one-off toggle, Reschedule action sheet with date picker and "Just this time" / "From now on" radio, ExtendWindowDialog for cross-window snoozes
+- [ ] **Phase 14: Seed-Stagger & History/Stats Filters** - `batchCreateSeedTasks` writes synthetic `via='seed-stagger'` completions with cohort-distribution + season-aware offsets; History, personal stats, and notifications skip those rows
+- [ ] **Phase 15: SPEC v0.3, AGPL Drift Fix & v1.1 Changelog** - SPEC.md bump, three MIT→AGPL corrections, full v1.1 changelog, PROJECT.md INFR-12 correction
 
 ## Phase Details
 
@@ -163,10 +179,132 @@ Plans:
 - [x] 07-01-PLAN.md — PWA manifest + Serwist service worker + secure-context detection + warm banner for HTTP deployments
 - [x] 07-02-PLAN.md -- Caddy + Tailscale compose variants + deployment/PWA-install docs + INFR-09 release pipeline re-validation
 
+### Phase 8: UX Polish
+**Goal**: Typography hierarchy, horizon scannability, and provenance canaries across the shipped v1.0.0-rc1 surface
+**Depends on**: Phase 7
+**Requirements**: (no new REQ-IDs — UX polish post-v1.0.0-rc1)
+**Success Criteria** (what must be TRUE):
+  1. HomeKeep wordmark and page headings render in Lora display serif across landing, dashboard, By Area, Person, and Settings
+  2. Horizon strip's empty months are visually subordinate while the current month is clearly highlighted
+  3. Dashboard zero-task state renders a warm, two-line empty panel instead of sprawling whitespace
+  4. A deployed HomeKeep instance exposes at least a dozen passive provenance markers (meta tags, SPDX headers, manifest hints) with zero outbound telemetry
+**Plans**: 1 plan (completed inline; ~9 atomic commits)
+
+Plans:
+- [x] 08-SUMMARY.md — Lora font wiring, typography hierarchy, mobile header density, horizon scannability, empty-band polish, most-neglected polish, canary SPDX + manifest, Docker rebuild + redeploy, screenshot refresh
+
+### Phase 9: UX Audit Fix
+**Goal**: Post-launch UX audit fix pass — warm-only palette, accessibility contrast, button hierarchy, avatar/streak visual separation — driven by screenshot review
+**Depends on**: Phase 8
+**Requirements**: (no new REQ-IDs — UX audit fix post-v1.0.0-rc1)
+**Success Criteria** (what must be TRUE):
+  1. Every surface (dashboard, By Area, Person, History, Settings, auth, landing) renders only warm-palette colors — no sage green, no pure red siren
+  2. Area card counter rows never orphan-wrap mid-phrase on narrow viewports
+  3. Single-home users do not see a useless HomeSwitcher dropdown
+  4. Dashboard AvatarStack and Streak pill read as distinct weights (soft avatar variant vs solid streak) rather than competing warm dots
+**Plans**: 1 plan (completed inline; 14 atomic fix commits + screenshot refresh)
+
+Plans:
+- [x] 09-SUMMARY.md — 11 audit fixes (area counter wrap, palette tightening, Whole Home pill removal, HomeSwitcher single-home hide, danger-zone warm brick, landing presence, Person stat height equalization, History range equal-width, soft avatar variant, Settings button hierarchy, horizon empty-month opacity + auth link contrast) + palette backfill hook + rebuild + screenshots
+
+### Phase 10: Schedule Override Foundation
+**Goal**: A durable, history-preserving schedule-override primitive exists in the data layer and is consulted by every consumer of `computeNextDue`, so later UI phases can snooze tasks without surprising the scheduler, coverage ring, or notification dedup
+**Depends on**: Phase 9
+**Requirements**: SNZE-04, SNZE-05, SNZE-06, SNZE-09, SNZE-10
+**Success Criteria** (what must be TRUE):
+  1. A new `schedule_overrides` PocketBase collection exists with `(id, task_id, snooze_until, consumed_at, created)` and is queryable under the same member-gated access rules as `tasks`
+  2. `computeNextDue` returns the latest active (unconsumed) override date instead of the natural next-due when one exists, and falls back to natural logic otherwise
+  3. Writing a completion whose `completed_at` lands after an override marks that override consumed (never reused for a subsequent cycle)
+  4. The coverage ring reads the snoozed (later) next-due — a snoozed task does not drag household health down while snoozed
+  5. The ntfy scheduler's `ref_cycle` key resolves to the effective (post-override) next-due, so a snoozed task fires exactly one "now overdue" notification on the new date (idempotent re-firing preserved)
+  6. All 311 unit + 23 E2E tests pass unchanged (signature extension is additive; default override-less behavior matches v1.0)
+**Plans**: TBD (estimate 2-3)
+
+Plans:
+- [ ] 10-01: TBD
+
+### Phase 11: Task Model Extensions
+**Goal**: The task data model and `computeNextDue` absorb one-off semantics, preferred-weekday constraints, and seasonal-window dormancy in a single coherent schema pass — no UI work, all scheduler logic unit-tested before any surface shows it
+**Depends on**: Phase 10
+**Requirements**: OOFT-01, OOFT-02, OOFT-03, PREF-01, PREF-02, PREF-03, PREF-04, SEAS-01, SEAS-02, SEAS-03, SEAS-04, SEAS-05, SDST-01
+**Success Criteria** (what must be TRUE):
+  1. Creating a task with `frequency_days = null` succeeds; that task appears in Overdue from creation, and completing it archives it atomically (auto-removed from every view)
+  2. Setting `preferred_days = weekend` on a 14-day task whose natural next-due lands on a Tuesday shifts the result forward to the next Saturday; natural weekend dates are never shifted earlier
+  3. A task with `active_from_month = 10, active_to_month = 3` correctly reports dormant for April through September and returns start-of-October as its first next-due when the window opens
+  4. The coverage ring excludes dormant tasks from its mean (identical treatment to archived tasks)
+  5. A newly-added `completions.via` enum value `seed-stagger` exists and is writable; no existing completion rows are invalidated
+  6. All 311 unit + 23 E2E tests still pass; a new unit suite of roughly 25-30 cases covers the one-off / preferred-days / seasonal / cross-year-wrap matrix
+**Plans**: TBD (estimate 3-4)
+
+Plans:
+- [ ] 11-01: TBD
+
+### Phase 12: Seasonal UI & Seed Library
+**Goal**: Seasonal tasks are first-class in the UI — authors can set active months on the task form, dormant tasks render as distinct "sleeping" rows across By Area / Person / dashboard views, and the onboarding seed library ships two seasonal task pairs so a new household tastes the feature without custom work
+**Depends on**: Phase 11
+**Requirements**: SEAS-06, SEAS-07, SEAS-08, SEAS-09, SEAS-10
+**Success Criteria** (what must be TRUE):
+  1. Task form exposes an optional "Active months" section with from/to month selectors; leaving both blank keeps the task year-round
+  2. A dormant task in By Area and Person views renders visually dimmed with a "Sleeps until Mon YYYY" badge and is not tap-completable from those views
+  3. Saving an anchored task whose fired series would fall predominantly outside its active window surfaces a warning (does not block save)
+  4. The onboarding seed library offers at least two seasonal task pairs (e.g. warm-season mow / cool-season mow; summer AC service / winter heater service)
+  5. The History view continues to show completed-while-dormant rows regardless of the task's current dormancy state
+**Plans**: TBD (estimate 2-3)
+**UI hint**: yes
+
+Plans:
+- [ ] 12-01: TBD
+
+### Phase 13: One-Off & Reschedule UI
+**Goal**: Users can create one-off tasks and rearrange any task's next occurrence from any view via a mobile-friendly action sheet — snoozing or permanently shifting a task without needing to edit the task, and with a confirmation dialog when a snooze escapes the active season
+**Depends on**: Phase 12
+**Requirements**: OOFT-04, SNZE-01, SNZE-02, SNZE-03, SNZE-07, SNZE-08
+**Success Criteria** (what must be TRUE):
+  1. Task form cleanly distinguishes "Recurring" (frequency required) vs "One-off" (frequency disabled/null); anchored mode is disallowed for one-off tasks
+  2. Tapping a "Reschedule" affordance on any task (in BandView, PersonTaskList, TaskDetailSheet, By Area) opens an action sheet with a date picker defaulting to the natural next-due and a "Just this time" / "From now on" radio (default: Just this time)
+  3. Choosing "Just this time" writes a `schedule_overrides` row; choosing "From now on" mutates `tasks.anchor_date` directly (no override row written)
+  4. Picking a date outside a seasonal task's active window surfaces an "Extend the active window?" confirmation dialog before any write happens — cancelling closes the sheet with no state change
+  5. After a snooze lands, the task reappears on the chosen date across every view and the ntfy scheduler fires one overdue notification at that new date (not the original)
+**Plans**: TBD (estimate 2-3)
+**UI hint**: yes
+
+Plans:
+- [ ] 13-01: TBD
+
+### Phase 14: Seed-Stagger & History/Stats Filters
+**Goal**: New households no longer see their first-due dates clump — `batchCreateSeedTasks` writes synthetic `via='seed-stagger'` completions with a cohort-distribution offset that respects each task's active months, and those synthetic rows are invisible to History, personal stats, and partner-completed notifications
+**Depends on**: Phase 13
+**Requirements**: SDST-02, SDST-03, SDST-04, SDST-05, SDST-06, SDST-07
+**Success Criteria** (what must be TRUE):
+  1. A fresh household accepting all 30+ seed tasks sees those tasks' first-due dates spread across the cycle window (no two same-frequency tasks share a first-due date)
+  2. A seasonal seed task's stagger offset never places its first-due inside a dormant month
+  3. The History timeline shows zero entries immediately after onboarding — the synthetic seed-stagger completions are filtered out
+  4. Personal stats counters do not inflate by the seed-batch size; a just-onboarded user shows zero completions on their profile
+  5. No partner-completed or area-celebration notifications fire as a result of the seed batch (scheduler + notification hooks skip `via='seed-stagger'` rows)
+**Plans**: TBD (estimate 2-3)
+**UI hint**: yes
+
+Plans:
+- [ ] 14-01: TBD
+
+### Phase 15: SPEC v0.3, AGPL Drift Fix & v1.1 Changelog
+**Goal**: SPEC.md catches up to reality — bumped to v0.3, three stale MIT references corrected to AGPL-3.0, and a full v1.1 changelog documents every new field, collection, form control, and semantic introduced in phases 10-14 — leaving the milestone release-ready for `v1.1.0-rc1`
+**Depends on**: Phase 14
+**Requirements**: DOCS-01, DOCS-02, DOCS-03, DOCS-04, DOCS-05
+**Success Criteria** (what must be TRUE):
+  1. SPEC.md's frontmatter / version tag reads `v0.3` and every remaining reference to "MIT" in SPEC.md is corrected to AGPL-3.0
+  2. SPEC.md contains a dedicated v1.1 changelog section listing the new task fields (`preferred_days`, `active_from_month`, `active_to_month`, nullable `frequency_days`), the `schedule_overrides` collection, the `completions.via='seed-stagger'` enum value, and the seed-stagger semantic
+  3. PROJECT.md's INFR-12 entry reads AGPL-3.0 (not MIT)
+  4. A new reader can understand — from SPEC.md alone — how to snooze a task, how a seasonal window wraps across year-end, and why History is empty immediately after onboarding
+**Plans**: TBD (estimate 1-2)
+
+Plans:
+- [ ] 15-01: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -177,3 +315,11 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 5. Views & Onboarding | 3/3 | Complete    | 2026-04-21 |
 | 6. Notifications & Gamification | 3/3 | Complete    | 2026-04-21 |
 | 7. PWA & Release | 2/2 | Complete    | 2026-04-21 |
+| 8. UX Polish | 1/1 | Complete    | 2026-04-21 |
+| 9. UX Audit Fix | 1/1 | Complete    | 2026-04-21 |
+| 10. Schedule Override Foundation | 0/3 | Not started | - |
+| 11. Task Model Extensions | 0/4 | Not started | - |
+| 12. Seasonal UI & Seed Library | 0/3 | Not started | - |
+| 13. One-Off & Reschedule UI | 0/3 | Not started | - |
+| 14. Seed-Stagger & History/Stats Filters | 0/3 | Not started | - |
+| 15. SPEC v0.3, AGPL Drift Fix & v1.1 Changelog | 0/2 | Not started | - |

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: scheduling-and-flexibility
 status: milestone_started
-stopped_at: defining_requirements
+stopped_at: roadmap_complete
 last_updated: "2026-04-22T00:00:00.000Z"
 last_activity: 2026-04-22
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 15
+  completed_phases: 9
+  total_plans: 39
+  completed_plans: 26
+  percent: 67
 ---
 
 # Project State
@@ -21,40 +21,43 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** v1.1 — Scheduling & Flexibility (defining requirements)
+**Current focus:** v1.1 — Scheduling & Flexibility (roadmap complete; Phase 10 next)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 10 — Schedule Override Foundation — Not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-22 — Milestone v1.1 started (audit at `.planning/v1.1/audit.md`)
+Status: Ready to plan Phase 10 (`/gsd-plan-phase 10`)
+Last activity: 2026-04-22 — v1.1 roadmap locked (phases 10-15); retroactive entries for phases 8-9 (post-v1.0.0-rc1 UX polish) appended to ROADMAP.md
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████▋░░░] 67%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 21
+- Total plans completed: 26 (21 from v1.0 phases 1-7 + 2 retroactive UX polish passes counted as 1 plan each = 23 explicit + 3 retroactively attributed; tracker shows the 26 executed plan units)
 - Average duration: -
-- Total execution time: 0 hours
+- Total execution time: -
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1 | 7 | - | - |
+| 2 | 5 (4 complete) | - | - |
 | 3 | 3 | - | - |
 | 4 | 3 | - | - |
 | 5 | 3 | - | - |
 | 6 | 3 | - | - |
 | 7 | 2 | - | - |
+| 8 | 1 (inline, 9 commits) | 28min | - |
+| 9 | 1 (inline, 14 commits) | ~80min | - |
 
 **Recent Trend:**
 
-- Last 5 plans: -
-- Trend: -
+- Last 5 plans: 07-01, 07-02, 08 (UX polish), 09 (UX audit fix), (next: 10-01)
+- Trend: v1.0 shipped, two post-rc1 polish passes landed, v1.1 scheduling milestone now open
 
 *Updated after each plan completion*
 | Phase 01 P01-01 | 9min | 2 tasks | 25 files |
@@ -83,6 +86,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase Phase 06 PP03 | 13min | 3 tasks tasks | 12 files files |
 | Phase 07 P01 | 15 | 2 tasks | 17 files |
 | Phase 07 P02 | 120min | 2 tasks | 8 files |
+| Phase 08 UX polish | 28min | 9 commits | ~18 files |
+| Phase 09 UX audit fix | ~80min | 14 commits | ~16 files |
 
 ## Accumulated Context
 
@@ -91,6 +96,12 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- v1.1: schedule_overrides as collection (not fields) — snooze history preserved
+- v1.1: preferred_days as hard constraint (not nudge) — scheduler searches forward up to +6 days
+- v1.1: seasonal via two-task-per-season pattern — data model stays boring
+- v1.1: action-sheet reschedule, no drag — mobile-first PWA
+- v1.1: seed-stagger via `completions.via='seed-stagger'` — smaller schema delta
+- v1.1: phase numbering continues from 10 (phases 8-9 were post-v1.0.0-rc1 UX polish passes, retroactively logged)
 - Two-in-one container (PB + Next.js via supervisord)
 - Direct PB SDK from browser (client-side auth)
 - Link-only invites (no SMTP)
@@ -225,26 +236,36 @@ Recent decisions affecting current work:
 - 07-02: Tailscale kernel-networking (TS_USERSPACE=false + net_admin + /dev/net/tun) kept default; userspace fallback documented
 - 07-02: tailscale/tailscale:stable floating tag kept per publisher convention; SHA-pinning deferred post-v1 per T-07-02-02
 - 07-02: INFR-09 re-validated in-place — yaml-parse + grep + exec-bit smoke proves Phase 1 release.yml still clean; zero edits to .github/workflows/*.yml
+- 08: Lora display serif via next/font/google + var(--font-display) global h1/h2/h3 application
+- 08: HK_BUILD_ID + canary provenance (meta, manifest, SPDX) — zero outbound telemetry
+- 08: lib/constants.ts dedicated module so HOMEKEEP_BUILD survives webpack tree-shaking in scheduler.ts imports
+- 09: Palette tightened to warm-only (dropped #6B8E5A sage, #4F6D7A slate; added #B88A6A sand, #8F6B55 cocoa)
+- 09: Soft AvatarCircle variant (bg-primary/15) for identity vs solid for streak/override signal
+- 09: Danger zone warm brick hsl(12 55% 48%) instead of pure red hsl(0 65% 50%)
+- 09: HomeSwitcher auto-hides for single-home users; in-page h1 identifies home
+- 09: Persistent underline on auth cross-links since primary sits on 4.5:1 contrast edge
 
 ### Pending Todos
 
-None yet.
+- Plan Phase 10 (`/gsd-plan-phase 10`) — schedule_overrides collection + computeNextDue signature extension
 
 ### Blockers/Concerns
 
-- PWA tooling: next-pwa may be unmaintained; verify Serwist compatibility at Phase 7
-- PocketBase version: may have breaking changes since training data cutoff; verify at Phase 1 scaffold
+None.
 
 ## Deferred Items
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| v1.1 | Idea 2 (`preferred_days` as ±1 day nudge) reshaped to hard constraint | Accepted reshape | v1.1 audit |
+| v1.1 | Idea 4 (drag-to-reschedule in 12-month strip) reshaped to action-sheet snooze | Accepted reshape | v1.1 audit |
+| v1.2+ | DRAG-01 drag-to-reschedule (re-evaluate after v1.1 telemetry) | Deferred | v1.1 audit |
+| v1.2+ | AGRP area groups, TROT task rotation, API-01/02 public API + webhooks | Deferred | REQUIREMENTS.md |
 
 ## Session Continuity
 
-Last session: 2026-04-21T09:55:46.026Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-04-22T00:00:00.000Z
+Stopped at: v1.1 roadmap complete (phases 10-15 defined; retroactive 8-9 entries appended)
 Resume file: None
 
-**Planned Phase:** 7 (PWA & Release) — 2 plans — 2026-04-21T06:58:11.893Z
+**Planned Phase:** 10 (Schedule Override Foundation) — estimated 3 plans — next action: `/gsd-plan-phase 10`

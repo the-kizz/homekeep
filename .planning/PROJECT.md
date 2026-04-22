@@ -91,7 +91,7 @@ See `REQUIREMENTS.md` for full REQ-IDs. Summary:
 | v1.1: seasonal via two-task-per-season pattern | One task per cadence keeps the data model boring; varying frequency over months is a UX trap | — v1.1 Pending |
 | v1.1: action-sheet reschedule, no drag | Mobile-first PWA; 58px Horizon cells make drag fragile; same user problem at half the cost | — v1.1 Pending |
 | v1.1: seed-stagger via `completions.via='seed-stagger'` | Smaller schema delta than new field; History/stats/notifications filter on `via` | — v1.1 Pending |
-| v1.1: phase numbering continues from 8 | Phases are absolute project milestones, not per-milestone counters | — v1.1 Pending |
+| v1.1: phase numbering continues from 10 | Phases are absolute project milestones, not per-milestone counters. Phases 8 (UX Polish) + 9 (UX Audit Fix) were consumed by post-v1.0.0 polish work between RC1 and v1.1 milestone start; retroactively logged in ROADMAP.md | — v1.1 Pending |
 
 ## Evolution
 
