@@ -53,6 +53,75 @@ export function isoDateKey(d: Date, timezone: string): string {
 }
 
 /**
+ * Compute the first ideal next-due date for a NEW task (TCSEM-02, TCSEM-03).
+ *
+ * Pure. No I/O. Throws for anchored mode (LOAD-06) and OOFT (LOAD-09) —
+ * callers MUST guard upstream (same contract as placeNextDue).
+ *
+ * Algorithm (13-CONTEXT.md D-01, D-02):
+ *   - TCSEM-02: if lastDone is provided (cycle mode only), return
+ *     lastDone + frequency_days. Result MAY be in the past (deep
+ *     overdue legitimate per D-02); placeNextDue consumer handles
+ *     the forward-only tolerance clamp.
+ *   - TCSEM-03: if lastDone is blank, smart-default based on cycle
+ *     length:
+ *       frequency_days ≤ 7  → now + 1 day (tomorrow)
+ *       frequency_days 8..90 → now + Math.floor(freq / 4) days
+ *       frequency_days > 90 → now + Math.floor(freq / 3) days
+ *
+ * Returns: Date suitable as naturalIdeal for placeNextDue. Caller
+ * should then call placeNextDue(newTask, null, load, now, opts) —
+ * this helper replaces the "last completion + freq" derivation that
+ * placeNextDue does internally via `task.created + freq`.
+ *
+ * NOTE: placeNextDue currently derives naturalIdeal from
+ * `lastCompletion?.completed_at ?? task.created`. For a brand-new
+ * task with NO lastCompletion, this defaults to `task.created + freq`
+ * which is equivalent to TCSEM-03's freq ≤ 7 case IF the task is
+ * created right now — but TCSEM-03 specifies smart-default that
+ * DIVERGES from task.created + freq for freq > 7 (cycle/4, cycle/3).
+ * Phase 13 passes the TCSEM-computed Date as a synthetic
+ * `lastCompletion.completed_at = (firstIdeal - freq).toISOString()`
+ * to placeNextDue — this works because placeNextDue's internal
+ * `addDays(new Date(baseIso), freq)` reverses cleanly.
+ *
+ * 5 callsites after this ships: computeNextDue isOoft guard,
+ * completeTaskAction freqOoft, placeNextDue guard, computeHouseholdLoad
+ * delegate, createTaskAction (Phase 13 new — this helper reused in
+ * createTask + batchCreateSeedTasks).
+ */
+export function computeFirstIdealDate(
+  scheduleMode: 'cycle' | 'anchored',
+  frequencyDays: number | null,
+  lastDone: Date | null,
+  now: Date,
+): Date {
+  // Invariant guards (defense in depth per D-05).
+  if (scheduleMode === 'anchored') {
+    throw new Error(
+      'computeFirstIdealDate: anchored mode bypasses smoothing (LOAD-06)',
+    );
+  }
+  if (isOoftTask({ frequency_days: frequencyDays })) {
+    throw new Error(
+      'computeFirstIdealDate: OOFT bypasses smoothing (LOAD-09)',
+    );
+  }
+
+  const freq = frequencyDays as number; // Narrowed by isOoftTask guard.
+
+  // TCSEM-02 — explicit last done provided.
+  if (lastDone) {
+    return addDays(lastDone, freq);
+  }
+
+  // TCSEM-03 — smart default.
+  if (freq <= 7) return addDays(now, 1);
+  if (freq <= 90) return addDays(now, Math.floor(freq / 4));
+  return addDays(now, Math.floor(freq / 3));
+}
+
+/**
  * Place the next due date for `task` given the current household load map.
  *
  * Pure. Returns a UTC-equivalent Date representing home-tz midnight on the

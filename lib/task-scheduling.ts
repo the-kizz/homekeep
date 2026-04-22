@@ -62,11 +62,13 @@ export type Completion = {
  * OOFT marker helper. Treats both `null` (app-layer semantic) and
  * `0` (PB 0.37.1 storage-reality for a cleared NumberField) as OOFT.
  *
- * Exported to centralize the 3 existing callsites' shared predicate:
+ * Exported to centralize the 5 shared-predicate callsites:
  *   1. computeNextDue isOoft (this file, previously inlined line 155)
- *   2. completeTaskAction freqOoft (lib/actions/completions.ts Plan 11-02)
- *   3. placeNextDue + computeHouseholdLoad guards (Phase 12 new)
- * Phase 13's createTaskAction will be the 4th callsite.
+ *   2. completeTaskAction freqOoft (lib/actions/completions.ts, Plan 12-03)
+ *   3. placeNextDue + computeHouseholdLoad guards (lib/load-smoothing.ts, Plan 12-01)
+ *   4. createTaskAction TCSEM guard (lib/actions/tasks.ts, Plan 13-01)
+ *   5. batchCreateSeedTasks TCSEM loop guard (lib/actions/seed.ts, Plan 13-01)
+ * Plus computeFirstIdealDate throws on OOFT (Plan 13-01 — defense in depth).
  *
  * Pure — no side effects. Per 11-03 SUMMARY §Handoff for Phase 12.
  */
