@@ -134,11 +134,28 @@ describe('computeNextDue — edge cases', () => {
     expect(computeNextDue(task, null, new Date('2026-04-10T00:00:00.000Z'), undefined)).toBeNull();
   });
 
-  test('frequency 0 throws', () => {
+  test('frequency 0 treated as OOFT marker (PB 0.37.1 cleared-NumberField storage reality)', () => {
+    // Plan 11-03 integration finding: PB 0.37.1 stores a cleared
+    // NumberField as `0` on the wire (not null), even after the D-02
+    // `required: false` flip on the existing frequency_days field.
+    // computeNextDue's OOFT branch therefore treats `0` the same as
+    // `null` — both route to the OOFT branch where a no-completion task
+    // returns its due_date (or null if unset). The app-layer zod schema
+    // (tests/unit/schemas/task.test.ts) still rejects `0` at form-
+    // submission time — this test locks the scheduler-runtime semantic
+    // only, which is what flows through from PB storage. Without this
+    // permissive runtime behavior, computeCoverage would throw whenever
+    // iterating sibling tasks that happen to include an OOFT (Plan 11-03
+    // Scenario 2 diagnostic).
     const task = makeTask({ frequency_days: 0 });
-    expect(() =>
-      computeNextDue(task, null, new Date('2026-04-10T00:00:00.000Z'), undefined),
-    ).toThrow();
+    const result = computeNextDue(
+      task,
+      null,
+      new Date('2026-04-10T00:00:00.000Z'),
+      undefined,
+    );
+    // No due_date on the fixture → OOFT with no target date → null.
+    expect(result).toBeNull();
   });
 
   test('frequency 1.5 throws', () => {

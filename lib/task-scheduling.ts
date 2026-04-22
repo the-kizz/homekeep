@@ -142,13 +142,21 @@ export function computeNextDue(
 ): Date | null {
   if (task.archived) return null;
 
-  // Phase 11 (D-05): frequency validation gated on non-null. OOFT tasks
-  // (frequency_days === null) skip the positive-integer guard and reach
-  // the OOFT branch below.
-  if (task.frequency_days !== null) {
+  // Phase 11 (D-05): frequency validation gated on OOFT-marker. OOFT tasks
+  // carry `frequency_days === null` semantically, but PB 0.37.1 stores a
+  // cleared NumberField as `0` on the wire (the D-02 `required: false`
+  // flip on an existing required NumberField does NOT change the stored
+  // value of rows that set the field to null — PB coerces to 0). Both
+  // values mean "no natural cycle" and route to the OOFT branch below,
+  // so the positive-integer guard skips for both. Discovered during
+  // Plan 11-03 integration (Scenario 2) where an OOFT task created with
+  // `frequency_days: null` round-tripped as `0` and tripped the guard
+  // when computeCoverage iterated sibling tasks during completion.
+  const isOoft = task.frequency_days === null || task.frequency_days === 0;
+  if (!isOoft) {
     if (
       !Number.isInteger(task.frequency_days) ||
-      task.frequency_days < 1
+      (task.frequency_days as number) < 1
     ) {
       throw new Error(`Invalid frequency_days: ${task.frequency_days}`);
     }
@@ -246,10 +254,12 @@ export function computeNextDue(
   }
 
   // ─── Phase 11 OOFT branch (D-05, OOFT-05) ───────────────────────────
-  // frequency_days === null → one-off task. Return due_date if no
-  // completion, null otherwise (completed OOFT is archived by
-  // completeTaskAction's batch, but race-safety returns null).
-  if (task.frequency_days === null) {
+  // OOFT marker = frequency_days null (app-layer semantic) OR 0 (PB
+  // 0.37.1 storage-layer reality for a cleared NumberField — see
+  // isOoft guard at top of function). Return due_date if no completion,
+  // null otherwise (completed OOFT is archived by completeTaskAction's
+  // batch, but race-safety returns null).
+  if (isOoft) {
     if (lastCompletion) return null;
     return task.due_date ? new Date(task.due_date) : null;
   }
@@ -257,7 +267,8 @@ export function computeNextDue(
   // as `number | null` across branches (flow analysis can't carry the
   // null-guard through the intervening seasonal branches). Bind a local
   // so cycle + anchored branches can reference a narrowed `number`.
-  const freq: number = task.frequency_days;
+  // isOoft is false here, so frequency_days is a positive integer.
+  const freq: number = task.frequency_days as number;
 
   if (task.schedule_mode === 'cycle') {
     const baseIso = lastCompletion?.completed_at ?? task.created;

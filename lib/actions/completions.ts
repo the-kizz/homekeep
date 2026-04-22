@@ -246,7 +246,17 @@ export async function completeTaskAction(
     // the DateField on the tasks collection (see migration
     // 1714780800_init_homekeep.js line 145) — grep-verified present in
     // the baseline schema.
-    if (task.frequency_days === null) {
+    //
+    // OOFT marker: `frequency_days === null` is the semantic, but PB
+    // 0.37.1 stores a cleared NumberField as `0` on the wire (the D-02
+    // `required: false` flip doesn't coerce stored nulls). Both values
+    // route to the archive op — discovered during Plan 11-03 integration
+    // Scenario 2 where `frequency_days: null` on create round-tripped as
+    // `0` and the archive op skipped. Matches the isOoft guard in
+    // lib/task-scheduling.ts (computeNextDue OOFT branch).
+    const freqOoft =
+      task.frequency_days === null || task.frequency_days === 0;
+    if (freqOoft) {
       batch.collection('tasks').update(task.id, {
         archived: true,
         archived_at: now.toISOString(),
