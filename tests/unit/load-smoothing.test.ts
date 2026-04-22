@@ -597,6 +597,56 @@ describe('isoDateKey', () => {
   });
 });
 
+// ─── Phase 12 action-level bypass invariants (Plan 12-03 Wave 3) ────────
+
+describe('Phase 12 action-level bypass invariants (write-side defense in depth)', () => {
+  // Same NOW + TZ constants + fixture helpers from the top of the file
+  // are in scope here (same file).
+
+  test('T28: placeNextDue happy-path — cycle task with valid freq returns a Date (action signature regression gate)', () => {
+    // Sanity-check that completeTaskAction's Plan 12-03 call signature
+    // matches the helper. This is a regression gate against signature
+    // drift between action + helper.
+    const task = makeTask({
+      frequency_days: 7,
+      schedule_mode: 'cycle',
+    });
+    const completion = makeCompletion('2026-04-30T00:00:00.000Z');
+    const load = new Map<string, number>();
+    const placed = placeNextDue(task, completion, load, NOW, {
+      preferredDays: undefined,
+      timezone: 'UTC',
+    });
+    expect(placed).toBeInstanceOf(Date);
+    expect(placed.getTime()).toBeGreaterThan(NOW.getTime());
+  });
+
+  test('T29: placeNextDue rejects anchored task (LOAD-06 bypass defense in depth — completeTaskAction skips this call for anchored)', () => {
+    const anchored = makeTask({
+      schedule_mode: 'anchored',
+      anchor_date: '2026-01-15T00:00:00.000Z',
+      frequency_days: 30,
+    });
+    const completion = makeCompletion('2026-04-15T00:00:00.000Z');
+    const load = new Map<string, number>();
+    expect(() =>
+      placeNextDue(anchored, completion, load, NOW, { timezone: 'UTC' }),
+    ).toThrow(/LOAD-06|anchored/);
+  });
+
+  test('T30: placeNextDue rejects OOFT task (null and 0 variants — LOAD-09 bypass; isOoftTask guard in completeTaskAction skips both)', () => {
+    const ooftNull = makeTask({ frequency_days: null });
+    const ooftZero = makeTask({ frequency_days: 0 });
+    const load = new Map<string, number>();
+    expect(() =>
+      placeNextDue(ooftNull, null, load, NOW, { timezone: 'UTC' }),
+    ).toThrow(/LOAD-09|OOFT/);
+    expect(() =>
+      placeNextDue(ooftZero, null, load, NOW, { timezone: 'UTC' }),
+    ).toThrow(/LOAD-09|OOFT/);
+  });
+});
+
 // Silence unused-import warnings for helpers retained for test-fixture
 // clarity (makeCompletion et al) if lint runs in strict mode.
 void formatInTimeZone;
