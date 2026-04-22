@@ -268,8 +268,8 @@ Plans:
 
 Plans:
 - [x] 12-01-P01-PLAN.md — Wave 1: additive migration (1745280002) + lib/load-smoothing.ts (placeNextDue + computeHouseholdLoad pure helpers) + isOoftTask helper export + zod schema extension + 18+ unit tests for helpers
-- [ ] 12-02-P01-PLAN.md — Wave 2: computeNextDue smoothed branch insertion (D-02 order with D-03 anchored bypass + D-15 seasonal-wakeup handshake + T-12-07 Invalid Date defense) + 21-case LOAD-15 branch composition matrix hard gate
-- [ ] 12-03-P01-PLAN.md — Wave 3: completeTaskAction step 7.5 batch extension (atomic placement op on cycle && !OOFT, D-13 error fallback) + 3 action-level bypass invariant unit tests
+- [x] 12-02-P01-PLAN.md — Wave 2: computeNextDue smoothed branch insertion (D-02 order with D-03 anchored bypass + D-15 seasonal-wakeup handshake + T-12-07 Invalid Date defense) + 21-case LOAD-15 branch composition matrix hard gate
+- [x] 12-03-P01-PLAN.md — Wave 3: completeTaskAction step 7.5 batch extension (atomic placement op on cycle && !OOFT, D-13 error fallback) + 3 action-level bypass invariant unit tests
 - [ ] 12-04-P01-PLAN.md — Wave 4: LOAD-13 perf benchmark (<100ms, 100-task) + 5-scenario disposable-PB integration suite on port 18100 (migration / completion flow / tz-drift / rider-1 validation / v1.0 upgrade) + Rider-1 tolerance decision checkpoint
 
 ### Phase 13: Task Creation Semantics

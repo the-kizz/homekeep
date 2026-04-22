@@ -275,7 +275,8 @@
 **: Snoozed tasks: SNZE override trumps smoother; snooze date contributes to load map for OTHER tasks' placement
 - [x] **LOAD-09
 **: One-off tasks: contribute to load map but not re-smoothable; first due determined by Phase 11 OOFT decision
-- [ ] **LOAD-10**: Smoother runs on task creation AND on task completion (one placement call per event)
+- [x] **LOAD-10
+**: Smoother runs on task creation AND on task completion (one placement call per event)
 - [x] **LOAD-11
 **: Smoothing is forward-only — placing one task never modifies existing tasks' `next_due_smoothed` values
 - [x] **LOAD-12
