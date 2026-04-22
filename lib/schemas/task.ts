@@ -86,10 +86,21 @@ export const taskSchema = z
     // OOFT bypass smoothing entirely (D-03, D-04). Null = use TCSEM-03
     // smart default at placement time. The server action in
     // lib/actions/tasks.ts converts the string → Date and passes to
-    // computeFirstIdealDate. No refine: the field is purely optional
-    // and semantically ignored when schedule_mode !== 'cycle' (form
-    // hides the field; server branch-guards before consuming it).
-    last_done: z.string().nullable().optional(),
+    // computeFirstIdealDate.
+    //
+    // Phase 13 review WR-01: tighten to ISO-date shape (YYYY-MM-DD...)
+    // so a crafted form POST with garbage (e.g. "not-a-date") surfaces
+    // a fieldError instead of silently dropping through to Invalid Date
+    // and being swallowed by the outer try/catch. Regex matches the
+    // leading date part only — an HTML `<input type="date">` always
+    // emits YYYY-MM-DD; an ISO datetime is also accepted. Keeps
+    // optional/nullable so the form may omit the field entirely and
+    // the smart-default (TCSEM-03) branch still runs.
+    last_done: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}/, 'Last done must be a valid date')
+      .nullable()
+      .optional(),
   })
   .refine(
     (d) =>

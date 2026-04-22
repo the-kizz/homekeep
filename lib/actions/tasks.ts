@@ -143,6 +143,24 @@ export async function createTask(
     });
     let nextDueSmoothed: string | null = null;
 
+    // Phase 13 review WR-01: defense-in-depth validation of last_done.
+    // The schema (lib/schemas/task.ts) now enforces an ISO-date regex,
+    // so safeParse rejects garbage upstream. This check is belt-and-
+    // braces for invalid-but-regex-passing inputs (e.g. "9999-99-99"
+    // matches the regex but yields Invalid Date). Returned BEFORE the
+    // inner try/catch so the fieldError surfaces to the user instead
+    // of being silently swallowed by the placement catch.
+    if (
+      typeof parsed.data.last_done === 'string' &&
+      parsed.data.last_done.length > 0 &&
+      Number.isNaN(new Date(parsed.data.last_done).getTime())
+    ) {
+      return {
+        ok: false,
+        fieldErrors: { last_done: ['Last done must be a valid date'] },
+      };
+    }
+
     if (parsed.data.schedule_mode === 'cycle' && !isOoft) {
       try {
         // Fetch home timezone for placement Map key alignment (Pitfall 7
@@ -197,6 +215,9 @@ export async function createTask(
         // placed = firstIdeal + tolerance-window adjustment. Short-
         // circuiting would skip the smart-default path for blank
         // last_done.
+        // last_done is validated twice upstream: zod regex (ISO-date
+        // shape) + defense-in-depth NaN check above, before this inner
+        // try. Safe to convert directly here.
         const lastDoneDate: Date | null =
           typeof parsed.data.last_done === 'string' &&
           parsed.data.last_done.length > 0
