@@ -331,11 +331,11 @@ Plans:
   2. A task whose `next_due_smoothed` differs from its natural ideal by more than zero days displays a ⚖️ badge in every view where it appears (BandView, By Area, Person, HorizonStrip sheet)
   3. Tasks whose scheduled date equals their natural ideal show no badge — the surface only signals when there's a story to tell
   4. Tapping a task with a ⚖️ badge opens TaskDetailSheet whose "Schedule" section shows both the ideal date and the scheduled date, with short copy explaining the shift
-**Plans**: TBD (estimate 2)
+**Plans**: 1 plan
 **UI hint**: yes
 
 Plans:
-- [ ] 16-01: TBD
+- [ ] 16-01-PLAN.md — HorizonStrip density tint + ⚖️ ShiftBadge across BandView/Person/Sheet + TaskDetailSheet ideal-vs-scheduled section + 3-scenario port-18104 integration suite (LVIZ-01..05)
 
 ### Phase 17: Manual Rebalance
 **Goal**: Ship the manual escape hatch for forward-only smoothing — users can open Settings → Scheduling → "Rebalance schedule", see a counts-only preview with preservation breakdown, and apply a re-placement that respects anchored tasks, active snoozes, and "From now on" user intent. This is the v1.1 minimal surface; per-task preview, undo, auto-trigger, and area-scoped rebalance are deferred to v1.2+

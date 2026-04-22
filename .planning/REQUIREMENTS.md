@@ -301,11 +301,16 @@
 
 ### Horizon Density Visualization (LVIZ)
 
-- [ ] **LVIZ-01**: HorizonStrip month cells show density indicator proportional to task count in that month
-- [ ] **LVIZ-02**: Tapping a heavy month opens the existing Sheet drawer (already implemented), now with density-aware rendering
-- [ ] **LVIZ-03**: Task rows shifted by the smoother show a `⚖️` badge with tooltip explaining the shift
-- [ ] **LVIZ-04**: Badge appears only when displacement > 0 days
-- [ ] **LVIZ-05**: TaskDetailSheet "Schedule" section shows ideal vs scheduled dates when smoothed
+- [x] **LVIZ-01
+**: HorizonStrip month cells show density indicator proportional to task count in that month
+- [x] **LVIZ-02
+**: Tapping a heavy month opens the existing Sheet drawer (already implemented), now with density-aware rendering
+- [x] **LVIZ-03
+**: Task rows shifted by the smoother show a `⚖️` badge with tooltip explaining the shift
+- [x] **LVIZ-04
+**: Badge appears only when displacement > 0 days
+- [x] **LVIZ-05
+**: TaskDetailSheet "Schedule" section shows ideal vs scheduled dates when smoothed
 
 ### Task Creation Semantics (TCSEM)
 

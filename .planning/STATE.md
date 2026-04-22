@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
 status: verifying
-stopped_at: Completed 15-03-P01-PLAN.md (Phase 15 closed)
-last_updated: "2026-04-22T15:00:35.136Z"
+stopped_at: Completed 16-01-P01-PLAN.md (Phase 16 closed)
+last_updated: "2026-04-22T15:53:04.104Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 19
-  completed_phases: 13
-  total_plans: 43
-  completed_plans: 46
+  completed_phases: 14
+  total_plans: 44
+  completed_plans: 47
   percent: 100
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 15 — One-Off & Reschedule UI
+**Current focus:** Phase 16 — Horizon Density Visualization
 
 ## Current Position
 
-Phase: 15 (One-Off & Reschedule UI) — EXECUTING
-Plan: 3 of 3
+Phase: 16 (Horizon Density Visualization) — EXECUTING
+Plan: 1 of 1
 Status: Phase complete — ready for verification
 Last activity: 2026-04-22
 
@@ -112,6 +112,7 @@ Progress: [██████████] 100%
 | Phase 15 P01 | 18min | 2 tasks | 5 files |
 | Phase 15 P02 | 25min | 2 tasks | 13 files |
 | Phase 15 P03 | ~4min | 1 tasks | 1 files |
+| Phase 16 P01 | 40 | 5 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -314,6 +315,10 @@ Recent decisions affecting current work:
 - Phase 15 Plan 02: unmount-on-close for RescheduleActionSheet avoids sync-setState-in-effect lint error
 - Phase 15 Plan 02: by-area page Reschedule wiring deferred - TaskList is Server Component and promoting to Client is out-of-scope architectural change
 - Phase 15 close: Wave 3 integration suite on port 18103 locks all 6 REQ-IDs (OOFT-04, SNZE-01/02/03/07/08) with live-PB evidence; reschedule_marker regex widened to accept PB 0.37.1 DateField space-separator read-back
+- Phase 16 Plan 01: pure helpers (lib/horizon-density.ts) + ShiftBadge + HorizonStrip density tint + TaskDetailSheet Schedule section — closes the UI loop on Phase 12 LOAD; 22 new tests (560 total); LVIZ-01..05 closed
+- Phase 16: retired Phase 3 horizon-strip 3-dot + +N overflow tests — D-01 replaces that render with density tint; consolidated into count-invariant test
+- Phase 16: window.matchMedia polyfill added to task-detail-sheet-schedule.test.tsx beforeAll — jsdom ships without it and TaskDetailSheet's useIsDesktop hook requires it
+- Phase 16 close: Port 18104 claimed for horizon-density-integration; next free 18105 for Phase 17+
 
 ### Pending Todos
 
@@ -339,8 +344,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T15:00:35.110Z
-Stopped at: Completed 15-03-P01-PLAN.md (Phase 15 closed)
+Last session: 2026-04-22T15:52:53.607Z
+Stopped at: Completed 16-01-P01-PLAN.md (Phase 16 closed)
 Resume file: None
 
-**Planned Phase:** 15 () — 0 plans — 2026-04-22T14:12:51.235Z
+**Planned Phase:** 16 () — 0 plans — 2026-04-22T15:26:38.071Z
