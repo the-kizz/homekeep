@@ -101,6 +101,15 @@ export const taskSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}/, 'Last done must be a valid date')
       .nullable()
       .optional(),
+    // Phase 15 (D-07, SNZE-07): server-set marker. When the user picks
+    // "From now on" via RescheduleActionSheet, rescheduleTaskAction sets
+    // this to now.toISOString(). Phase 17 REBAL preservation rules read
+    // a non-null marker as "user intent wins over recompute."
+    // Raw-parse passthrough only — never accepted from client formData
+    // (server action sets it directly on pb.update, bypassing form
+    // serialization). Listed here so updateTask's safeParse doesn't trip
+    // on unknown keys if a future edit-form path exposes it.
+    reschedule_marker: z.string().nullable().optional(),
   })
   .refine(
     (d) =>

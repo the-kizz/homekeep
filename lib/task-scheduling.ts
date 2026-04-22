@@ -51,6 +51,10 @@ export type Task = {
   // rows + fresh post-migration rows have null → read-time falls
   // through to natural via D-02.
   next_due_smoothed?: string | null;
+  // Phase 15 (D-07, SNZE-07): non-null ISO timestamp when the user
+  // picked "From now on". Phase 17 REBAL preservation reads this.
+  // null/undefined = eligible for rebalance recompute.
+  reschedule_marker?: string | null;
 };
 
 export type Completion = {
