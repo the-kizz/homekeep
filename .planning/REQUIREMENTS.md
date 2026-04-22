@@ -233,7 +233,8 @@
 - [ ] **SNZE-04**: New `schedule_overrides` PB collection stores one-off snoozes `(id, task_id, snooze_until, consumed_at, created)`
 - [x] **SNZE-05
 **: computeNextDue consults the latest active (unconsumed) override BEFORE the smoothed-date branch (snooze trumps LOAD)
-- [ ] **SNZE-06**: Overrides are consumed when the next completion lands after the override date
+- [x] **SNZE-06
+**: Overrides are consumed when the next completion lands after the override date
 - [ ] **SNZE-07**: "From now on" mutates `tasks.anchor_date` (anchored mode) or `tasks.next_due_smoothed` with a marker flag (cycle mode) directly — no override row written. Marker flag detectable by REBAL preservation rules.
 - [ ] **SNZE-08**: Snoozing into a dormant season prompts an "Extend the active window?" confirmation dialog
 - [x] **SNZE-09
