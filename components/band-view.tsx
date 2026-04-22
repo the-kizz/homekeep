@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { Task } from '@/lib/task-scheduling';
 import type { EffectiveAssignee } from '@/lib/assignment';
+import type { Override } from '@/lib/schedule-overrides';
 import {
   reduceLatestByTask,
   type CompletionRecord,
@@ -119,6 +120,7 @@ export function BandView({
   now,
   emptyStateHref,
   lastCompletionsByTaskId,
+  overridesByTask,
 }: {
   tasks: TaskWithName[];
   completions: CompletionRecord[];
@@ -135,9 +137,23 @@ export function BandView({
     string,
     Array<{ id: string; completed_at: string }>
   >;
+  /**
+   * 10-02 Plan (D-06 + D-08): active overrides for this home, serialized
+   * as a plain Record across the RSC boundary (Maps don't survive
+   * Next.js server→client serialization). Reconstructed into a Map
+   * inline below for `computeTaskBands` / `computeCoverage`. Defaults
+   * to an empty object, so pre-10-02 callers keep v1.0 behavior.
+   */
+  overridesByTask?: Record<string, Override>;
 }) {
   const router = useRouter();
   const nowDate = new Date(now);
+  // RSC boundary: reconstruct the Map from the serialized Record. Empty
+  // Map when no overrides → downstream `.get(id)` returns undefined →
+  // computeNextDue runs v1.0 path.
+  const overridesMap = new Map<string, Override>(
+    Object.entries(overridesByTask ?? {}),
+  );
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [guardState, setGuardState] = useState<GuardState | null>(null);
   const [detailTaskId, setDetailTaskId] = useState<string | null>(null);
@@ -165,8 +181,14 @@ export function BandView({
 
   // Derive inline on every render — Pitfall 7.
   const latestByTask = reduceLatestByTask(optimisticCompletions);
-  const bands = computeTaskBands(tasks, latestByTask, nowDate, timezone);
-  const coverage = computeCoverage(tasks, latestByTask, nowDate);
+  const bands = computeTaskBands(
+    tasks,
+    latestByTask,
+    overridesMap,
+    nowDate,
+    timezone,
+  );
+  const coverage = computeCoverage(tasks, latestByTask, overridesMap, nowDate);
   const coveragePct = Math.round(coverage * 100);
 
   async function handleTap(

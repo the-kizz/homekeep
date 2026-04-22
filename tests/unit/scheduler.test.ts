@@ -349,4 +349,89 @@ describe.sequential('scheduler overdue notifications', () => {
     });
     expect(aliceRows).toHaveLength(3);
   }, 60_000);
+
+  // 10-02 Plan Task 3: SNZE-10 — ref_cycle keys on override.snooze_until
+  // "free-by-construction" because buildOverdueRefCycle consumes
+  // computeNextDue's result, and computeNextDue now prefers an active
+  // override over the natural next-due. Plan 10-01 claimed port 18098 for
+  // its own integration test; this scenario reuses 18097 (this file)
+  // since the scheduler test is already wired here.
+  test('scenario E (SNZE-10): active override rotates ref_cycle to snooze_until', async () => {
+    // Bring everyone back to the opt-in state we started with.
+    await adminClient.collection('users').update(alice.id, {
+      notify_overdue: true,
+      ntfy_topic: 'alice-test-abc123',
+    });
+
+    const aliceClient = new PocketBase(`http://${HTTP}`);
+    await aliceClient
+      .collection('users')
+      .authWithPassword('alice-s@test.com', 'alice1234567');
+
+    // T4: fresh task, fresh overdue completion → natural nextDue is
+    // ~4 days ago. We then snooze it to a DIFFERENT past instant so
+    // buildOverdueRefCycle sees the override's ISO, not the natural ISO.
+    const t4 = await aliceClient.collection('tasks').create({
+      home_id: homeId,
+      area_id: areaId,
+      name: 'Refill water filter',
+      description: '',
+      frequency_days: 1,
+      schedule_mode: 'cycle',
+      anchor_date: '',
+      icon: '',
+      color: '',
+      assigned_to_id: '',
+      notes: '',
+      archived: false,
+    });
+
+    const naturalCompletionIso = new Date(
+      Date.now() - 5 * 86400000,
+    ).toISOString();
+    await aliceClient.collection('completions').create({
+      task_id: t4.id,
+      completed_by_id: alice.id,
+      completed_at: naturalCompletionIso,
+      via: 'manual-date',
+      notes: '',
+    });
+
+    // Active override: snooze to a past-but-DIFFERENT ISO. Scheduler
+    // should still classify the task as overdue (snooze_until < now),
+    // but the ref_cycle must key on the snooze ISO — NOT the natural
+    // next-due ISO (completedAt + 1d).
+    const overrideSnoozeIso = new Date(
+      Date.now() - 2 * 86400000, // 2 days ago — post-completion, pre-now
+    ).toISOString();
+    await adminClient.collection('schedule_overrides').create({
+      task_id: t4.id,
+      snooze_until: overrideSnoozeIso,
+      consumed_at: null,
+    });
+
+    installMockFetch();
+    const { processOverdueNotifications } = await import('@/lib/scheduler');
+    const sent = await processOverdueNotifications(new Date());
+
+    // Scheduler sends one ntfy for T4 (Alice opted-in, topic set).
+    expect(sent).toBe(1);
+    expect(fetchCalls).toHaveLength(1);
+
+    // The notification row's ref_cycle must key on the OVERRIDE's ISO —
+    // free-by-construction verification of SNZE-10.
+    const rows = await adminClient.collection('notifications').getFullList({
+      filter: `user_id = "${alice.id}" && task_id = "${t4.id}"`,
+    });
+    expect(rows).toHaveLength(1);
+    const refCycle = rows[0].ref_cycle as string;
+    expect(refCycle).toContain(`task:${t4.id}:overdue:`);
+    // The ISO suffix equals the override's snooze_until ISO, not the
+    // natural next-due ISO (completion + 1d).
+    const naturalNextDueIso = new Date(
+      new Date(naturalCompletionIso).getTime() + 86400000,
+    ).toISOString();
+    expect(refCycle).toContain(overrideSnoozeIso);
+    expect(refCycle).not.toContain(naturalNextDueIso);
+  }, 60_000);
 });

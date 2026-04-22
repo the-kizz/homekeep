@@ -22,6 +22,7 @@ import {
   computeWeeklySummary,
   type TaskWithAreaName,
 } from '@/lib/weekly-summary';
+import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
 
 /**
  * In-process scheduler (06-02 Task 1, D-04, D-05, D-08, D-09).
@@ -215,10 +216,21 @@ export async function processOverdueNotifications(
     const taskIds = tasks.map((t) => t.id);
     const completions = await getCompletionsForHome(pb, taskIds, now);
     const latestByTask = reduceLatestByTask(completions);
+    // 10-02 Plan (D-06, D-08, SNZE-10): batch-fetch active overrides ONCE
+    // per home before the per-task loop. Eliminates N+1 roundtrips and
+    // lets `computeNextDue` return post-override next-due, which means
+    // `buildOverdueRefCycle` keys automatically on the snoozed ISO —
+    // "free-by-construction" ref_cycle rotation for snoozed tasks.
+    const overridesByTask = await getActiveOverridesForHome(pb, homeId);
 
     for (const task of tasks) {
       const last = latestByTask.get(task.id) ?? null;
-      const nextDue = computeNextDue(task, last, now);
+      const nextDue = computeNextDue(
+        task,
+        last,
+        now,
+        overridesByTask.get(task.id),
+      );
       if (!nextDue) continue;
       if (nextDue.getTime() > now.getTime()) continue;
 
@@ -311,6 +323,10 @@ export async function processWeeklySummaries(
     const taskIds = tasks.map((t) => t.id);
     const completions = await getCompletionsForHome(pb, taskIds, now);
 
+    // 10-02 Plan: batch-fetch overrides once per home for the weekly
+    // summary's coverage + mostNeglected reducers (D-08, SNZE-09).
+    const overridesByTask = await getActiveOverridesForHome(pb, homeId);
+
     // Compute weekStartIso once per home.
     const weekStart = fromZonedTime(startOfWeek(zonedNow), timezone);
     const weekStartIso = weekStart.toISOString();
@@ -319,6 +335,7 @@ export async function processWeeklySummaries(
       completions,
       tasks,
       areas,
+      overridesByTask,
       now,
       timezone,
     );

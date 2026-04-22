@@ -9,6 +9,7 @@ import { AvatarStack } from '@/components/avatar-stack';
 import { HouseholdStreakBadge } from '@/components/household-streak-badge';
 import { computeHouseholdStreak } from '@/lib/household-streak';
 import { resolveAssignee, type Member } from '@/lib/assignment';
+import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
 
 /**
  * /h/[homeId] — Phase 3 three-band dashboard (D-11, D-18, D-19).
@@ -109,6 +110,13 @@ export default async function HomeDashboardPage({
   const taskIds = tasks.map((t) => t.id);
   const completions = await getCompletionsForHome(pb, taskIds, now);
 
+  // 10-02 Plan (D-06 + D-08): fetch active overrides ONCE per render.
+  // Serialize the Map to a plain Record for the RSC→Client boundary;
+  // BandView reconstructs the Map inline. Empty Record when the home
+  // has no active overrides → v1.0 behavior preserved for the 99% path.
+  const overridesMap = await getActiveOverridesForHome(pb, homeId);
+  const overridesByTask = Object.fromEntries(overridesMap);
+
   // 06-03 D-11 / D-16 / GAME-01: household-wide streak badge for the
   // dashboard header. computeHouseholdStreak counts ANY-member
   // completions per week (D-10) — already a pure fn; no Date.now reads.
@@ -203,6 +211,7 @@ export default async function HomeDashboardPage({
         now={now.toISOString()}
         emptyStateHref={`/h/${homeId}/tasks/new`}
         lastCompletionsByTaskId={lastCompletionsByTaskId}
+        overridesByTask={overridesByTask}
       />
     </>
   );

@@ -13,6 +13,7 @@ import {
 } from '@/lib/area-coverage';
 import { AreaCard } from '@/components/area-card';
 import type { Task } from '@/lib/task-scheduling';
+import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
 
 /**
  * /h/[homeId]/by-area — By Area view (05-02 Task 1, D-04/D-05/D-06,
@@ -77,6 +78,11 @@ export default async function ByAreaPage({
   const completions = await getCompletionsForHome(pb, taskIds, now);
   const latestByTask = reduceLatestByTask(completions);
 
+  // 10-02 Plan: batch-fetch overrides once per render (D-08). Passed
+  // directly to the pure helpers — no RSC boundary to cross here since
+  // AreaCard receives pre-computed numbers, not the Map itself.
+  const overridesByTask = await getActiveOverridesForHome(pb, homeId);
+
   // Group tasks by area_id, seeding every area (including empties) so
   // their coverage/counts resolve to the empty-home invariant (100% /
   // {0,0,0}) without a dedicated branch.
@@ -106,8 +112,19 @@ export default async function ByAreaPage({
         color: (a.color as string) || '#D4A574',
         is_whole_home_system: Boolean(a.is_whole_home_system),
       },
-      coverage: computeAreaCoverage(tasksInArea, latestByTask, now),
-      counts: computeAreaCounts(tasksInArea, latestByTask, now, timezone),
+      coverage: computeAreaCoverage(
+        tasksInArea,
+        latestByTask,
+        overridesByTask,
+        now,
+      ),
+      counts: computeAreaCounts(
+        tasksInArea,
+        latestByTask,
+        overridesByTask,
+        now,
+        timezone,
+      ),
     };
   });
 

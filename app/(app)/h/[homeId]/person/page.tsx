@@ -18,6 +18,7 @@ import {
   PersonTaskList,
   type PersonTask,
 } from '@/components/person-task-list';
+import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
 import { PersonalStats } from '@/components/personal-stats';
 import { NotificationPrefsForm } from '@/components/notification-prefs-form';
 import type { NotificationPrefs } from '@/lib/schemas/notification-prefs';
@@ -156,6 +157,12 @@ export default async function PersonPage({
   const now = new Date();
   const allTaskIds = tasksRaw.map((t) => t.id);
   const homeCompletions = await getCompletionsForHome(pb, allTaskIds, now);
+
+  // 10-02 Plan (D-06, D-08): batch-fetch active overrides once per
+  // render; serialize for the RSC→Client boundary when passing to
+  // PersonTaskList (Maps don't survive Next.js serialization).
+  const overridesMap = await getActiveOverridesForHome(pb, homeId);
+  const overridesByTask = Object.fromEntries(overridesMap);
   const myCompletions: CompletionRecord[] = homeCompletions.filter(
     (c) => c.completed_by_id === authId,
   );
@@ -238,6 +245,7 @@ export default async function PersonPage({
             homeId={homeId}
             timezone={timezone}
             now={now.toISOString()}
+            overridesByTask={overridesByTask}
           />
         )}
       </section>

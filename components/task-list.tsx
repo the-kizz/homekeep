@@ -59,7 +59,11 @@ export function TaskList({
           schedule_mode: t.schedule_mode,
           anchor_date: t.anchor_date,
         };
-        const nextDue = computeNextDue(taskForScheduling, null, now);
+        // 10-02 Plan: pass `undefined` as the 4th override arg. TaskList is
+        // the Phase 2 area-detail task list — it doesn't surface coverage
+        // or band state; overrides ride on the dashboard / by-area / person
+        // surfaces instead. v1.0 behavior is preserved intentionally.
+        const nextDue = computeNextDue(taskForScheduling, null, now, undefined);
         return (
           <li key={t.id} data-task-id={t.id} data-task-name={t.name}>
             <Link

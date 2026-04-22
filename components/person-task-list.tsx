@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { Task } from '@/lib/task-scheduling';
 import type { EffectiveAssignee } from '@/lib/assignment';
+import type { Override } from '@/lib/schedule-overrides';
 import {
   reduceLatestByTask,
   type CompletionRecord,
@@ -57,6 +58,7 @@ export function PersonTaskList({
   homeId,
   timezone,
   now,
+  overridesByTask,
 }: {
   tasks: PersonTask[];
   completions: CompletionRecord[];
@@ -64,9 +66,18 @@ export function PersonTaskList({
   homeId: string;
   timezone: string;
   now: string;
+  /**
+   * 10-02 Plan: active overrides for the home, serialized as a Record
+   * across the RSC boundary. Reconstructed as a Map below for
+   * `computeTaskBands`. Optional — empty Record preserves v1.0 behavior.
+   */
+  overridesByTask?: Record<string, Override>;
 }) {
   const router = useRouter();
   const nowDate = new Date(now);
+  const overridesMap = new Map<string, Override>(
+    Object.entries(overridesByTask ?? {}),
+  );
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [guardState, setGuardState] = useState<GuardState | null>(null);
   const [, startTransition] = useTransition();
@@ -80,7 +91,13 @@ export function PersonTaskList({
   );
 
   const latestByTask = reduceLatestByTask(optimisticCompletions);
-  const bands = computeTaskBands(tasks, latestByTask, nowDate, timezone);
+  const bands = computeTaskBands(
+    tasks,
+    latestByTask,
+    overridesMap,
+    nowDate,
+    timezone,
+  );
 
   async function handleTap(
     taskId: string,
