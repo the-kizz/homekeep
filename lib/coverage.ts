@@ -89,17 +89,24 @@ export function computeCoverage(
     const override = overridesByTask.get(task.id);
     const nextDue = computeNextDue(task, last, now, override);
     if (!nextDue) continue;
+    // Phase 11 (WR-01): OOFT tasks (frequency_days null, or 0 per the
+    // PB 0.37.1 cleared-NumberField storage quirk documented in
+    // task-scheduling.ts) have no cycle to normalize against. An
+    // uncompleted OOFT reaches this line with a concrete `due_date`
+    // from computeNextDue's OOFT branch — dividing overdueDays by
+    // null/0 produces NaN (future due) or Infinity (past due) and
+    // corrupts the coverage mean. Skip them like dormant tasks: they
+    // contribute no coverage signal until archived by completeTaskAction.
+    // A completed OOFT is archived atomically by the completion batch;
+    // reaching here with a completed OOFT is a race-window-only state
+    // also safely skipped.
+    const freq = task.frequency_days;
+    if (freq === null || freq === 0) continue;
     const overdueDays = Math.max(
       0,
       (now.getTime() - nextDue.getTime()) / 86400000,
     );
-    // Phase 11: frequency_days is now `number | null`. computeNextDue
-    // above returns null for OOFT (or throws on null in the current body);
-    // reaching this line implies a non-null number — cast is safe.
-    const health = Math.max(
-      0,
-      Math.min(1, 1 - overdueDays / (task.frequency_days as number)),
-    );
+    const health = Math.max(0, Math.min(1, 1 - overdueDays / freq));
     sum += health;
     counted += 1;
   }

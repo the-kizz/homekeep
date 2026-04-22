@@ -336,3 +336,71 @@ describe('computeCoverage — dormant filter (D-14, SEAS-05)', () => {
     ).toBeCloseTo(1.0, 10);
   });
 });
+
+// ─── Phase 11, WR-01: OOFT division-by-null guard ───────────────────────
+//
+// OOFT tasks carry `frequency_days === null` (app-layer) or `0` (PB 0.37.1
+// storage quirk) and reach computeCoverage via computeNextDue's OOFT
+// branch returning `task.due_date` (a concrete Date) when the task has no
+// completion yet. Dividing overdueDays by null/0 produces NaN (future due)
+// or Infinity (past due) and corrupts the coverage mean. The WR-01 fix
+// skips OOFT tasks in the per-task loop so they contribute no signal.
+
+describe('computeCoverage — OOFT guard (WR-01)', () => {
+  test('unborn OOFT (freq=null, future due_date) excluded from mean → 1.0 empty-home invariant', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const ooft = makeTask({
+      id: 't-ooft',
+      frequency_days: null as unknown as number,
+      due_date: '2026-05-01T00:00:00.000Z',
+    } as Partial<Task>);
+    // Only task is an unborn OOFT → excluded → empty-home invariant → 1.0.
+    // Without the fix this returns NaN.
+    expect(computeCoverage([ooft], new Map(), new Map(), now)).toBe(1.0);
+  });
+
+  test('unborn OOFT (freq=0 PB storage quirk) excluded from mean → 1.0', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const ooft = makeTask({
+      id: 't-ooft-zero',
+      frequency_days: 0,
+      due_date: '2026-05-01T00:00:00.000Z',
+    } as Partial<Task>);
+    expect(computeCoverage([ooft], new Map(), new Map(), now)).toBe(1.0);
+  });
+
+  test('unborn OOFT coexists with healthy recurring → mean of recurring only', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    const healthy = makeTask({ id: 't-h', frequency_days: 7 });
+    const ooft = makeTask({
+      id: 't-o',
+      frequency_days: null as unknown as number,
+      due_date: '2026-05-01T00:00:00.000Z',
+    } as Partial<Task>);
+    const latest = new Map<string, CompletionRecord>();
+    latest.set('t-h', makeCompletion('t-h', now.toISOString()));
+    expect(
+      computeCoverage([healthy, ooft], latest, new Map(), now),
+    ).toBeCloseTo(1.0, 10);
+  });
+
+  test('unborn OOFT with PAST due_date coexists with overdue recurring → mean of recurring only (not Infinity)', () => {
+    const now = new Date('2026-04-20T12:00:00.000Z');
+    // Recurring half-overdue — health 0.5
+    const halfOverdue = makeTask({
+      id: 't-half',
+      frequency_days: 10,
+    });
+    // OOFT with past due_date — without the fix this makes 0/0=NaN or N/0=Inf
+    const ooftPast = makeTask({
+      id: 't-ooft-past',
+      frequency_days: null as unknown as number,
+      due_date: '2026-04-01T00:00:00.000Z',
+    } as Partial<Task>);
+    const latest = new Map<string, CompletionRecord>();
+    latest.set('t-half', makeCompletion('t-half', '2026-04-05T12:00:00.000Z'));
+    expect(
+      computeCoverage([halfOverdue, ooftPast], latest, new Map(), now),
+    ).toBeCloseTo(0.5, 10);
+  });
+});
