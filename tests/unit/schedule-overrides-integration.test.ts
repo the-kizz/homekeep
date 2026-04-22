@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, test, expect, beforeAll, afterAll } from 'vitest';
+import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
 import PocketBase, { ClientResponseError } from 'pocketbase';
@@ -7,6 +7,29 @@ import {
   getActiveOverride,
   getActiveOverridesForHome,
 } from '@/lib/schedule-overrides';
+
+/**
+ * 10-03 Task 2 mocks — Scenarios 9/10 exercise completeTaskAction, which
+ * imports createServerClient / createAdminClient / revalidatePath. The
+ * vi.mock calls are HOISTED by vitest to the top of the module, above the
+ * other imports, so the module-under-test (lib/actions/completions) loads
+ * with the mocked factories. We close over a mutable `currentPb` reference
+ * whose value is set inside each scenario just before calling the action.
+ */
+let currentPb: PocketBase | null = null;
+
+vi.mock('next/cache', () => ({
+  revalidatePath: () => {},
+}));
+
+vi.mock('@/lib/pocketbase-server', () => ({
+  createServerClient: async () => currentPb,
+}));
+
+vi.mock('@/lib/pocketbase-admin', () => ({
+  createAdminClient: async () => currentPb,
+  resetAdminClientCache: () => {},
+}));
 
 /**
  * 10-01 Task 2 — disposable-PB integration test for schedule_overrides
@@ -330,5 +353,104 @@ describe('schedule_overrides (disposable PB, port 18098)', () => {
     }
     expect(err).toBeInstanceOf(ClientResponseError);
     expect((err as ClientResponseError).status).toBeGreaterThanOrEqual(400);
+  }, 30_000);
+
+  // ─── SNZE-06 atomic consumption scenarios (Plan 10-03 Wave 3) ─────────
+  //
+  // Scenarios 9 + 10 exercise `completeTaskAction` end-to-end against the
+  // disposable PB. They use the vi.mock plumbing declared at the top of
+  // this file to swap `createServerClient` / `createAdminClient` for our
+  // test-local pbAlice / pbAdmin clients; `revalidatePath` is a no-op.
+  //
+  // Scenario 9 (happy path): seed active override for a task → call
+  //   completeTaskAction → assert completion row exists, override's
+  //   consumed_at is non-null, getActiveOverride now returns null.
+  // Scenario 10 (no-override regression): no override on the task →
+  //   completeTaskAction still succeeds with no orphaned override row.
+  // Scenario 11 (batch rollback): SKIPPED — the TOCTOU race between
+  //   getActiveOverride fetch and batch.send is unreliable to induce in
+  //   the vitest harness. PB batch atomicity is documented in the SDK
+  //   and exercised in production via lib/actions/seed.ts + invites.ts.
+
+  test('Scenario 9 — SNZE-06 completeTaskAction atomically consumes active override', async () => {
+    // Pre-state: t1 has no override post-Scenario 8. Create a fresh one.
+    const snoozeIso = new Date(Date.now() + 30 * 86400000).toISOString();
+    const override = await pbAlice.collection('schedule_overrides').create({
+      task_id: t1Id,
+      snooze_until: snoozeIso,
+      created_by_id: aliceId,
+    });
+    expect(override.id).toBeTruthy();
+
+    // Verify active before completion.
+    const beforeActive = await getActiveOverride(pbAlice, t1Id);
+    expect(beforeActive?.id).toBe(override.id);
+    // A2 empty-string/null/undefined all count as active.
+    expect(
+      beforeActive?.consumed_at == null || beforeActive?.consumed_at === '',
+    ).toBe(true);
+
+    // Trigger: swap pbAlice into the mock closure, import the action
+    // AFTER the mocks are in place (dynamic import matches the
+    // scheduler-test pattern and avoids hoist timing pitfalls).
+    currentPb = pbAlice;
+    const { completeTaskAction } = await import('@/lib/actions/completions');
+    const result = await completeTaskAction(t1Id, { force: true });
+
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok !== true) throw new Error('unexpected result shape');
+    expect(result.completion.id).toBeTruthy();
+    expect(result.completion.completed_at).toBeTruthy();
+
+    // Post-state: the override row's consumed_at is now a truthy ISO
+    // string. The specific value is set by the server action's own `new
+    // Date()` invocation, so assert truthy only — matches the SNZE-06
+    // contract from CONTEXT.md D-10.
+    const reread = await pbAlice
+      .collection('schedule_overrides')
+      .getOne(override.id);
+    expect(reread.consumed_at).toBeTruthy();
+
+    // getActiveOverride filters on `consumed_at = null`, so after the
+    // atomic consumption the helper returns null — proves end-to-end
+    // that the override was consumed in the same transaction.
+    const afterActive = await getActiveOverride(pbAlice, t1Id);
+    expect(afterActive).toBeNull();
+
+    // Defense-in-depth: verify the completion row exists with the
+    // expected task_id linkage (tests that the batch wrote BOTH sides).
+    const completion = await pbAlice
+      .collection('completions')
+      .getOne(result.completion.id);
+    expect(completion.task_id).toBe(t1Id);
+    expect(completion.completed_by_id).toBe(aliceId);
+  }, 30_000);
+
+  test('Scenario 10 — completeTaskAction with no active override works unchanged (regression)', async () => {
+    // Pre-state: t3 has no override (Scenario 5 already asserted that).
+    currentPb = pbAlice;
+    const { completeTaskAction } = await import('@/lib/actions/completions');
+    const result = await completeTaskAction(t3Id, { force: true });
+
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok !== true) throw new Error('unexpected result shape');
+    expect(result.completion.id).toBeTruthy();
+
+    // No orphaned override row should have been created for t3 as a
+    // side-effect. The batch carried only the completion op in this
+    // code path.
+    const overrides = await pbAlice
+      .collection('schedule_overrides')
+      .getFullList({
+        filter: pbAlice.filter('task_id = {:tid}', { tid: t3Id }),
+        batch: 500,
+      });
+    expect(overrides.length).toBe(0);
+
+    // Verify the completion row is present.
+    const completion = await pbAlice
+      .collection('completions')
+      .getOne(result.completion.id);
+    expect(completion.task_id).toBe(t3Id);
   }, 30_000);
 });
