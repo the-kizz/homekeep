@@ -14,9 +14,29 @@
  * Phase 15 shape.
  */
 
-import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { cleanup, render } from '@testing-library/react';
 import { TaskDetailSheet } from '@/components/task-detail-sheet';
+
+// jsdom ships without window.matchMedia — TaskDetailSheet's useIsDesktop
+// hook calls it in a useEffect. Stub a minimal implementation so the
+// effect runs without crashing (we don't care about the desktop/mobile
+// branch for these tests).
+beforeAll(() => {
+  if (typeof window !== 'undefined' && !window.matchMedia) {
+    window.matchMedia = (q: string): MediaQueryList =>
+      ({
+        matches: false,
+        media: q,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList;
+  }
+});
 
 // archiveTask is called via the Archive button — mock to avoid PB roundtrip.
 vi.mock('@/lib/actions/tasks', () => ({
@@ -33,11 +53,17 @@ vi.mock('next/navigation', () => ({
 const TZ = 'Australia/Perth';
 
 describe('TaskDetailSheet Schedule section (Phase 16 LVIZ-05)', () => {
+  // Shadcn Sheet portals to document.body — cleanup() between tests
+  // prevents the portaled DOM from leaking across it blocks.
+  afterEach(() => {
+    cleanup();
+  });
+
   it('renders data-testid="detail-schedule" with BOTH ideal and scheduled dates when displaced', () => {
     // Cycle task: created 2026-03-01, frequency=14, lastCompletion
     // 2026-04-10 → natural ideal = 2026-04-24. next_due_smoothed =
     // 2026-04-27 → displaced by 3 days.
-    const { container } = render(
+    render(
       <TaskDetailSheet
         open={true}
         onOpenChange={() => {}}
@@ -63,7 +89,10 @@ describe('TaskDetailSheet Schedule section (Phase 16 LVIZ-05)', () => {
       />,
     );
 
-    const schedule = container.querySelector('[data-testid="detail-schedule"]');
+    // Shadcn Sheet portals to document.body — query from there.
+    const schedule = document.body.querySelector(
+      '[data-testid="detail-schedule"]',
+    );
     expect(schedule).toBeTruthy();
     const txt = schedule!.textContent ?? '';
     // Ideal: Apr 24 2026; Scheduled: Apr 27 2026 (Perth tz).
@@ -77,7 +106,7 @@ describe('TaskDetailSheet Schedule section (Phase 16 LVIZ-05)', () => {
   it('does NOT render the Schedule section when ideal === scheduled (D-09)', () => {
     // Same task, but next_due_smoothed matches the natural date
     // exactly → displaced=false → section hidden.
-    const { container } = render(
+    render(
       <TaskDetailSheet
         open={true}
         onOpenChange={() => {}}
@@ -104,7 +133,7 @@ describe('TaskDetailSheet Schedule section (Phase 16 LVIZ-05)', () => {
     );
 
     expect(
-      container.querySelector('[data-testid="detail-schedule"]'),
+      document.body.querySelector('[data-testid="detail-schedule"]'),
     ).toBeNull();
   });
 
@@ -114,7 +143,7 @@ describe('TaskDetailSheet Schedule section (Phase 16 LVIZ-05)', () => {
     // Since the Schedule section uses getIdealAndScheduled internally and
     // a completed OOFT (lastCompletion present + frequency_days=null) also
     // yields null, exercise that path — scheduled=null → displaced=false.
-    const { container } = render(
+    render(
       <TaskDetailSheet
         open={true}
         onOpenChange={() => {}}
@@ -141,7 +170,7 @@ describe('TaskDetailSheet Schedule section (Phase 16 LVIZ-05)', () => {
     );
 
     expect(
-      container.querySelector('[data-testid="detail-schedule"]'),
+      document.body.querySelector('[data-testid="detail-schedule"]'),
     ).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import clsx from 'clsx';
 import type { EffectiveAssignee } from '@/lib/assignment';
 import { AssigneeDisplay } from '@/components/assignee-display';
+import { ShiftBadge } from '@/components/shift-badge';
 
 /**
  * TaskRow (03-02 Plan, D-16, SPEC §19 "information, not alarm").
@@ -50,6 +51,7 @@ export function TaskRow({
   pending,
   daysDelta,
   variant,
+  shiftInfo,
 }: {
   task: {
     id: string;
@@ -63,6 +65,13 @@ export function TaskRow({
   pending: boolean;
   daysDelta: number;
   variant?: 'overdue' | 'thisWeek' | 'horizon';
+  /**
+   * Phase 16 Plan 01 (D-06 / LVIZ-03): when present, render the ⚖️
+   * ShiftBadge next to the task name. Parent owns the
+   * getIdealAndScheduled computation; pass shiftInfo only for tasks
+   * whose `displaced === true`. Omit the prop otherwise.
+   */
+  shiftInfo?: { idealDate: Date; scheduledDate: Date; timezone: string };
 }) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -115,7 +124,16 @@ export function TaskRow({
       )}
     >
       <div className="flex flex-col min-w-0">
-        <span className="font-medium truncate">{task.name}</span>
+        <span className="font-medium truncate">
+          {task.name}
+          {shiftInfo && (
+            <ShiftBadge
+              idealDate={shiftInfo.idealDate}
+              scheduledDate={shiftInfo.scheduledDate}
+              timezone={shiftInfo.timezone}
+            />
+          )}
+        </span>
         <span className="text-xs text-muted-foreground">
           Every {task.frequency_days}{' '}
           {task.frequency_days === 1 ? 'day' : 'days'}

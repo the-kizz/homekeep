@@ -43,6 +43,7 @@ export function TaskBand({
   variant,
   groupByDay,
   now,
+  shiftByTaskId,
 }: {
   label: string;
   tasks: ClassifiedTask[];
@@ -55,6 +56,17 @@ export function TaskBand({
   /** Defaults to `tasks.length > 5` per D-13. */
   groupByDay?: boolean;
   now: Date;
+  /**
+   * Phase 16 Plan 01 (D-06 / LVIZ-03): per-task shift info keyed by
+   * task id. Parent (BandView / PersonTaskList) computes once per
+   * render; TaskBand threads the matching entry to each TaskRow so
+   * the ⚖️ badge renders inline next to the task name when displaced.
+   * Optional → backward-compat with existing Phase 3 call sites.
+   */
+  shiftByTaskId?: Map<
+    string,
+    { idealDate: Date; scheduledDate: Date; displaced: boolean }
+  >;
 }) {
   if (tasks.length === 0) return null;
 
@@ -71,34 +83,49 @@ export function TaskBand({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {tasks.map((t) => (
-            <TaskRow
-              key={t.id}
-              task={{
-                id: t.id,
-                name: (t as ClassifiedTask & { name: string }).name,
-                // Phase 11 (WR-03): frequency_days widened to
-                // `number | null` for OOFT (Plan 11-02). Callers
-                // (BandView) pre-filter OOFT tasks (null or 0 freq)
-                // out of the classified lists before rendering this
-                // band — see filterOutOoft in band-view.tsx. So
-                // tasks reaching this cast are guaranteed recurring
-                // (non-null positive integer). OOFT UI is Phase 15
-                // scope per 11-CONTEXT.md deferred decisions.
-                frequency_days: t.frequency_days as number,
-                effective: (
-                  t as ClassifiedTask & {
-                    effective?: import('@/lib/assignment').EffectiveAssignee;
+          {tasks.map((t) => {
+            // Phase 16 Plan 01 (D-06 / LVIZ-03): thread ShiftBadge
+            // info only when this task is actually displaced. Parent
+            // decides the threshold via getIdealAndScheduled.
+            const shift = shiftByTaskId?.get(t.id);
+            const rowShiftInfo =
+              shift && shift.displaced
+                ? {
+                    idealDate: shift.idealDate,
+                    scheduledDate: shift.scheduledDate,
+                    timezone,
                   }
-                ).effective,
-              }}
-              onComplete={onComplete}
-              onDetail={onDetail}
-              pending={pendingTaskId === t.id}
-              daysDelta={t.daysDelta}
-              variant={variant}
-            />
-          ))}
+                : undefined;
+            return (
+              <TaskRow
+                key={t.id}
+                task={{
+                  id: t.id,
+                  name: (t as ClassifiedTask & { name: string }).name,
+                  // Phase 11 (WR-03): frequency_days widened to
+                  // `number | null` for OOFT (Plan 11-02). Callers
+                  // (BandView) pre-filter OOFT tasks (null or 0 freq)
+                  // out of the classified lists before rendering this
+                  // band — see filterOutOoft in band-view.tsx. So
+                  // tasks reaching this cast are guaranteed recurring
+                  // (non-null positive integer). OOFT UI is Phase 15
+                  // scope per 11-CONTEXT.md deferred decisions.
+                  frequency_days: t.frequency_days as number,
+                  effective: (
+                    t as ClassifiedTask & {
+                      effective?: import('@/lib/assignment').EffectiveAssignee;
+                    }
+                  ).effective,
+                }}
+                onComplete={onComplete}
+                onDetail={onDetail}
+                pending={pendingTaskId === t.id}
+                daysDelta={t.daysDelta}
+                variant={variant}
+                shiftInfo={rowShiftInfo}
+              />
+            );
+          })}
         </CardContent>
       </Card>
     );
@@ -154,25 +181,37 @@ export function TaskBand({
                 {heading}
               </h3>
               <div className="space-y-2">
-                {bucket.map((t) => (
-                  <TaskRow
-                    key={t.id}
-                    task={{
-                      id: t.id,
-                      name: (t as ClassifiedTask & { name: string }).name,
-                      // Phase 11 (WR-03): see TaskRow projection
-                      // comment above — callers pre-filter OOFT tasks
-                      // so a non-null positive integer is guaranteed
-                      // at this cast site.
-                      frequency_days: t.frequency_days as number,
-                    }}
-                    onComplete={onComplete}
-                    onDetail={onDetail}
-                    pending={pendingTaskId === t.id}
-                    daysDelta={t.daysDelta}
-                    variant={variant}
-                  />
-                ))}
+                {bucket.map((t) => {
+                  const shift = shiftByTaskId?.get(t.id);
+                  const rowShiftInfo =
+                    shift && shift.displaced
+                      ? {
+                          idealDate: shift.idealDate,
+                          scheduledDate: shift.scheduledDate,
+                          timezone,
+                        }
+                      : undefined;
+                  return (
+                    <TaskRow
+                      key={t.id}
+                      task={{
+                        id: t.id,
+                        name: (t as ClassifiedTask & { name: string }).name,
+                        // Phase 11 (WR-03): see TaskRow projection
+                        // comment above — callers pre-filter OOFT tasks
+                        // so a non-null positive integer is guaranteed
+                        // at this cast site.
+                        frequency_days: t.frequency_days as number,
+                      }}
+                      onComplete={onComplete}
+                      onDetail={onDetail}
+                      pending={pendingTaskId === t.id}
+                      daysDelta={t.daysDelta}
+                      variant={variant}
+                      shiftInfo={rowShiftInfo}
+                    />
+                  );
+                })}
               </div>
             </div>
           );

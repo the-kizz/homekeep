@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useTransition } from 'react';
 import { formatInTimeZone } from 'date-fns-tz';
+import { differenceInCalendarDays } from 'date-fns';
 import {
   Sheet,
   SheetContent,
@@ -14,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { archiveTask } from '@/lib/actions/tasks';
 import type { EffectiveAssignee } from '@/lib/assignment';
 import { AssigneeDisplay } from '@/components/assignee-display';
+import { getIdealAndScheduled } from '@/lib/horizon-density';
+import type { Task } from '@/lib/task-scheduling';
 
 /**
  * TaskDetailSheet (03-03 Plan, D-17, VIEW-06).
@@ -57,19 +60,42 @@ export function TaskDetailSheet({
   homeId,
   onComplete,
   onReschedule,
+  lastCompletion,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   task: {
     id: string;
     name: string;
-    frequency_days: number;
+    /**
+     * Phase 16 Plan 01 (LVIZ-05): widened from `number` to
+     * `number | null` so the Schedule section can thread the task
+     * into getIdealAndScheduled for OOFT + cycle alike. BandView /
+     * PersonTaskList already filter the detail-click path to
+     * recurring tasks, but widening here keeps the prop shape
+     * aligned with Task for safe casting.
+     */
+    frequency_days: number | null;
     schedule_mode: 'cycle' | 'anchored';
     anchor_date: string | null;
     notes: string;
     area_name?: string;
     /** 04-03 D-10 + TASK-04: resolved cascade from the Server Component. */
     effective?: EffectiveAssignee;
+    /**
+     * Phase 16 Plan 01 (LVIZ-05): additional fields threaded from
+     * the Task record so the Schedule section can call
+     * getIdealAndScheduled at render. All optional — callers that
+     * don't pass them get the Phase 15 shape back (Schedule section
+     * silently omitted).
+     */
+    created?: string;
+    active_from_month?: number | null;
+    active_to_month?: number | null;
+    preferred_days?: 'any' | 'weekend' | 'weekday' | null;
+    next_due_smoothed?: string | null;
+    due_date?: string | null;
+    reschedule_marker?: string | null;
   } | null;
   recentCompletions: Array<{ id: string; completed_at: string }>;
   timezone: string;
@@ -82,11 +108,50 @@ export function TaskDetailSheet({
    * the subsequent RescheduleActionSheet) before invoking the handler.
    */
   onReschedule?: (taskId: string) => void;
+  /**
+   * Phase 16 Plan 01 (LVIZ-05): most-recent completion for this task.
+   * Parent (BandView / PersonTaskList) threads detailCompletions[0]
+   * through — used by getIdealAndScheduled to compute the natural
+   * ideal date for the Schedule section. Defaults to null → the
+   * helper handles the no-completion branch (fresh task) correctly.
+   */
+  lastCompletion?: { completed_at: string } | null;
 }) {
   const isDesktop = useIsDesktop();
   const [, startTransition] = useTransition();
 
   if (!task) return null;
+
+  // Phase 16 Plan 01 (LVIZ-05, D-08, D-09): compute the Schedule
+  // section's shift info per render. The helper is pure + cheap
+  // (two computeNextDue calls). When any required Task field is
+  // missing, we skip the compute — displayed=false collapses the
+  // section entirely per D-09.
+  const taskForShift: Task | null =
+    task.created !== undefined
+      ? {
+          id: task.id,
+          created: task.created,
+          archived: false,
+          frequency_days: task.frequency_days,
+          schedule_mode: task.schedule_mode,
+          anchor_date: task.anchor_date,
+          due_date: task.due_date ?? null,
+          preferred_days: task.preferred_days ?? null,
+          active_from_month: task.active_from_month ?? null,
+          active_to_month: task.active_to_month ?? null,
+          next_due_smoothed: task.next_due_smoothed ?? null,
+          reschedule_marker: task.reschedule_marker ?? null,
+        }
+      : null;
+  const shift = taskForShift
+    ? getIdealAndScheduled(
+        taskForShift,
+        lastCompletion ?? null,
+        new Date(),
+        timezone,
+      )
+    : { ideal: null, scheduled: null, displaced: false };
 
   const handleComplete = () => {
     // Pitfall 12: close the sheet BEFORE triggering the guard dialog path.
@@ -111,9 +176,10 @@ export function TaskDetailSheet({
         <SheetHeader>
           <SheetTitle>{task.name}</SheetTitle>
           <SheetDescription>
-            {task.area_name ?? 'Unassigned area'} · Every{' '}
-            {task.frequency_days}
-            {task.frequency_days === 1 ? ' day' : ' days'}
+            {task.area_name ?? 'Unassigned area'} ·{' '}
+            {task.frequency_days != null && task.frequency_days > 0
+              ? `Every ${task.frequency_days}${task.frequency_days === 1 ? ' day' : ' days'}`
+              : 'One-off'}
             {task.schedule_mode === 'anchored' ? ' (anchored)' : ''}
           </SheetDescription>
         </SheetHeader>
@@ -122,6 +188,43 @@ export function TaskDetailSheet({
           {task.notes ? (
             <p className="text-sm text-muted-foreground">{task.notes}</p>
           ) : null}
+
+          {/* Phase 16 Plan 01 (LVIZ-05, D-08, D-09): Schedule section
+              only renders when LOAD shifted the task by ≥1 day. When
+              ideal === scheduled (or either is null), this section is
+              omitted — detail sheet collapses back to the Phase 15
+              byte-identical shape. */}
+          {shift.displaced && shift.ideal && shift.scheduled && (
+            <section
+              data-testid="detail-schedule"
+              className="space-y-1"
+            >
+              <h3 className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
+                Schedule
+              </h3>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+                <dt className="text-muted-foreground">Ideal</dt>
+                <dd>
+                  {formatInTimeZone(shift.ideal, timezone, 'MMM d, yyyy')}
+                </dd>
+                <dt className="text-muted-foreground">Scheduled</dt>
+                <dd>
+                  {formatInTimeZone(
+                    shift.scheduled,
+                    timezone,
+                    'MMM d, yyyy',
+                  )}
+                </dd>
+              </dl>
+              <p className="text-xs text-muted-foreground">
+                Shifted by{' '}
+                {Math.abs(
+                  differenceInCalendarDays(shift.scheduled, shift.ideal),
+                )}{' '}
+                days to smooth household load.
+              </p>
+            </section>
+          )}
 
           {task.effective && (
             <section data-testid="detail-assignee">
