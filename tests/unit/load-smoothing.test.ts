@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { addDays, differenceInDays } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import {
+  computeFirstIdealDate,
   computeHouseholdLoad,
   isoDateKey,
   placeNextDue,
@@ -688,6 +689,98 @@ describe('Phase 12 action-level bypass invariants (write-side defense in depth)'
     expect(() =>
       placeNextDue(ooftZero, null, load, NOW, { timezone: 'UTC' }),
     ).toThrow(/LOAD-09|OOFT/);
+  });
+});
+
+// ─── Phase 13 Plan 13-01 Task 1 — computeFirstIdealDate ─────────────────
+//
+// TCSEM-02 (last_done provided) + TCSEM-03 (smart default) formula lock.
+// Pure helper — no I/O, no wall-clock reads. Uses a FIXED reference
+// instant so boundary math is exact and integer-days-addable.
+
+describe('computeFirstIdealDate (TCSEM-02/TCSEM-03)', () => {
+  // Distinct fixed reference from the top-of-file NOW — matches the plan
+  // text's suggested reference (12:00:00Z to avoid DST corner-cases on
+  // boundary additions). addDays on UTC epoch is DST-safe per
+  // task-scheduling.ts line 21-23 invariant.
+  const NOW_TCSEM = new Date('2026-04-22T12:00:00.000Z');
+
+  test('Test 1: freq=3 (≤7), no lastDone → first_ideal = now + 1 day (tomorrow rule)', () => {
+    const got = computeFirstIdealDate('cycle', 3, null, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 1);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+  });
+
+  test('Test 2: freq=7 (≤7 boundary inclusive), no lastDone → first_ideal = now + 1 day', () => {
+    const got = computeFirstIdealDate('cycle', 7, null, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 1);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+  });
+
+  test('Test 3: freq=30 (8..90 bucket), no lastDone → first_ideal = now + floor(30/4)=7 days', () => {
+    const got = computeFirstIdealDate('cycle', 30, null, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 7);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+  });
+
+  test('Test 4: freq=60 (8..90 bucket), no lastDone → first_ideal = now + floor(60/4)=15 days', () => {
+    const got = computeFirstIdealDate('cycle', 60, null, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 15);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+  });
+
+  test('Test 5: freq=365 (>90 bucket), no lastDone → first_ideal = now + floor(365/3)=121 days', () => {
+    const got = computeFirstIdealDate('cycle', 365, null, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 121);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+  });
+
+  test('Test 6: freq=7, lastDone=now-2d → first_ideal = lastDone + 7d = now + 5d (TCSEM-02)', () => {
+    const lastDone = addDays(NOW_TCSEM, -2);
+    const got = computeFirstIdealDate('cycle', 7, lastDone, NOW_TCSEM);
+    const expected = addDays(lastDone, 7); // same as addDays(NOW_TCSEM, 5)
+    expect(got.toISOString()).toEqual(expected.toISOString());
+    expect(got.toISOString()).toEqual(addDays(NOW_TCSEM, 5).toISOString());
+  });
+
+  test('Test 7: freq=30, lastDone=now-60d (deep overdue) → first_ideal = lastDone+30 = now-30d (past is legitimate per D-02)', () => {
+    const lastDone = addDays(NOW_TCSEM, -60);
+    const got = computeFirstIdealDate('cycle', 30, lastDone, NOW_TCSEM);
+    const expected = addDays(lastDone, 30);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+    // Sanity: the returned first_ideal IS in the past.
+    expect(got.getTime()).toBeLessThan(NOW_TCSEM.getTime());
+  });
+
+  test('Test 8: freq=90, lastDone=same day as now → first_ideal = now + 90d', () => {
+    const lastDone = NOW_TCSEM;
+    const got = computeFirstIdealDate('cycle', 90, lastDone, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 90);
+    expect(got.toISOString()).toEqual(expected.toISOString());
+  });
+
+  test("Test 9: schedule_mode='anchored' → throws (LOAD-06 bypass defense in depth)", () => {
+    expect(() =>
+      computeFirstIdealDate('anchored', 30, null, NOW_TCSEM),
+    ).toThrow(/anchored|LOAD-06/);
+  });
+
+  test('Test 10: frequency_days=null (OOFT) → throws (LOAD-09 bypass defense in depth)', () => {
+    expect(() =>
+      computeFirstIdealDate('cycle', null, null, NOW_TCSEM),
+    ).toThrow(/OOFT|LOAD-09/);
+  });
+
+  test('Test 11: frequency_days=0 (OOFT via PB 0.37.1 storage quirk) → throws', () => {
+    expect(() =>
+      computeFirstIdealDate('cycle', 0, null, NOW_TCSEM),
+    ).toThrow(/OOFT|LOAD-09/);
+  });
+
+  test('Test 12: freq=8 (8..90 bucket lower boundary) → first_ideal = now + floor(8/4)=2 days (proves 7-vs-8 boundary)', () => {
+    const got = computeFirstIdealDate('cycle', 8, null, NOW_TCSEM);
+    const expected = addDays(NOW_TCSEM, 2);
+    expect(got.toISOString()).toEqual(expected.toISOString());
   });
 });
 
