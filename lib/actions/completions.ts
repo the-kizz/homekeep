@@ -59,6 +59,15 @@ import {
  * failure (Pitfall 5 mitigation). The read-time D-10 filter in
  * `computeNextDue` is the defense-in-depth half.
  *
+ * Phase 11 (D-04, OOFT-02, T-11-03): when the task is one-off
+ * (task.frequency_days === null), an additional
+ * `tasks.update({archived: true, archived_at: now})` op is appended to
+ * the SAME batch. Atomicity extends to this op — if it fails, the
+ * completion and the override-consumption (if any) roll back together.
+ * No "completed but unarchived" orphan state possible. Mirrors Phase
+ * 10's atomic-consumption invariant; reuses the exact same batch
+ * primitive (no new transaction, no extra roundtrip).
+ *
  * Error-shape contract (Pitfall 5):
  *   - Input validation + auth errors → `{ ok: false, formError }`.
  *   - Guard fired + force=false → `{ requiresConfirm: true, ... }`.
@@ -227,12 +236,32 @@ export async function completeTaskAction(
         consumed_at: now.toISOString(),
       });
     }
+    // Phase 11 (D-04, OOFT-02): one-off tasks auto-archive atomically
+    // with the completion write. Same PB transaction — if the archive op
+    // fails (e.g. task deleted by another user mid-batch), PB rolls back
+    // the completion AND the override-consumption too (T-11-03). No
+    // "completed but unarchived" orphan state possible. The
+    // `frequency_days` field is already selected in the task.getOne()
+    // fields list above — no additional fetch needed. `archived_at` is
+    // the DateField on the tasks collection (see migration
+    // 1714780800_init_homekeep.js line 145) — grep-verified present in
+    // the baseline schema.
+    if (task.frequency_days === null) {
+      batch.collection('tasks').update(task.id, {
+        archived: true,
+        archived_at: now.toISOString(),
+      });
+    }
     // PB SDK 0.26.8 `.send()` resolves to `Array<{ status, body }>` in
     // declaration order (BatchRequestResult — see
     // node_modules/pocketbase/dist/pocketbase.es.d.ts:1168). Verified
     // observationally in Plan 10-03 integration Scenario 9: the
     // completion row's id/completed_at round-trip through results[0]
     // .body cleanly (A1 resolved — no follow-up getOne needed).
+    // Phase 11: the OOFT archive op lands at results[1] or results[2]
+    // depending on whether an override was also consumed. Only results[0]
+    // is order-sensitive reads; nothing downstream reads the archive
+    // result directly.
     const results = await batch.send();
     const created = results[0].body as {
       id: string;
