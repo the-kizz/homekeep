@@ -6,7 +6,7 @@ import { createServerClient } from '@/lib/pocketbase-server';
 import { createAdminClient } from '@/lib/pocketbase-admin';
 import { assertMembership } from '@/lib/membership';
 import { shouldWarnEarly } from '@/lib/early-completion-guard';
-import { computeNextDue, type Task } from '@/lib/task-scheduling';
+import { computeNextDue, isOoftTask, type Task } from '@/lib/task-scheduling';
 import {
   getCompletionsForHome,
   reduceLatestByTask,
@@ -17,6 +17,7 @@ import {
   getActiveOverride,
   getActiveOverridesForHome,
 } from '@/lib/schedule-overrides';
+import { computeHouseholdLoad, placeNextDue } from '@/lib/load-smoothing';
 
 /**
  * Completion server action (03-01 Plan, Pattern 4, Pitfalls 5/6/13).
@@ -260,14 +261,112 @@ export async function completeTaskAction(
     // Scenario 2 where `frequency_days: null` on create round-tripped as
     // `0` and the archive op skipped. Matches the isOoft guard in
     // lib/task-scheduling.ts (computeNextDue OOFT branch).
-    const freqOoft =
-      task.frequency_days === null || task.frequency_days === 0;
+    const freqOoft = isOoftTask(task as unknown as Task);
     if (freqOoft) {
       batch.collection('tasks').update(task.id, {
         archived: true,
         archived_at: now.toISOString(),
       });
     }
+
+    // ─── Phase 12 step 7.5: smoothed-date placement (D-13, LOAD-10) ───
+    // Trigger conditions (Pitfall 6 + D-03 + D-13):
+    //   (a) task.schedule_mode === 'cycle' (LOAD-06: anchored bypassed)
+    //   (b) !freqOoft             (LOAD-09: OOFT bypasses; isOoftTask
+    //                              handles both null and 0 per Phase 11
+    //                              Rule-1 fix, centralized via
+    //                              lib/task-scheduling.ts export)
+    //
+    // Flow:
+    //   1. Fetch all non-archived home tasks (single PB query per D-11 —
+    //      10 fields projected; fields list below).
+    //   2. Fetch home-wide completions Map (area-only scope loaded at
+    //      line 210 is insufficient — placement needs the full home).
+    //   3. computeHouseholdLoad(homeTasks, homeLatestByTask,
+    //        overridesByTask, now, 120, home.timezone)
+    //   4. placeNextDue(task, lastCompletion, load, now,
+    //        { preferredDays: task.preferred_days, timezone:
+    //          home.timezone })
+    //   5. Append batch.collection('tasks').update(task.id,
+    //        { next_due_smoothed: placedDate.toISOString() })
+    //
+    // Error handling (D-13): if placement throws (NaN date, corrupt
+    // data, PB fetch failure), swallow to console.warn and leave
+    // next_due_smoothed NULL — computeNextDue's natural fallback
+    // takes over. NEVER fail the completion on placement error;
+    // placement is best-effort; the completion itself must succeed.
+    //
+    // T-12-01 clock-skew: concurrent completions on DIFFERENT tasks
+    // compute independently (forward-only contract, D-07). Convergence
+    // is eventual; next completion picks up the merged load state.
+    //
+    // T-12-06 timezone: home.timezone is server-read from the homes
+    // collection (line 143-145), NEVER user-controlled input. Passed
+    // through to both computeHouseholdLoad Map keys AND placeNextDue
+    // scoring lookups — SAME tz on both sides (Pitfall 7).
+    //
+    // LOAD-11 forward-only write: the batch op targets task.id ONLY.
+    // No sibling task records are mutated. Invariant asserted by unit
+    // test (Task 2) that snapshots pre/post task IDs in batch ops.
+    if (task.schedule_mode === 'cycle' && !freqOoft) {
+      try {
+        const homeTasks = (await pb.collection('tasks').getFullList({
+          filter: pb.filter('home_id = {:hid} && archived = false', {
+            hid: homeId,
+          }),
+          fields: [
+            'id', 'created', 'archived',
+            'frequency_days', 'schedule_mode', 'anchor_date',
+            'preferred_days', 'active_from_month', 'active_to_month',
+            'due_date', 'next_due_smoothed',
+          ].join(','),
+        })) as unknown as Task[];
+
+        const homeTaskIds = homeTasks.map((t) => t.id);
+        const homeCompletions = await getCompletionsForHome(
+          pb, homeTaskIds, now,
+        );
+        const homeLatestByTask = reduceLatestByTask(homeCompletions);
+
+        const householdLoad = computeHouseholdLoad(
+          homeTasks,
+          homeLatestByTask,
+          overridesByTask,
+          now,
+          120,
+          home.timezone as string,
+        );
+
+        // lastCompletion above was computed at line 149-166 for this
+        // task — reuse it here. placeNextDue derives naturalIdeal =
+        // (lastCompletion?.completed_at ?? task.created) + frequency_days.
+        const placedDate = placeNextDue(
+          task as unknown as Task,
+          lastCompletion,
+          householdLoad,
+          now,
+          {
+            preferredDays: (task.preferred_days as
+              | 'any' | 'weekend' | 'weekday' | null
+              | undefined) ?? undefined,
+            timezone: home.timezone as string,
+          },
+        );
+
+        batch.collection('tasks').update(task.id, {
+          next_due_smoothed: placedDate.toISOString(),
+        });
+      } catch (e) {
+        console.warn(
+          '[completeTask] placement failed (falling back to natural):',
+          (e as Error).message,
+        );
+        // Swallow — leave next_due_smoothed null. computeNextDue
+        // falls through to natural cycle branch per D-02.
+      }
+    }
+    // ─── end Phase 12 step 7.5 ────────────────────────────────────
+
     // PB SDK 0.26.8 `.send()` resolves to `Array<{ status, body }>` in
     // declaration order (BatchRequestResult — see
     // node_modules/pocketbase/dist/pocketbase.es.d.ts:1168). Verified
