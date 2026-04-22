@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.1
-milestone_name: scheduling-and-flexibility
-status: milestone_started
-stopped_at: roadmap_complete
-last_updated: "2026-04-22T00:00:00.000Z"
+milestone_name: Scheduling & Flexibility
+status: executing
+stopped_at: Completed 10-02-P01-PLAN.md — signature threading + override branch + call sites
+last_updated: "2026-04-22T04:48:53.898Z"
 last_activity: 2026-04-22
 progress:
-  total_phases: 18
-  completed_phases: 9
-  total_plans: 46
-  completed_plans: 26
-  percent: 57
+  total_phases: 19
+  completed_phases: 7
+  total_plans: 29
+  completed_plans: 31
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** v1.1 — Scheduling & Flexibility (roadmap re-locked for addendum scope; Phase 10 next)
+**Current focus:** Phase 10 — Schedule Override Foundation
 
 ## Current Position
 
-Phase: 10 — Schedule Override Foundation — Not started
-Plan: —
-Status: Ready to plan Phase 10 (`/gsd-plan-phase 10`)
-Last activity: 2026-04-22 — v1.1 roadmap re-locked after LOAD addendum + 3 riders (phases 10-18, 9 v1.1 phases, 69 REQ-IDs); retroactive entries for phases 8-9 (post-v1.0.0-rc1 UX polish) preserved
+Phase: 10 (Schedule Override Foundation) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-04-22
 
-Progress: [█████▋░░░░] 57%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -97,6 +97,7 @@ Progress: [█████▋░░░░] 57%
 | Phase 07 P02 | 120min | 2 tasks | 8 files |
 | Phase 08 UX polish | 28min | 9 commits | ~18 files |
 | Phase 09 UX audit fix | ~80min | 14 commits | ~16 files |
+| Phase 10 P02 | 19min | 3 tasks | 21 files |
 
 ## Accumulated Context
 
@@ -259,6 +260,11 @@ Recent decisions affecting current work:
 - 09: Danger zone warm brick hsl(12 55% 48%) instead of pure red hsl(0 65% 50%)
 - 09: HomeSwitcher auto-hides for single-home users; in-page h1 identifies home
 - 09: Persistent underline on auth cross-links since primary sits on 4.5:1 contrast edge
+- 10-02: Falsy check !override.consumed_at (not === null) per Wave 1 A2 — PB 0.37.1 returns null/''/undefined for fresh DateField
+- 10-02: Rule 3 blocking fix — detectAreaCelebration needed overridesByTask 4th arg; completeTaskAction passes empty Map for now (Plan 10-03 will inject real one)
+- 10-02: RSC boundary serialization — Object.fromEntries on server, new Map(Object.entries(...)) inline in client components
+- 10-02: overridesByTask inserted AFTER latestByTask/completions, BEFORE now/timezone in every helper (family convention)
+- 10-02: Scheduler scenario E reuses port 18097 (doesn't claim 18098) for SNZE-10 ref_cycle verification
 
 ### Pending Todos
 
@@ -284,8 +290,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T00:00:00.000Z
-Stopped at: v1.1 roadmap re-locked (phases 10-18, 9 v1.1 phases, 69 REQ-IDs mapped); retroactive 8-9 entries preserved
+Last session: 2026-04-22T04:48:53.880Z
+Stopped at: Completed 10-02-P01-PLAN.md — signature threading + override branch + call sites
 Resume file: None
 
-**Planned Phase:** 10 (Schedule Override Foundation) — estimated 3 plans — next action: `/gsd-plan-phase 10`
+**Planned Phase:** 10 (Schedule Override Foundation) — 3 plans — 2026-04-22T04:15:06.406Z

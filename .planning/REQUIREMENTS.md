@@ -231,12 +231,15 @@
 - [ ] **SNZE-02**: Action sheet includes a date picker defaulting to the natural next due
 - [ ] **SNZE-03**: Action sheet has a "Just this time" / "From now on" radio (default: Just this time)
 - [ ] **SNZE-04**: New `schedule_overrides` PB collection stores one-off snoozes `(id, task_id, snooze_until, consumed_at, created)`
-- [ ] **SNZE-05**: computeNextDue consults the latest active (unconsumed) override BEFORE the smoothed-date branch (snooze trumps LOAD)
+- [x] **SNZE-05
+**: computeNextDue consults the latest active (unconsumed) override BEFORE the smoothed-date branch (snooze trumps LOAD)
 - [ ] **SNZE-06**: Overrides are consumed when the next completion lands after the override date
 - [ ] **SNZE-07**: "From now on" mutates `tasks.anchor_date` (anchored mode) or `tasks.next_due_smoothed` with a marker flag (cycle mode) directly — no override row written. Marker flag detectable by REBAL preservation rules.
 - [ ] **SNZE-08**: Snoozing into a dormant season prompts an "Extend the active window?" confirmation dialog
-- [ ] **SNZE-09**: Coverage ring uses the snoozed (later) next_due (snoozed tasks don't drag coverage down)
-- [ ] **SNZE-10**: Scheduler ntfy `ref_cycle` keys on the resulting next_due (one notification per effective due date — idempotent re-firing)
+- [x] **SNZE-09
+**: Coverage ring uses the snoozed (later) next_due (snoozed tasks don't drag coverage down)
+- [x] **SNZE-10
+**: Scheduler ntfy `ref_cycle` keys on the resulting next_due (one notification per effective due date — idempotent re-firing)
 
 ### Household Load-Aware Scheduling (LOAD)
 
