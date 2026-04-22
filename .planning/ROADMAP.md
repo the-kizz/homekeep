@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 v1.1 extends v1.0 with household-global load-aware scheduling (the SPEC thesis-deliverer), per-task flexibility (one-off, preferred-days, seasonal, snooze, permanent reschedule), horizon density visualization, and a manual rebalance escape hatch. All migrations are additive; v1.0.0 installs upgrading via `:1` or `:latest` lose nothing. Anchored-mode tasks remain byte-identical to v1.0 (explicit opt-out from smoothing). The milestone ends by cutting `v1.1.0-rc1` per the GHCR tiered tag strategy.
 
 - [ ] **Phase 10: Schedule Override Foundation** - `schedule_overrides` PB collection + `computeNextDue` override branch threaded through every caller (coverage, scheduler, horizon, band classification)
-- [ ] **Phase 11: Task Model Extensions** - Nullable `frequency_days`, `preferred_days`, `active_from_month`/`active_to_month` fields + scheduler logic for OOFT / PREF / SEAS behaviors. OOFT-01..03 finalized here after `/gsd-discuss-phase 11` locks first-due semantics (rider 2)
+- [x] **Phase 11: Task Model Extensions** - Nullable `frequency_days`, `preferred_days`, `active_from_month`/`active_to_month` fields + scheduler logic for OOFT / PREF / SEAS behaviors. OOFT-01..03 finalized here after `/gsd-discuss-phase 11` locks first-due semantics (rider 2)
 - [ ] **Phase 12: Load-Smoothing Engine** - `tasks.next_due_smoothed` field, `placeNextDue` + `computeHouseholdLoad` helpers, integration into `computeNextDue`; PREF/SEAS/SNZE/OOFT/anchored interactions. **Hard gate: branch-composition test matrix covers all 6 branches and meaningful interactions.**
 - [ ] **Phase 13: Task Creation Semantics** - Task form "Last done" optional field (Advanced collapsible) + smart-default first-due + `batchCreateSeedTasks` rewrite calling TCSEM per seed with in-memory load map; SDST removal cleanup
 - [ ] **Phase 14: Seasonal UI & Seed Library** - Task form "Active months" section, dimmed + "Sleeps until" rendering in By Area / Person / dashboard, anchored-mode warning, seasonal seed pairs
@@ -246,8 +246,8 @@ Plans:
 
 Plans:
 - [x] 11-01-P01-PLAN.md — Migration + zod schema + helper scaffolding (4 new nullable fields, frequency_days nullable, effectivePreferredDays/narrowToPreferredDays/isInActiveWindow/nextWindowOpenDate helpers, 31 unit tests, A1 resolved)
-- [ ] 11-02-P01-PLAN.md — computeNextDue seasonal-dormant/wakeup/OOFT branches (D-16 order), computeCoverage dormant filter, completeTaskAction OOFT auto-archive batch op, ~18 new unit tests
-- [ ] 11-03-P01-PLAN.md — Integration suite on port 18099: 4 scenarios (migration shape, OOFT lifecycle atomic archive, seasonal dormant/wakeup, D-17 override × dormant)
+- [x] 11-02-P01-PLAN.md — computeNextDue seasonal-dormant/wakeup/OOFT branches (D-16 order), computeCoverage dormant filter, completeTaskAction OOFT auto-archive batch op, ~18 new unit tests
+- [x] 11-03-P01-PLAN.md — Integration suite on port 18099: 4 scenarios (migration shape, OOFT lifecycle atomic archive, seasonal dormant/wakeup, D-17 override × dormant)
 
 ### Phase 12: Load-Smoothing Engine
 **Goal**: Deliver the SPEC thesis — *"spread the year's work evenly across weeks"* — by making `computeNextDue` consult a stored `tasks.next_due_smoothed` that is chosen by a forward-only placement algorithm over a per-day household load map. All 6 branches (override, smoothed, anchored, seasonal, one-off, natural) short-circuit in a documented order; anchored tasks bypass smoothing entirely

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
 status: executing
-stopped_at: Completed 11-01-P01-PLAN.md — A1 resolved, foundation ready for Plan 11-02
-last_updated: "2026-04-22T09:29:33.140Z"
+stopped_at: Completed 11-03-P01-PLAN.md — Phase 11 integration suite shipped; 410 tests green; Rule 1 bug fixed (PB 0.37.1 stores cleared NumberField as 0 not null)
+last_updated: "2026-04-22T10:01:25.465Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 19
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 32
-  completed_plans: 33
+  completed_plans: 35
   percent: 100
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 ## Current Position
 
 Phase: 11 (Task Model Extensions) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-04-22
 
@@ -100,6 +100,7 @@ Progress: [██████████] 100%
 | Phase 10 P02 | 19min | 3 tasks | 21 files |
 | Phase 10 P03 | 15min | 2 tasks | 2 files |
 | Phase 11 P01 | 12min | 3 tasks | 7 files |
+| Phase 11 P03 | ~12min | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -274,6 +275,8 @@ Recent decisions affecting current work:
 - 11-01: Task type widened to frequency_days: number | null; 3 minimal as number casts at UI/coverage projection boundaries absorb the ripple (band-view, task-band, coverage)
 - 11-01: preferredDaysEnum exported from lib/schemas/task.ts for Plan 11-02 + Phase 14/15 form re-use
 - 11-01: 4 pure helpers shipped (effectivePreferredDays, narrowToPreferredDays, isInActiveWindow wrap-aware, nextWindowOpenDate tz-aware); 31 new tests cover PREF/SEAS matrix + zod refinements; 355 baseline → 386 total tests green (D-26 preserved)
+- Rule 1 fix: frequency_days=0 treated as OOFT marker at runtime (PB 0.37.1 cleared-NumberField storage reality). App-layer zod still rejects 0 at form submission; runtime permits both null and 0 to route to OOFT branch + archive op. Files: lib/task-scheduling.ts, lib/actions/completions.ts, tests/unit/task-scheduling.test.ts. Commit 5508c8a.
+- Plan 11-03 scenario count: 4 (per PLAN.md acceptance criterion). Prompt's 6-scenario expansion deferred: prompt scenarios 5+6 are covered by plan scenario 3 cases A/B/C and Plan 11-01 zod unit tests respectively. Port 18099 claimed; 18100 is next free.
 
 ### Pending Todos
 
@@ -299,8 +302,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-22T09:29:33.119Z
-Stopped at: Completed 11-01-P01-PLAN.md — A1 resolved, foundation ready for Plan 11-02
+Last session: 2026-04-22T10:01:25.442Z
+Stopped at: Completed 11-03-P01-PLAN.md — Phase 11 integration suite shipped; 410 tests green; Rule 1 bug fixed (PB 0.37.1 stores cleared NumberField as 0 not null)
 Resume file: None
 
 **Planned Phase:** 11 () — 0 plans — 2026-04-22T09:15:03.968Z

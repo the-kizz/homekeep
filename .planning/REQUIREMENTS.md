@@ -199,11 +199,13 @@
 
 - [x] **OOFT-01
 ** (draft): User can create a task without a recurring frequency (one-off task; `tasks.frequency_days` nullable)
-- [ ] **OOFT-02** (draft): One-off task automatically archives after first completion (atomic with completion write)
+- [x] **OOFT-02
+** (draft): One-off task automatically archives after first completion (atomic with completion write)
 - [x] **OOFT-03
 ** (draft): One-off tasks have an explicit due date at creation (per rider 2 lean — confirm in Phase 11 discuss)
 - [ ] **OOFT-04**: Task form distinguishes "Recurring" (with frequency) vs "One-off" (no frequency); anchored mode disallowed for one-off
-- [ ] **OOFT-05**: One-off tasks contribute 1 to the LOAD density map on their due date but are themselves non-smoothable
+- [x] **OOFT-05
+**: One-off tasks contribute 1 to the LOAD density map on their due date but are themselves non-smoothable
 
 ### Preferred-Days Constraint (PREF)
 
@@ -213,7 +215,8 @@
 **: User can set per-task `preferred_days` (any / weekend / weekday) on the task form
 - [x] **PREF-02
 **: LOAD placement narrows candidate dates to those matching `preferred_days` BEFORE scoring by load (LOAD-05)
-- [ ] **PREF-03**: When the tolerance window contains no matching weekday, search widens forward in 1-day increments up to +6 days from natural ideal
+- [x] **PREF-03
+**: When the tolerance window contains no matching weekday, search widens forward in 1-day increments up to +6 days from natural ideal
 - [x] **PREF-04
 **: Constraint never produces an early date — result is always equal-or-later than the natural cycle date
 
@@ -221,11 +224,14 @@
 
 - [x] **SEAS-01
 **: User can set `active_from_month` and `active_to_month` per task (both nullable; both null = year-round)
-- [ ] **SEAS-02**: Out-of-window tasks return `null` from computeNextDue (invisible to scheduler, coverage, and main views)
-- [ ] **SEAS-03**: When the active window opens, computeNextDue returns the start-of-window date (in home timezone) as next_due (smoothing skipped for the wake-up; LOAD resumes from second cycle)
+- [x] **SEAS-02
+**: Out-of-window tasks return `null` from computeNextDue (invisible to scheduler, coverage, and main views)
+- [x] **SEAS-03
+**: When the active window opens, computeNextDue returns the start-of-window date (in home timezone) as next_due (smoothing skipped for the wake-up; LOAD resumes from second cycle)
 - [x] **SEAS-04
 **: Cross-year wrap supported: a window like Oct→Mar correctly includes Dec, Jan, Feb
-- [ ] **SEAS-05**: Coverage ring excludes dormant tasks from its mean (treats them like archived)
+- [x] **SEAS-05
+**: Coverage ring excludes dormant tasks from its mean (treats them like archived)
 - [ ] **SEAS-06**: Dormant tasks render dimmed with "Sleeps until <Mon Year>" badge in By Area and Person views
 - [ ] **SEAS-07**: Task form gains an optional "Active months" section (from/to month dropdowns)
 - [ ] **SEAS-08**: Form warns (does not block) when an anchored task's series falls predominantly outside its active window
