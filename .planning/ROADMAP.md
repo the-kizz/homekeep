@@ -423,3 +423,22 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 
 Plans:
 - [ ] 19-01: TBD
+
+### Phase 20: E2E Test Stabilization
+
+**Goal**: Bring CI E2E suite to green so the GHCR tier strategy advances `:latest` / `:1.1` tags. Fix or retire 2 remaining pre-Phase-12 core-loop specs whose seed methodology doesn't account for LOAD's write-at-creation semantics. Also lock down the test-infra pattern for future specs that need to control task placement.
+
+**Depends on**: Phase 19 (v1.1.1 seasonal/LOAD patch)
+
+**Requirements**: TEST-01, TEST-02
+
+**Success Criteria**:
+  1. `tests/e2e/core-loop.spec.ts` Scenario 1 (early-completion guard) and Scenario 2 (stale overdue task) pass reliably in CI
+  2. CI E2E overall: 23 passed / 0 failed
+  3. GHCR Release workflow (now E2E-gated) advances `:latest` + `:1.1` tags on next successful push of a stable tag
+  4. Seed helper pattern documented so future specs can seed back-dated completions without being shadowed by LOAD placement
+
+**Plans**: 1 plan (estimate 2-3 tasks)
+
+Plans:
+- [ ] 20-01: TBD

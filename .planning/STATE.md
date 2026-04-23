@@ -4,8 +4,8 @@ milestone: v1.1
 milestone_name: Scheduling & Flexibility
 status: executing
 stopped_at: Completed 17-02-P01-PLAN.md (Phase 17 Wave 2 UI + integration — all 7 REBAL REQs closed)
-last_updated: "2026-04-23T05:44:41.510Z"
-last_activity: 2026-04-23 -- Phase 19 execution started
+last_updated: "2026-04-23T09:54:29.263Z"
+last_activity: 2026-04-23 -- Phase 20 execution started
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 19 — Seasonal/LOAD Patch
+**Current focus:** Phase 20 — E2E Test Stabilization
 
 ## Current Position
 
-Phase: 19 (Seasonal/LOAD Patch) — EXECUTING
+Phase: 20 (E2E Test Stabilization) — EXECUTING
 Plan: 1 of 1
-Status: Executing Phase 19
-Last activity: 2026-04-23 -- Phase 19 execution started
+Status: Executing Phase 20
+Last activity: 2026-04-23 -- Phase 20 execution started
 
 Progress: [██████████] 100%
 

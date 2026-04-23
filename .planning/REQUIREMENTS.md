@@ -623,3 +623,17 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ---
 *v1.1.1 locked 2026-04-23 — three bugs interacted; fixing in isolation surfaced more bugs; lands as one atomic patch.*
+
+## v1.1.1 Requirements — Phase 20 addendum
+
+### E2E Test Stabilization (TEST)
+
+- [ ] **TEST-01**: `core-loop.spec.ts` Scenario 1 + Scenario 2 pass in CI — back-dated-completion + LOAD-aware seed strategy documented and adopted
+- [ ] **TEST-02**: CI E2E suite shows 23/23 passing; GHCR tier strategy advances `:latest` and `:1.1` tags on next release push
+
+**Traceability:**
+
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| TEST-01 | Phase 20 | Pending |
+| TEST-02 | Phase 20 | Pending |
