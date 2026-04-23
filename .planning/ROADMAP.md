@@ -583,7 +583,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 27-01: TBD
+- [x] 27-01: Supply Chain Hardening — cosign + SBOM + SLSA-3 + SHA-pin + digest-pin + dev-pb checksum + NEXT_TELEMETRY_DISABLED (SUPPLY-01..06)
 
 ### Phase 28: SECURITY.md + Responsible Disclosure
 

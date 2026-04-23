@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
 status: verifying
-stopped_at: Completed 26-01-P01-PLAN.md — DEMO-01..05 shipped (docker-compose.demo overlay + ephemeral seeding + cleanup cron + amber banner + Caddy block)
-last_updated: "2026-04-23T22:55:24.421Z"
+stopped_at: Completed 27-PLAN.md — SUPPLY-01..06 shipped (cosign + SBOM + SLSA-3 + SHA-pin + digest-pin + dev-pb checksum + NEXT_TELEMETRY_DISABLED)
+last_updated: "2026-04-23T23:43:33.121Z"
 last_activity: 2026-04-23
 progress:
   total_phases: 19
@@ -119,6 +119,7 @@ Progress: [██████████] 100%
 | Phase 21 P01 | 8 | 1 tasks | 4 files |
 | Phase 24 P01-P01 | 20min | 4 tasks | 10 files |
 | Phase Phase 26 PP01 | 16min | 5 tasks | 13 files |
+| Phase 27 P01 | 26 | 6 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -344,6 +345,9 @@ Recent decisions affecting current work:
 - 26-01: Ephemeral demo-session cookie 'homekeep_demo_session'=userId (24h), pb_auth minted via PB 0.22+ users.impersonate(userId, 86400) on resume path
 - 26-01: Caddyfile.demo replaces Caddyfile.prod on demo deploys; NO ALLOW_PUBLIC_ADMIN_UI escape hatch (demo host never permits admin UI at edge)
 - 26-01: Port 18106 claimed for demo-session-integration.test.ts (allocation register 18090..18106; 18107+ reserved for Phase 27+)
+- SUPPLY-03 preserved current action majors (not downgrade) during SHA-pin so behaviour is unchanged
+- SUPPLY-02 flipped sbom+provenance on edge.yml in addition to release.yml so :edge images carry attestations too
+- SUPPLY-05 refactored scripts/dev-pb.js to guard main() behind isDirectInvocation so helpers can be unit-tested without spawning PocketBase
 
 ### Pending Todos
 
@@ -369,8 +373,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-23T22:55:12.552Z
-Stopped at: Completed 26-01-P01-PLAN.md — DEMO-01..05 shipped (docker-compose.demo overlay + ephemeral seeding + cleanup cron + amber banner + Caddy block)
+Last session: 2026-04-23T23:43:33.098Z
+Stopped at: Completed 27-PLAN.md — SUPPLY-01..06 shipped (cosign + SBOM + SLSA-3 + SHA-pin + digest-pin + dev-pb checksum + NEXT_TELEMETRY_DISABLED)
 Resume file: None
 
 **Planned Phase:** 17 () — 0 plans — 2026-04-23T01:11:23.880Z

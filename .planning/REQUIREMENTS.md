@@ -723,12 +723,18 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ### Supply Chain Hardening (SUPPLY)
 
-- [ ] **SUPPLY-01**: `release.yml` emits cosign-signed container image (keyless via OIDC). Verifiable via `cosign verify ghcr.io/conroyke56/homekeep:v1.2.0 --certificate-identity-regexp ...`.
-- [ ] **SUPPLY-02**: `release.yml` generates SBOM (SPDX or CycloneDX) + provenance attestation (SLSA Level 3).
-- [ ] **SUPPLY-03**: GitHub Actions pinned to full SHA (not `@v4`). Dependabot config for SHA auto-bumps.
-- [ ] **SUPPLY-04**: Dockerfile base images digest-pinned (`FROM node:22-alpine@sha256:...`).
-- [ ] **SUPPLY-05**: `scripts/dev-pb.js` verifies PB download via SHA256 checksum (matching production Dockerfile pattern).
-- [ ] **SUPPLY-06**: `NEXT_TELEMETRY_DISABLED=1` set in Dockerfile + compose.
+- [x] **SUPPLY-01
+**: `release.yml` emits cosign-signed container image (keyless via OIDC). Verifiable via `cosign verify ghcr.io/conroyke56/homekeep:v1.2.0 --certificate-identity-regexp ...`.
+- [x] **SUPPLY-02
+**: `release.yml` generates SBOM (SPDX or CycloneDX) + provenance attestation (SLSA Level 3).
+- [x] **SUPPLY-03
+**: GitHub Actions pinned to full SHA (not `@v4`). Dependabot config for SHA auto-bumps.
+- [x] **SUPPLY-04
+**: Dockerfile base images digest-pinned (`FROM node:22-alpine@sha256:...`).
+- [x] **SUPPLY-05
+**: `scripts/dev-pb.js` verifies PB download via SHA256 checksum (matching production Dockerfile pattern).
+- [x] **SUPPLY-06
+**: `NEXT_TELEMETRY_DISABLED=1` set in Dockerfile + compose.
 
 ### Documentation + Responsible Disclosure (SECDOC)
 
