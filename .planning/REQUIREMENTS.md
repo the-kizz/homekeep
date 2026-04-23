@@ -659,8 +659,10 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ### Emergency Deployment Hotfix (HOTFIX) — same-day triage
 
-- [ ] **HOTFIX-01**: PB admin `/_/` blocked from public in both `Caddyfile` (LAN compose) and `Caddyfile.prod` (Caddy overlay). Live VPS (46.62.151.57:3000) patched to deny `/_/*` with 404.
-- [ ] **HOTFIX-02**: Live VPS secrets rotated: `PB_ADMIN_PASSWORD` regenerated via `openssl rand -base64 32`, `ADMIN_SCHEDULER_TOKEN` regenerated via `openssl rand -hex 32`, `.env` permission = 600.
+- [x] **HOTFIX-01
+**: PB admin `/_/` blocked from public in both `Caddyfile` (LAN compose) and `Caddyfile.prod` (Caddy overlay). Live VPS (46.62.151.57:3000) patched to deny `/_/*` with 404.
+- [x] **HOTFIX-02
+**: Live VPS secrets rotated: `PB_ADMIN_PASSWORD` regenerated via `openssl rand -base64 32`, `ADMIN_SCHEDULER_TOKEN` regenerated via `openssl rand -hex 32`, `.env` permission = 600.
 - [ ] **HOTFIX-03**: GitHub PAT scopes reviewed + rotated. Current PAT at `/root/projects/homekeep/.env` (scopes `admin:org, delete_repo, packages`) replaced with fine-grained PAT scoped to this repo only (contents: rw, packages: rw, issues: rw). Old PAT revoked in GitHub settings.
 
 ### Code-Level Attack Surface (SEC) — injection, IDOR, hardening
