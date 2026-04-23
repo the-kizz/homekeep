@@ -602,9 +602,9 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ### Seasonal/LOAD Patch (PATCH)
 
-- [ ] **PATCH-01**: PB 0.37.1 NumberField-cleared=0 for `tasks.active_from_month` / `tasks.active_to_month` is normalized to `null` at every data-read boundary (dashboard page.tsx, by-area page.tsx, person page.tsx, rebalance action fetch, computeHouseholdLoad callers); `isInActiveWindow` treats `0` as "no bound" identical to `null`
-- [ ] **PATCH-02**: Seasonal-wakeup branch in `computeNextDue` does NOT fire for fresh (null lastCompletion) task whose window covers the current month — falls through to natural cadence (cycle or anchored)
-- [ ] **PATCH-03**: `placeNextDue` excludes the target task's own `next_due_smoothed` contribution from its input `householdLoad` map; rebalance apply produces bit-identical results on repeated runs over a stable rebalanceable set
+- [x] **PATCH-01**: PB 0.37.1 NumberField-cleared=0 for `tasks.active_from_month` / `tasks.active_to_month` is normalized to `null` at every data-read boundary (dashboard page.tsx, by-area page.tsx, person page.tsx, rebalance action fetch, computeHouseholdLoad callers); `isInActiveWindow` treats `0` as "no bound" identical to `null`
+- [x] **PATCH-02**: Seasonal-wakeup branch in `computeNextDue` does NOT fire for fresh (null lastCompletion) task whose window covers the current month — falls through to natural cadence (cycle or anchored)
+- [x] **PATCH-03**: `placeNextDue` excludes the target task's own `next_due_smoothed` contribution from its input `householdLoad` map; rebalance apply produces bit-identical results on repeated runs over a stable rebalanceable set
 
 **v1.1.1 phase distribution:**
 
@@ -617,9 +617,9 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| PATCH-01 | Phase 19 | Pending |
-| PATCH-02 | Phase 19 | Pending |
-| PATCH-03 | Phase 19 | Pending |
+| PATCH-01 | Phase 19 | Complete |
+| PATCH-02 | Phase 19 | Complete |
+| PATCH-03 | Phase 19 | Complete |
 
 ---
 *v1.1.1 locked 2026-04-23 — three bugs interacted; fixing in isolation surfaced more bugs; lands as one atomic patch.*
