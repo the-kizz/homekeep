@@ -1,0 +1,26 @@
+# Dependabot configuration for SHA-pinned supply-chain updates.
+#
+# SUPPLY-03: SHA-pin GitHub Actions — this file keeps pins fresh.
+# Dependabot opens PRs that bump the SHA and update the trailing version
+# comment (e.g. `# v4.2.2` -> `# v4.3.0`) so humans can still read the
+# semantic version at a glance.
+#
+# SUPPLY-04: Digest-pin Docker base images — the `docker` ecosystem here
+# watches docker/Dockerfile and opens PRs when node:22-alpine or
+# caddy:2.11.2-alpine ships a new digest (weekly rebase cadence).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions-minor:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

@@ -18,10 +18,10 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Setup Node
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '22'
           cache: 'npm'
@@ -39,7 +39,7 @@ jobs:
       # PocketBase instances against .pb/pocketbase. The binary is gitignored (31MB)
       # and dev-pb.js downloads it on first local run; CI needs the same step.
       - name: Cache PocketBase binary
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: .pb/pocketbase
           key: pocketbase-0.37.1-${{ runner.os }}-${{ runner.arch }}
@@ -68,7 +68,7 @@ jobs:
         run: npm run test:e2e
 
       - name: Set up Buildx (for docker build sanity)
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
       # NOTE: --load requires single-platform; see release.yml for multi-arch GHCR push
       - name: Docker build (amd64; --load for local-daemon inspection)
