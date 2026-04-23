@@ -362,3 +362,14 @@ Stopped at: Completed 21-01-P01-PLAN.md — INFR-03 bump 300→320MB (INFRA-BUMP
 Resume file: None
 
 **Planned Phase:** 17 () — 0 plans — 2026-04-23T01:11:23.880Z
+
+## v1.2-security Architecture Decision (2026-04-23)
+
+**Decision:** Personal production instance goes PRIVATE (Tailscale-only or LAN-only, no public port). Public-facing deployment is a SEPARATE demo container built via Phase 26 DEMO-01..05 architecture.
+
+**Rationale:** Running the user's real household data on the same public VPS that strangers probe is not safe regardless of hardening level. The `docker-compose.tailscale.yml` overlay already exists (Phase 7) — that's the target for the personal instance. The VPS gets reconfigured to host only the demo after Phase 26 ships.
+
+**Immediate impact:**
+- Phase 22 hotfix still runs as planned (hardens BOTH the current VPS AND the future demo image)
+- Phase 26 becomes the "turn VPS into demo-only" transition phase, not just an optional demo pattern
+- Add post-Phase-28 migration step: tear down current VPS container, redeploy as demo, stand up personal instance on Tailscale network
