@@ -332,7 +332,15 @@ export function computeNextDue(
     // anchor to start-of-window in home tz, regardless of whether
     // now is currently in-window (the caller still wants a concrete
     // wake-up date to render in Phase 14/15 UI).
-    if (lastInPriorSeason) {
+    //
+    // Phase 19 PATCH-02: guard against fresh task (null lastCompletion)
+    // whose current month is ALREADY in-window — a fresh in-window
+    // task is "already awake"; there is no wake-up date to render,
+    // fall through to natural cadence. The old unconditional fire
+    // forced fresh in-window seasonal tasks to display the NEXT year's
+    // from-boundary (e.g. Nov fresh in Oct-Mar window → 2027-10-01)
+    // which surfaced as the "Case B" visual UAT bug per audit.
+    if (lastInPriorSeason && !(inWindowNow && !lastCompletion)) {
       return nextWindowOpenDate(
         now,
         fromM!,

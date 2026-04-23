@@ -1101,6 +1101,46 @@ describe('branch composition matrix — LOAD-15 hard gate', () => {
     // base = task.created (2026-04-01) + 7 → 2026-04-08.
     expect(result?.toISOString()).toBe('2026-04-08T00:00:00.000Z');
   });
+
+  // ─── Phase 19 PATCH-02 regression — fresh in-window guard ──────────
+  //
+  // Pre-patch the seasonal-wakeup branch fired unconditionally when
+  // lastInPriorSeason was true. Fresh tasks have lastCompletion=null
+  // which is definitionally prior-season, so a fresh task whose
+  // CURRENT month was already in-window would render the NEXT year's
+  // from-boundary (e.g. Nov fresh in 1..12 year-round-window → Jan 1
+  // of next year) instead of the natural first cycle. PATCH-02 adds
+  // a `&& !(inWindowNow && !lastCompletion)` guard.
+
+  test('Case 23 (PATCH-02): active_from=1, active_to=12 fresh → natural first cycle', () => {
+    // 1..12 = "every month active" = year-round via an explicit window.
+    // nowMonth=5 (May, NOW=2026-05-01) is in-window, lastCompletion=null
+    // → PATCH-02 guard suppresses wake-up (task is already awake);
+    // natural cadence wins. Pre-patch this returned 2027-01-01.
+    const task = makeBranchTask({
+      active_from_month: 1,
+      active_to_month: 12,
+      frequency_days: 7,
+    });
+    const result = computeNextDue(task, null, NOW, undefined, TZ);
+    expect(result?.toISOString()).toBe('2026-04-08T00:00:00.000Z');
+  });
+
+  test('Case 24 (PATCH-02): active_from=1, active_to=12 with completion → natural cycle', () => {
+    // 1..12 year-round-via-explicit-window + in-window completion
+    // (Apr 20, within 365d so same-season). lastInPriorSeason=false
+    // → seasonal-dormant branch skipped (inWindowNow=true anyway) and
+    // seasonal-wakeup branch skipped (!lastInPriorSeason) → falls
+    // through to cycle. base = Apr 20 + 7 = Apr 27.
+    const task = makeBranchTask({
+      active_from_month: 1,
+      active_to_month: 12,
+      frequency_days: 7,
+    });
+    const completion = { completed_at: '2026-04-20T00:00:00.000Z' };
+    const result = computeNextDue(task, completion, NOW, undefined, TZ);
+    expect(result?.toISOString()).toBe('2026-04-27T00:00:00.000Z');
+  });
 });
 
 // ─── Phase 19 PATCH-01 — normalizeMonth helper unit coverage ───────

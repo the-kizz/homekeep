@@ -4,6 +4,7 @@
 import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';
+import { addDays } from 'date-fns';
 import PocketBase from 'pocketbase';
 import {
   computeNextDue,
@@ -360,14 +361,14 @@ describe('Phase 11 integration — task model extensions (port 18099)', () => {
     );
     expect(caseA?.toISOString()).toBe('2026-10-01T00:00:00.000Z');
 
-    // Case B — wake-up from in-window month: Nov (in-window), no
-    // completion. wasInPriorSeason returns true (null completion =
-    // prior season by definition); wake-up branch fires and returns
-    // the NEXT Oct-1 boundary. nowMonth=11 >= from=10 so targetYear =
-    // nowYear + 1 = 2027 per nextWindowOpenDate's year-selection rule.
-    // This exact case is the D-13 cross-year-wrap math catch: an off-
-    // by-one in `nowMonth < from ? nowYear : nowYear + 1` would return
-    // 2026-10-01 instead.
+    // Case B — fresh task whose current month IS in-window → natural
+    // cadence wins (Phase 19 PATCH-02 semantics). Pre-patch this
+    // branch unconditionally returned 2027-10-01 (next year's from-
+    // boundary) even though the task was "already awake" in Nov. The
+    // guard now suppresses wake-up when (inWindowNow && !lastCompletion)
+    // so a fresh in-window seasonal task renders its natural first-
+    // cycle date = task.created + frequency_days. No completion exists,
+    // so the base is task.created (server-generated at test runtime).
     const caseB = computeNextDue(
       task,
       null,
@@ -375,7 +376,11 @@ describe('Phase 11 integration — task model extensions (port 18099)', () => {
       undefined,
       'UTC',
     );
-    expect(caseB?.toISOString()).toBe('2027-10-01T00:00:00.000Z');
+    const expectedCaseB = addDays(
+      new Date(seasonal.created as string),
+      seasonal.frequency_days as number,
+    ).toISOString();
+    expect(caseB?.toISOString()).toBe(expectedCaseB);
 
     // Case C — dormant with prior in-season completion: seed a
     // completion at Jan 10, 2026 (in-season). wasInPriorSeason returns
