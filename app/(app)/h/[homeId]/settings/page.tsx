@@ -121,6 +121,28 @@ export default async function HomeSettingsPage({
         </CardContent>
       </Card>
 
+      {/* Phase 17 Plan 17-02 (REBAL-05): Scheduling sub-page link. The
+          actual Rebalance UI lives on /settings/scheduling so this
+          section stays thin — future household-wide scheduling controls
+          (auto-rebalance triggers, tolerance defaults) will land there
+          too (v1.2+). */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Scheduling</CardTitle>
+          <CardDescription>
+            Household-wide scheduling controls. Redistribute your
+            calendar when things start to feel bunched.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/h/${homeId}/settings/scheduling`}>
+              Open Scheduling settings
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Danger zone: warm-brick tone via the tightened --destructive
           token (globals.css, Phase 9). The 5% alpha background + 30%
           border tone make the panel obviously 'hotter' than the
