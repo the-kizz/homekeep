@@ -455,14 +455,51 @@ export async function updateTask(
   // detect a non-null change and fire the assigned ntfy afterwards.
   // The tasks.viewRule gates this read (T-06-02-02); a forged taskId for
   // a non-member home 404s here, matching the update behaviour below.
+  //
+  // Phase 23 SEC-04: we ALSO capture the task's current home_id so we
+  // can cross-verify that the incoming `area_id` belongs to the SAME
+  // home. Without this check, a malicious member of home A who is also
+  // a member of home B could forge a task update with
+  // `area_id = <area in home B>` and re-home the task silently. PB's
+  // tasks.updateRule gates the update by membership, but does not
+  // enforce area_id.home_id == task.home_id — this action-level guard
+  // mirrors the createTaskAction cross-verify at line 168.
   let previousAssignedToId: string | null = null;
+  let previousHomeId: string | null = null;
   try {
     const prev = await pb
       .collection('tasks')
       .getOne(taskId, { fields: 'id,home_id,assigned_to_id,name' });
     previousAssignedToId = (prev.assigned_to_id as string) || null;
+    previousHomeId = (prev.home_id as string) || null;
   } catch {
     /* update will surface the error below */
+  }
+
+  // Phase 23 SEC-04: cross-verify that area_id belongs to the task's
+  // home. If the prev fetch failed (previousHomeId = null) we fall
+  // through and let the PB update surface the error — we do NOT reject
+  // here on the null case, because that would mask a genuine
+  // forged-taskId 404 behind an unhelpful "area mismatch" message.
+  if (previousHomeId && parsed.data.area_id) {
+    try {
+      const targetArea = await pb
+        .collection('areas')
+        .getOne(parsed.data.area_id, { fields: 'id,home_id' });
+      if ((targetArea.home_id as string) !== previousHomeId) {
+        return {
+          ok: false,
+          formError: 'Selected area does not belong to this home',
+        };
+      }
+    } catch {
+      // Forged area_id (404) or rule-denied — surface the same friendly
+      // mismatch error rather than leaking PB's raw error.
+      return {
+        ok: false,
+        formError: 'Selected area does not belong to this home',
+      };
+    }
   }
 
   try {
