@@ -162,7 +162,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
     for (let i = 0; i < 5; i++) {
       let redirected = false;
       try {
-        await createHome(null, fd(`Home ${i}`));
+        await createHome({ ok: false }, fd(`Home ${i}`));
       } catch (err) {
         if ((err as Error).message?.startsWith('NEXT_REDIRECT:')) {
           redirected = true;
@@ -174,7 +174,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
     }
 
     // 6th home → action returns formError with quota reason (no throw).
-    const r = await createHome(null, fd('Home 6'));
+    const r = await createHome({ ok: false }, fd('Home 6'));
     expect(r.ok).toBe(false);
     if (r.ok) throw new Error('expected quota rejection');
     expect(r.formError).toMatch(/Quota exceeded/i);
@@ -212,7 +212,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
     // NEXT_REDIRECT as equivalent to an ok-return.
     const runTaskCreate = async (name: string) => {
       try {
-        return await createTask(null, taskFd(name));
+        return await createTask({ ok: false }, taskFd(name));
       } catch (err) {
         const msg = (err as Error).message ?? '';
         if (msg.startsWith('NEXT_REDIRECT:')) {
@@ -245,7 +245,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
     expect((over as { formError?: string }).formError).toMatch(/Quota exceeded/i);
 
     // Archive one existing task; the quota now has headroom again.
-    await archiveTask(created[0], null, new FormData()).catch((err: Error) => {
+    await archiveTask(created[0]).catch((err: Error) => {
       if (!err.message?.startsWith('NEXT_REDIRECT:')) throw err;
     });
 
@@ -277,7 +277,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
 
     let redirectTarget: string | undefined;
     try {
-      await createHome(null, homeFd);
+      await createHome({ ok: false }, homeFd);
     } catch (err) {
       const msg = (err as Error).message ?? '';
       if (msg.startsWith('NEXT_REDIRECT:')) {
@@ -307,7 +307,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
 
     // 10 location areas — all should succeed.
     for (let i = 0; i < 10; i++) {
-      const r = await createArea(null, areaFd(`Area ${i}`));
+      const r = await createArea({ ok: false }, areaFd(`Area ${i}`));
       if (!r.ok) {
         throw new Error(
           `area ${i} failed: ${JSON.stringify(r.formError ?? r.fieldErrors)}`,
@@ -316,7 +316,7 @@ describe('RATE-01 server-action quotas (port 18106)', () => {
     }
 
     // 11th → rejected with quota error.
-    const over = await createArea(null, areaFd('Area 11'));
+    const over = await createArea({ ok: false }, areaFd('Area 11'));
     expect(over.ok).toBe(false);
     if (over.ok) throw new Error('expected quota rejection');
     expect(over.formError).toMatch(/Quota exceeded/i);

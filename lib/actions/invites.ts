@@ -1,10 +1,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { createServerClient } from '@/lib/pocketbase-server';
 import { createAdminClient } from '@/lib/pocketbase-admin';
 import { generateInviteToken } from '@/lib/invite-tokens';
 import { assertOwnership } from '@/lib/membership';
+import {
+  checkLimit,
+  isTokenLocked,
+  recordTokenFailure,
+} from '@/lib/rate-limit';
 import {
   acceptInviteSchema,
   createInviteSchema,
@@ -50,6 +56,8 @@ export type AcceptInviteReason =
   | 'invalid'
   | 'expired'
   | 'already-accepted'
+  | 'rate-limited'
+  | 'locked'
   | 'error';
 
 export type AcceptInviteResult =
@@ -112,8 +120,40 @@ export async function acceptInvite(token: string): Promise<AcceptInviteResult> {
     return { ok: false, reason: 'invalid' };
   }
 
+  // Phase 25 RATE-03: per-IP rate limit (5/60s) + per-token lockout
+  // (3 failures → 15-min lock). See lib/rate-limit.ts for the full
+  // design note. The IP is sourced from the x-forwarded-for / x-real-ip
+  // headers (set by the Next.js edge or a reverse proxy); when the
+  // header is missing (direct call, test environment) we fall back to
+  // a fixed string so the limiter still tracks per-session state.
+  let clientIp = 'unknown';
+  try {
+    const h = await headers();
+    clientIp =
+      h.get('x-forwarded-for')?.split(',')[0].trim() ||
+      h.get('x-real-ip') ||
+      'unknown';
+  } catch {
+    /* headers() throws outside a request context (e.g. unit tests) —
+       keep the 'unknown' default so the limiter still runs */
+  }
+
+  // Per-token lockout check — run BEFORE the IP check so an already-
+  // locked token cannot re-consume the bucket in anger.
+  if (isTokenLocked(parsed.data.token)) {
+    return { ok: false, reason: 'locked' };
+  }
+
+  // Per-IP rate limit: 5 accept attempts per 60s window.
+  if (!checkLimit(`invite-accept:${clientIp}`, 5, 60_000)) {
+    return { ok: false, reason: 'rate-limited' };
+  }
+
   const pb = await createServerClient();
   if (!pb.authStore.isValid || !pb.authStore.record) {
+    // Not-authed attempts still count against the IP bucket (already
+    // consumed above) but should NOT count as a token-failure —
+    // the token itself is not proven invalid yet.
     return { ok: false, reason: 'not-authed' };
   }
   const authId = pb.authStore.record.id;
@@ -134,15 +174,25 @@ export async function acceptInvite(token: string): Promise<AcceptInviteResult> {
       .collection('invites')
       .getFirstListItem(admin.filter('token = {:t}', { t: parsed.data.token }));
   } catch {
+    // Token not found — count against the per-token failure counter.
+    const locked = recordTokenFailure(parsed.data.token);
+    if (locked) {
+      return { ok: false, reason: 'locked' };
+    }
     return { ok: false, reason: 'invalid' };
   }
 
   const inviteId = invite.id;
   const inviteHomeId = invite.home_id as string;
 
-  // Expiry check.
+  // Expiry check. Counts against the per-token failure counter so a
+  // stale-link brute-force still hits the lockout threshold.
   const expiresAt = new Date(invite.expires_at as string);
   if (Number.isFinite(expiresAt.getTime()) && Date.now() > expiresAt.getTime()) {
+    const locked = recordTokenFailure(parsed.data.token);
+    if (locked) {
+      return { ok: false, reason: 'locked' };
+    }
     return { ok: false, reason: 'expired' };
   }
 
@@ -151,6 +201,12 @@ export async function acceptInvite(token: string): Promise<AcceptInviteResult> {
     if (invite.accepted_by_id === authId) {
       // Self-replay: same user re-clicking their own invite link.
       return { ok: true, homeId: inviteHomeId };
+    }
+    // A different user trying to reuse a consumed token — count as
+    // a token-level failure.
+    const locked = recordTokenFailure(parsed.data.token);
+    if (locked) {
+      return { ok: false, reason: 'locked' };
     }
     return { ok: false, reason: 'already-accepted' };
   }
