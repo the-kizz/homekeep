@@ -593,3 +593,33 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 ---
 *Requirements defined: 2026-04-20*
 *Last updated: 2026-04-22 — v1.1 roadmap re-locked: 9 v1.1 phases (10-18), 69 REQ-IDs, traceability fully regenerated. LOAD/LVIZ/TCSEM/REBAL added, SDST removed, PREF reframed, OOFT-01..03 draft (Phase 11 discuss locks shape), DOCS bumped to v0.4.*
+
+## v1.1.1 Requirements (Seasonal/LOAD Patch)
+
+**Audit reference:** `.planning/v1.1-MILESTONE-AUDIT.md` §tech_debt
+**Locked:** 2026-04-23 — three interacting bugs found post-v1.1-archive via Phase 16 visual UAT + CI E2E regression on v1.0 specs.
+**Constraints:** Additive fixes only. No migrations. All 598 unit tests + existing E2E must continue to pass after fix.
+
+### Seasonal/LOAD Patch (PATCH)
+
+- [ ] **PATCH-01**: PB 0.37.1 NumberField-cleared=0 for `tasks.active_from_month` / `tasks.active_to_month` is normalized to `null` at every data-read boundary (dashboard page.tsx, by-area page.tsx, person page.tsx, rebalance action fetch, computeHouseholdLoad callers); `isInActiveWindow` treats `0` as "no bound" identical to `null`
+- [ ] **PATCH-02**: Seasonal-wakeup branch in `computeNextDue` does NOT fire for fresh (null lastCompletion) task whose window covers the current month — falls through to natural cadence (cycle or anchored)
+- [ ] **PATCH-03**: `placeNextDue` excludes the target task's own `next_due_smoothed` contribution from its input `householdLoad` map; rebalance apply produces bit-identical results on repeated runs over a stable rebalanceable set
+
+**v1.1.1 phase distribution:**
+
+| Phase | REQs | Count |
+|-------|------|-------|
+| 19 Seasonal/LOAD Patch | PATCH-01, 02, 03 | 3 |
+| **Total v1.1.1** | | **3** |
+
+**Traceability:**
+
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| PATCH-01 | Phase 19 | Pending |
+| PATCH-02 | Phase 19 | Pending |
+| PATCH-03 | Phase 19 | Pending |
+
+---
+*v1.1.1 locked 2026-04-23 — three bugs interacted; fixing in isolation surfaced more bugs; lands as one atomic patch.*

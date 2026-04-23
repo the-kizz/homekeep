@@ -393,3 +393,33 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10
 | 16. Horizon Density Visualization | 0/2 | Not started | - |
 | 17. Manual Rebalance | 0/3 | Not started | - |
 | 18. SPEC v0.4, AGPL Drift Fix & v1.1 Changelog | 0/2 | Not started | - |
+
+---
+
+## v1.1.1: Seasonal/LOAD Patch (rc2)
+
+**Audit reference:** [.planning/v1.1-MILESTONE-AUDIT.md](v1.1-MILESTONE-AUDIT.md) §tech_debt — three interacting bugs surfaced by Phase 16 visual UAT + blocked CI E2E for Phase 3/4/5 spec suites.
+
+### Phase 19: Seasonal/LOAD Patch
+
+**Goal**: Fix three interacting bugs documented in v1.1 audit — all land in a single patch so idempotency stays provable and E2E unblocks. Ships as `v1.1.1-rc1` (or straight `v1.1.1` if CI goes green on first pass).
+
+**Depends on**: v1.1.0-rc1 (tag shipped, code on master)
+
+**Requirements**: PATCH-01, PATCH-02, PATCH-03
+
+**Success Criteria** (what must be TRUE):
+  1. PB 0.37.1 NumberField cleared-to-0 for `tasks.active_from_month` and `tasks.active_to_month` is coerced to `null` at the data-fetch boundary in dashboard / by-area / person / rebalance task-reading paths (so `classifyDormantTasks` and `computeNextDue` never see `0` as a "seasonal window" value)
+  2. Fresh task (null lastCompletion) with a year-round window (`active_from=1, active_to=12`) returns natural cadence, NOT `nextWindowOpenDate` of Jan-1-next-year
+  3. `placeNextDue` — when called as part of rebalance — does NOT count the target task's own current `next_due_smoothed` in its input load map; subtracts or filters the self-contribution so repeated rebalance on a stable set is bit-identical
+  4. `rebalance-integration.test.ts` Scenario 3 stays green (run 2 → run 3 bit-identical next_due_smoothed)
+  5. CI E2E suite passes — older Phase 3/4/5 specs find their dashboard elements (not shadowed by the 0-vs-null seasonal misroute)
+  6. All existing 598 unit tests + integration scenarios stay green through the patch
+  7. LOAD-15 branch matrix (21 cases) remains green
+
+**Plans**: 1 plan (estimate 4-6 tasks)
+
+> **Hard constraint:** All three fixes must land in a single phase/commit sequence. Fixing any one in isolation exposes another (load-map self-counting was only visible after the 0-handling fix — they interact).
+
+Plans:
+- [ ] 19-01: TBD
