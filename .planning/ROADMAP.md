@@ -347,11 +347,12 @@ Plans:
   3. Anchored-mode tasks, tasks with an unconsumed `schedule_overrides` row, and tasks whose `next_due_smoothed` carries the "From now on" marker flag (set by SNZE-07) are never re-placed by rebalance
   4. Applying the rebalance re-runs `placeNextDue` against a fresh `computeHouseholdLoad` map for every non-preserved task in ascending ideal-date order, updating the in-memory load map between placements (deterministic; matches TCSEM batch pattern)
   5. After Apply, the main view reflects the new distribution on next render; running rebalance a second time immediately after is a no-op (load map is already smooth)
-**Plans**: TBD (estimate 2-3)
+**Plans**: 2 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 17-01: TBD
+- [ ] 17-01-P01-PLAN.md — Classifier + preview/apply server actions + unit tests
+- [ ] 17-02-P01-PLAN.md — Settings → Scheduling page + Rebalance Dialog + port 18105 integration
 
 ### Phase 18: SPEC v0.4, AGPL Drift Fix & v1.1 Changelog
 **Goal**: SPEC.md catches up to reality — bumped to v0.4 (not v0.3, because the addendum changes the spec materially), three stale MIT references corrected to AGPL-3.0, full v1.1 changelog documents every new field, collection, algorithm, and UI surface introduced in phases 10-17, PROJECT.md INFR-12 + SMTP nit corrected — leaving the milestone release-ready for `v1.1.0-rc1`
