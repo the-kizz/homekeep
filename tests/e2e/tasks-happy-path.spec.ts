@@ -58,10 +58,11 @@ test('D-21 full happy path: signup -> home -> area -> cycle task -> anchored tas
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/onboarding$/);
   await skipOnboardingIfPresent(page);
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
-  // Phase 3 replaced the home heading with the BandView. Probe the
-  // HomeSwitcher in the banner instead — it surfaces the home name.
+  // Phase 9 hides the HomeSwitcher when the user has a single home; the
+  // home name lives in the page h1 instead. Probe the h1 — URL match
+  // alone doesn't confirm the dashboard hydrated.
   await expect(
-    page.getByRole('banner').getByRole('button', { name: /TestHouse/ }),
+    page.getByRole('heading', { level: 1, name: /TestHouse/ }),
   ).toBeVisible();
 
   // Manage areas -> Whole Home present, add Kitchen.
@@ -141,10 +142,10 @@ test('D-21 full happy path: signup -> home -> area -> cycle task -> anchored tas
   await page.fill('[name=password]', pw);
   await page.click('button[type=submit]');
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}$/);
-  // Phase 3 replaced the home heading with the BandView. Probe the
-  // HomeSwitcher in the banner instead — it surfaces the home name.
+  // Phase 9 hides the HomeSwitcher for single-home users; h1 carries
+  // the home name.
   await expect(
-    page.getByRole('banner').getByRole('button', { name: /TestHouse/ }),
+    page.getByRole('heading', { level: 1, name: /TestHouse/ }),
   ).toBeVisible();
 
   // Re-navigate to Kitchen; task still there (data persisted).
