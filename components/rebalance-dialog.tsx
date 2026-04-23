@@ -86,11 +86,31 @@ export function RebalanceDialog({ homeId }: { homeId: string }) {
   };
 
   const handleApply = () => {
+    // Phase 17 WR-02 belt-and-suspenders guard: the Apply button is
+    // hidden at preview time when update_count === 0 (see render block
+    // below), so under normal flow this guard is unreachable. Kept as
+    // a defensive no-op in case the render gate is ever relaxed —
+    // firing the server action with nothing to do would be a wasted
+    // roundtrip and produce a confusing "Rebalanced 0 tasks" toast.
+    if (preview !== null && preview.update_count === 0) {
+      toast.success('All tasks preserved — nothing to rebalance');
+      setOpen(false);
+      return;
+    }
+
     startTransition(async () => {
       const r = await rebalanceApplyAction(homeId);
       if (r.ok) {
+        // Phase 17 WR-02: preview.update_count > 0 at apply time (Apply
+        // button only renders when >0), but every placeNextDue can
+        // throw server-side and get swallowed by best-effort D-06
+        // console.warn — yielding updated=0. "Rebalanced 0 tasks" reads
+        // as misleading success; switch to a neutral message so the
+        // user knows nothing actually moved on the calendar.
         toast.success(
-          `Rebalanced ${r.updated} task${r.updated === 1 ? '' : 's'}`,
+          r.updated === 0
+            ? 'Rebalance complete — no placements changed'
+            : `Rebalanced ${r.updated} task${r.updated === 1 ? '' : 's'}`,
         );
         setOpen(false);
         router.refresh();
