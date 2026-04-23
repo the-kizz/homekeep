@@ -373,3 +373,21 @@ Resume file: None
 - Phase 22 hotfix still runs as planned (hardens BOTH the current VPS AND the future demo image)
 - Phase 26 becomes the "turn VPS into demo-only" transition phase, not just an optional demo pattern
 - Add post-Phase-28 migration step: tear down current VPS container, redeploy as demo, stand up personal instance on Tailscale network
+
+## Subdomain + DNS Architecture Addition (2026-04-23)
+
+**Resource available:** `kizz.space` domain controlled by user, godaddy API token available for DNS automation.
+
+**Phase 26 (DEMO) target architecture refined:**
+
+- `demo.kizz.space` → public HomeKeep demo (Phase 26 DEMO pattern: tmpfs PB, ephemeral homes, 2h TTL, no SMTP, no ntfy, build-ID stealth). Caddy auto-TLS via Let's Encrypt.
+- `homekeep.kizz.space` → personal instance (Tailscale-gated OR Caddy basic_auth; not publicly signable-up-able). Same Caddy auto-TLS.
+- Root VPS IP (`46.62.151.57:3000`) retired once subdomains cut over.
+
+**DNS automation option:** godaddy API can write A records programmatically — can be wired into a phase task that creates the subdomain records as part of demo deploy. Or (simpler) user adds them manually once.
+
+**Cert strategy:** Caddy `Caddyfile.prod` already does Let's Encrypt via HTTP-01 on port 80. DNS-01 via godaddy provider is nicer (no port 80 requirement, wildcard support) — library: `caddy-dns/godaddy` community plugin. Add to Dockerfile's caddy build or use a Caddy-with-plugins image variant. Evaluate during Phase 26 planning.
+
+**Updates Phase 26 success criteria:**
+- SC previously: "`docker-compose.demo.yml` overlay boots a demo instance"
+- SC now: "Public demo live at `demo.kizz.space` via auto-TLS; personal instance moved to `homekeep.kizz.space` behind Tailscale/auth; godaddy A records created (manual or API-automated)"
