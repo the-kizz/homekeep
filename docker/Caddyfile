@@ -4,6 +4,21 @@
 }
 
 :3000 {
+	# Phase 24 HDR-02: Mirror security headers at the Caddy layer (defense-in-depth).
+	# next.config.ts also emits these; if Next is ever replaced or skipped, Caddy
+	# still serves a hardened response. Placed BEFORE handle blocks so the header
+	# directive applies to every downstream response. HSTS lives in Caddyfile.prod
+	# (external TLS terminator) — omitted here because :3000 is internal HTTP.
+	header {
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://ntfy.sh https://*.ntfy.sh; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+		-Server
+		-X-Powered-By
+	}
+
 	handle /api/health {
 		reverse_proxy localhost:3001
 	}

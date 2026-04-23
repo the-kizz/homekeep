@@ -10,6 +10,22 @@
 {$DOMAIN} {
 	encode zstd gzip
 
+	# Phase 24 HDR-02: Mirror security headers at the external TLS terminator.
+	# next.config.ts + internal docker/Caddyfile also emit these — triple layer
+	# ensures responses stay hardened even if one layer is bypassed / misconfigured.
+	# This external block includes HSTS (D-03, D-09) because it is the only layer
+	# that sees real HTTPS clients; internal :3000 is plain HTTP.
+	header {
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://ntfy.sh https://*.ntfy.sh; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+		-Server
+		-X-Powered-By
+	}
+
 	# Phase 22 HOTFIX-01: block PB admin UI at the edge as defense-in-depth.
 	# The internal Caddyfile also blocks these paths; this is belt+suspenders
 	# so the block survives even if the internal Caddyfile ever changes.
