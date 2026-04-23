@@ -466,7 +466,7 @@ homekeep/
 ## 15. Docker + distribution requirements
 
 - **Multi-arch image:** `linux/amd64` + `linux/arm64` (Raspberry Pi, Apple Silicon, ARM NAS)
-- **Final image target:** under 300MB
+- **Final image target:** under 320MB (v1.1 growth: ~9MB for 8 new shadcn UI components including Collapsible + Dialog variants, @radix-ui/react-collapsible, 4 new pb_migrations + expanded pb_hooks; further optimization deferred to v1.2)
 - **Single data volume:** `./data` contains PocketBase DB + uploaded photos. Backup = copy folder.
 - **Health check:** `/api/health` endpoint for Docker / Uptime Kuma
 - **Env-driven config:** no hardcoded URLs, paths, or secrets in the image

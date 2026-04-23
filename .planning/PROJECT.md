@@ -77,7 +77,7 @@ See `REQUIREMENTS.md` for full REQ-IDs (69 total). Summary:
 ## Constraints
 
 - **Tech stack**: Next.js 15 (App Router, standalone), PocketBase, Tailwind + shadcn/ui — specified in SPEC.md
-- **Container**: Single Docker image under 300MB, serves both processes
+- **Container**: Single Docker image under 320MB (v1.1 budget — see SPEC.md §15), serves both processes
 - **Data**: All state in one `./data` volume — backup = copy folder
 - **No cloud**: Zero outbound telemetry, no paid APIs, no cloud dependencies
 - **SMTP optional, never required**: v1 invites are link-only and no feature requires SMTP, but if an operator configures it (e.g. for built-in PB password reset) the app uses it

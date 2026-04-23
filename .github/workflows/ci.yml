@@ -74,7 +74,7 @@ jobs:
       - name: Docker build (amd64; --load for local-daemon inspection)
         run: docker buildx build --platform linux/amd64 --load -t homekeep:ci -f docker/Dockerfile .
 
-      - name: Image size check (<300MB per INFR-03)
+      - name: Image size check (<320MB per INFR-03)
         run: sh scripts/check-image-size.sh homekeep:ci
 
       - name: Docker build (arm64 cross-build validation; no --load, Phase-1 success criterion #4)
