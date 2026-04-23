@@ -26,28 +26,59 @@ onBootstrap((e) => {
   // for unauthenticated users (supports T-02-01-03). Path form matches
   // every collection's auth-with-password endpoint.
   //
-  // DEVIATION (02-04 Rule 3 - Blocking): 02-01 set this to 5/60s but
-  // the 02-04 E2E suite exercises 6+ authWithPassword calls (signup +
-  // login for multiple test users in the same 60s window). 20/60s
-  // still blocks password-spraying (>1000 attempts to try a 6-char
-  // common-password dictionary before the bucket exhausts) while
-  // letting the test suite pass. For a self-hosted single-operator
-  // app per SPEC §16, this remains conservative.
+  // HISTORY:
+  //   - 02-01 originally set this to 5/60s but the 02-04 E2E suite
+  //     exercises 6+ authWithPassword calls within 60s → bumped to 20.
+  //   - 05-02 (Phase 5) bumped to 60/60s because the full E2E suite
+  //     signs up ~15+ users in 60s on slow CI.
+  //   - 25-01 (Phase 25 RATE-05) TIGHTENS back to 20/60s. The Phase 2-5
+  //     E2E suites no longer dominate the bucket now that later phases
+  //     gate on authenticated flows; 20/60s is the research-prescribed
+  //     brute-force cap (~1k attempts/hour per IP — below password-spray
+  //     economics and above a realistic user retry cadence).
   //
-  // DEVIATION (05-02 Rule 3 - Blocking): Phase 5 adds 3 more signup-
-  // heavy E2E suites (views spec B/C/D). Combined with Phase 2-4 the
-  // full E2E suite now signs up ~15+ users in 60s on slow CI, bumping
-  // the 20-req bucket. Bumping to 60/60s keeps the password-spray
-  // protection safely in the 4-digit-attempt neighbourhood for a
-  // 6-char dictionary (still prohibitive for real attackers). Phase 7
-  // hardening may layer a per-IP-prefix or captcha step.
+  // DEVIATION (25-01 Rule 3 - Blocking): if a full-suite E2E run blows
+  // the 20/60s bucket on CI, raise MAX_AUTH_RPS_TEST env var. We do not
+  // hard-code a widened test-path exemption because PB's rate-limit
+  // engine has no audience-aware path pattern (the label grammar is
+  // limited to `<tag>:<action>` | `path`).
   settings.rateLimits.rules.push({
     label: "*:authWithPassword",
     duration: 60,
-    maxRequests: 60,
+    maxRequests: 20,
     audience: "@guest",
   });
+
+  // Phase 25 RATE-02: dedicated signup bucket (users:create) at 10/60s
+  // per-IP, narrower than the generic /api/ 300/60s. Prevents automated
+  // account-farming for abuse of the row-creation quotas enforced by
+  // lib/quotas.ts. Applies to the `users` auth collection's create
+  // endpoint; other collections' creates are unaffected because the
+  // label tags by collection name.
+  settings.rateLimits.rules.push({
+    label: "users:create",
+    duration: 60,
+    maxRequests: 10,
+    audience: "@guest",
+  });
+
+  // Phase 25 RATE-04: password-reset-confirm at 5/60s per-IP. PB's
+  // endpoint is /api/collections/users/confirm-password-reset; the
+  // label `users:confirm-password-reset` is rejected by PB 0.37.1's
+  // validator (dashes not allowed in the action portion), so we use
+  // the camelCase action name `confirmPasswordReset` matching PB's
+  // internal route registration. Without this bucket, an attacker
+  // could iterate reset-token guesses under only the 300/60s generic
+  // ceiling.
+  settings.rateLimits.rules.push({
+    label: "users:confirmPasswordReset",
+    duration: 60,
+    maxRequests: 5,
+    audience: "@guest",
+  });
+
   // Generic conservative ceiling for all unauthenticated /api/ traffic.
+  // Acts as the outermost envelope below the per-endpoint buckets.
   settings.rateLimits.rules.push({
     label: "/api/",
     duration: 60,
@@ -56,5 +87,7 @@ onBootstrap((e) => {
   });
 
   $app.save(settings);
-  console.log("[ratelimits] enabled: 20/min on *:authWithPassword, 300/min /api/ guest ceiling");
+  console.log(
+    "[ratelimits] enabled: 20/min *:authWithPassword, 10/min users:create, 5/min users:confirmPasswordReset, 300/min /api/ guest ceiling",
+  );
 });
