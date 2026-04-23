@@ -3,10 +3,11 @@
 > A calm, self-hosted household maintenance PWA for couples and families. Every recurring chore has a frequency, and HomeKeep spreads the year's work evenly across weeks so nothing piles up and nothing rots.
 
 <p align="center">
-  <img src="docs/screenshots/03-dashboard-three-band.png" alt="HomeKeep dashboard — three-band view with coverage ring" width="85%">
+  <img src="docs/screenshots/v1.1/01-dashboard-hero.png" alt="HomeKeep dashboard — three-band view with load-smoothed horizon + shift badges" width="85%">
 </p>
 
 <p align="center">
+  <a href="https://github.com/conroyke56/homekeep/releases"><img src="https://img.shields.io/github/v/release/conroyke56/homekeep?include_prereleases&sort=semver&color=D4A574" alt="Latest release"></a>
   <a href="https://github.com/conroyke56/homekeep/actions"><img src="https://img.shields.io/github/actions/workflow/status/conroyke56/homekeep/ci.yml?branch=master&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/License-AGPL%20v3-ff6b35" alt="AGPL v3 License">
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16">
@@ -28,52 +29,81 @@ Built for people who self-host things and want ownership of their data. AGPL v3,
 2. **Shared, not competitive.** Streaks and progress are "us vs. the house," never partner-vs-partner.
 3. **Forgiveness built in.** Miss a week? The app redistributes, doesn't scold.
 
-## Feature tour
+## What's new in v1.1 — Scheduling & Flexibility
 
-### Three-band main view
+The big idea: **spread the year's work evenly across weeks**. v1.0 kept tasks separate by band; v1.1 makes the app actively smooth household load so you don't get six annual tasks all landing on the same Saturday.
 
-The core interaction. **Overdue** (shown only if anything actually is), **This Week**, and a 12-month **Horizon** strip — so you can see what's next without being nagged about a task due in November.
+### Load-smoothed horizon
 
-![Dashboard](docs/screenshots/03-dashboard-three-band.png)
-
-### By Area — which part of the house needs love
-
-Coverage percent per area (Kitchen 100%, Backyard 60%). "Whole Home" pinned to top.
-
-![By Area](docs/screenshots/04-by-area.png)
-
-### Person — your slice
-
-Tasks assigned to you (via cascade: task-level → area default → anyone), your recent history, your personal streak, your notification prefs.
-
-![Person view](docs/screenshots/05-person.png)
-
-### History — who did what and when
-
-A filterable timeline of household completions. Settles the "did you ever actually do that?" conversation.
-
-![History](docs/screenshots/06-history.png)
-
-### Mobile
-
-Stock PWA. Installs to the home screen on iOS/Android under HTTPS deploys.
+A per-month density tint on the Horizon strip shows you, at a glance, which months are heavy and which are light. Any task that the smoother shifted off its natural date wears a ⚖️ badge — tap the task to see `Ideal: Apr 25 / Scheduled: Apr 28 / Shifted by 3 days`. Nothing silent, nothing magic.
 
 <p align="center">
-  <img src="docs/screenshots/08-mobile-dashboard.png" alt="Mobile dashboard" width="35%">
+  <img src="docs/screenshots/v1.1/01-dashboard-hero.png" alt="Dashboard with density tint + shift badges" width="85%">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/v1.1/09-task-detail-schedule-shift.png" alt="Task detail sheet — Ideal vs Scheduled + shift explanation" width="55%">
+</p>
+
+### Reschedule any task from any view
+
+"Just this time" writes a one-off snooze that auto-consumes when you next complete the task. "From now on" permanently shifts the task's anchor / smoothed date and is preserved across future rebalances (it won't undo your intent).
+
+<p align="center">
+  <img src="docs/screenshots/v1.1/02-reschedule-action-sheet.png" alt="Reschedule action sheet with date picker + just-this-time/from-now-on" width="50%">
+</p>
+
+### One-off tasks
+
+Not everything is recurring. Toggle the form to **One-off** for single-shot tasks with an explicit "Do by" date — they auto-archive on completion, contribute to the load map while they're pending, and never clog the cycle tasks list.
+
+<p align="center">
+  <img src="docs/screenshots/v1.1/07-one-off-toggle.png" alt="One-off toggle with Do by date" width="60%">
+</p>
+
+### Seasonal tasks
+
+Set active months on any task (e.g. **October → March** for winter tasks). Out of season, tasks render dimmed with "Sleeps until Mar 2027" — they don't nag, don't drag the coverage ring, and wake up automatically on the first day of their window.
+
+<p align="center">
+  <img src="docs/screenshots/v1.1/05-task-form-advanced.png" alt="Task form with Advanced section — Last done + Active months" width="75%">
+</p>
+
+### Manual rebalance
+
+When life drifts and your schedule gets lumpy, Settings → Scheduling → **Rebalance schedule**. Preview first ("Will update: 16 / Will preserve: 1 anchored") — Apply re-places everything eligible while respecting anchored tasks, active snoozes, and "From now on" intent.
+
+<p align="center">
+  <img src="docs/screenshots/v1.1/06-settings-scheduling-rebalance.png" alt="Settings — Scheduling with Rebalance preview dialog" width="75%">
+</p>
+
+### The rest of v1.0 still here
+
+By Area, Person, History, coverage ring, early-completion guard, cascading assignment, seed library (now with 4 seasonal pairs), ntfy notifications, mobile PWA. Nothing removed. v1.0 data migrates forward with zero changes; anchored-mode tasks are byte-identical.
+
+<p align="center">
+  <img src="docs/screenshots/v1.1/04-by-area.png" alt="By Area with dormant tasks dimmed" width="48%">
+  <img src="docs/screenshots/v1.1/08-mobile-dashboard.png" alt="Mobile dashboard — density tiers + shift badges" width="28%">
 </p>
 
 ## What's in the box
 
-- **Three-band view** (Overdue / This Week / Horizon) + household coverage ring
-- **Cycle vs. anchored** scheduling per task (cleaning benches resets the cycle; annual smoke alarm test sticks to its fixed calendar)
-- **Early-completion guard** — prompts "Are you sure?" if you mark a task done less than 25% into its cycle (catches double-taps and "did my partner already do this?")
+- **Three-band dashboard** (Overdue / This Week / Horizon) + household coverage ring
+- **Load-smoothed scheduling** (v1.1) — `placeNextDue` algorithm with `min(0.15 × frequency, 5)` tolerance window, forward-only, deterministic tiebreakers, &lt;100ms budget for 100-task households
+- **Six-branch `computeNextDue`**: archived → override → smoothed → seasonal-dormant → seasonal-wakeup → one-off → cycle/anchored
+- **Cycle vs. anchored** scheduling per task (cleaning benches resets the cycle; annual smoke alarm test sticks to its fixed calendar — anchored bypasses smoothing by design)
+- **One-off tasks** (v1.1) with explicit due date, atomic archive-on-completion
+- **Seasonal dormancy** (v1.1) with cross-year-wrap support (Oct→Mar windows) and coverage-ring exclusion
+- **Snooze + permanent reschedule** (v1.1) — action sheet from any task row; history-preserving `schedule_overrides` collection; cross-season snooze warns with ExtendWindowDialog
+- **Preferred days** (v1.1) — optional `any / weekend / weekday` hard constraint; smoother narrows candidates before scoring by load
+- **Manual rebalance** (v1.1) — counts-only preview + 4-bucket preservation (anchored / active-snooze / from-now-on / rebalanceable); idempotent after first run
+- **Early-completion guard** — prompts "Are you sure?" under 25% of cycle
 - **Collaboration** — invite links, member management, cascading assignment (task-level > area-default > "Anyone")
-- **By Area / Person / History views** — same data, different lenses
-- **First-run onboarding wizard** with ~30 seed tasks covering Kitchen, Bathroom, Living, Yards, and Whole Home
-- **Gentle gamification** — household streak, per-area coverage %, one-time celebration when an area first hits 100%, "most neglected" gentle nudge
-- **Push notifications** via [ntfy](https://ntfy.sh) — overdue, newly-assigned, partner-completed (opt-in), weekly Sunday summary (opt-in). No Firebase, no APNs, no paid services.
+- **First-run onboarding wizard** — ~30 seed tasks including 4 seasonal pairs (warm/cool mowing, summer/winter HVAC)
+- **Gentle gamification** — household streak, per-area coverage %, area-100% celebration, "most neglected" nudge
+- **Push notifications** via [ntfy](https://ntfy.sh) — overdue, newly-assigned, partner-completed (opt-in), weekly summary (opt-in)
 - **Installable PWA** on HTTPS deployments; graceful HTTP degradation on LAN-only
-- **Append-only completion history** — nothing is ever deleted
+- **Append-only completion history** — nothing is ever deleted; dormant-task completions still show in History regardless of current season state
 
 ## Stack
 
@@ -83,7 +113,7 @@ Stock PWA. Installs to the home screen on iOS/Android under HTTPS deploys.
 - Zod + react-hook-form, @dnd-kit for drag-to-reorder
 - node-cron for the hourly scheduler, ntfy for push
 - s6-overlay supervises Caddy + PocketBase + Next.js inside one container
-- Vitest (unit) + Playwright (E2E); 311 unit + 23 E2E tests
+- Vitest (unit) + Playwright (E2E); 598 unit + 23 E2E tests (v1.1)
 
 ## Quickstart
 
