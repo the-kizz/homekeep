@@ -638,3 +638,13 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 |--------|-------|--------|
 | TEST-01 | Phase 20 (Plan 20-01) | Complete |
 | TEST-02 | Phase 20 | Pending (closes on next CI green + stable tag push) |
+
+## v1.1.1 Requirements — Phase 21 addendum
+
+### Image Size Budget (INFRA-BUMP)
+
+- [ ] **INFRA-BUMP-01**: INFR-03 budget adjusted 300MB → 320MB with rationale documented in SPEC.md + PROJECT.md; scripts/check-image-size.sh LIMIT updated; CI green on push
+
+| REQ-ID | Phase | Status |
+|--------|-------|--------|
+| INFRA-BUMP-01 | Phase 21 | Pending |

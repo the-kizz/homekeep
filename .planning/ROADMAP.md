@@ -442,3 +442,22 @@ Plans:
 
 Plans:
 - [x] 20-01-P01-PLAN.md — Stabilize Scenario 1+2 under LOAD (seedCompletion PATCH + Option C flow-assertions + LOAD-aware doc block)
+
+### Phase 21: Image Size Budget Adjustment
+
+**Goal**: Bump INFR-03 image budget from 300MB → 320MB to reflect v1.1's legitimate growth (8 new UI components, 4 new migrations, @radix-ui/react-collapsible, shadcn dialogs, new pb_hooks). Document the rationale + update the check script. Unblocks CI + GHCR tier tag advancement.
+
+**Depends on**: Phase 20 (CI E2E green)
+
+**Requirements**: INFRA-BUMP-01
+
+**Success Criteria**:
+  1. `scripts/check-image-size.sh` LIMIT=320 (verified 309MB passes)
+  2. SPEC.md §15 Docker requirements: 300MB → 320MB with v1.1 growth note
+  3. PROJECT.md INFR-03 row updated to reflect new target
+  4. CI goes green; next stable tag push advances `:latest` + `:1.1` GHCR tiered tags
+
+**Plans**: 1 plan (single task)
+
+Plans:
+- [ ] 21-01: TBD

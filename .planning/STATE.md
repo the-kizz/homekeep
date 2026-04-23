@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
-status: verifying
+status: executing
 stopped_at: Completed 20-01-P01-PLAN.md — Phase 20 E2E Test Stabilization (TEST-01 closed; TEST-02 pending CI)
-last_updated: "2026-04-23T12:47:05.606Z"
-last_activity: 2026-04-23
+last_updated: "2026-04-23T13:01:54.579Z"
+last_activity: 2026-04-23 -- Phase 21 execution started
 progress:
   total_phases: 19
   completed_phases: 15
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-22)
 
 **Core value:** The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
-**Current focus:** Phase 20 — E2E Test Stabilization
+**Current focus:** Phase 21 — Image Size Budget
 
 ## Current Position
 
-Phase: 20 (E2E Test Stabilization) — EXECUTING
+Phase: 21 (Image Size Budget) — EXECUTING
 Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-04-23
+Status: Executing Phase 21
+Last activity: 2026-04-23 -- Phase 21 execution started
 
 Progress: [██████████] 100%
 
