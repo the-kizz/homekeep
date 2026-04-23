@@ -391,3 +391,17 @@ Resume file: None
 **Updates Phase 26 success criteria:**
 - SC previously: "`docker-compose.demo.yml` overlay boots a demo instance"
 - SC now: "Public demo live at `demo.kizz.space` via auto-TLS; personal instance moved to `homekeep.kizz.space` behind Tailscale/auth; godaddy A records created (manual or API-automated)"
+
+## Subdomain Naming Decision (2026-04-23)
+
+**Convention:** `<project>.demo.kizz.space` — hierarchical, wildcard-friendly.
+
+- Public HomeKeep demo: `homekeep.demo.kizz.space`
+- Future project demos: `wiki.demo.kizz.space`, `notes.demo.kizz.space`, etc.
+- Wildcard Let's Encrypt cert `*.demo.kizz.space` via DNS-01 (godaddy plugin) covers all project demos with one cert.
+
+**VPS role refined:** `46.62.151.57` is a DEVELOPMENT + public-demo host. Multiple projects may share it. Not a personal-data host.
+
+**Personal instance:** user's homelab (home server / NAS), LAN or Tailscale only. Not on VPS, not on any public subdomain.
+
+**Phase 26 updated:** target is `homekeep.demo.kizz.space` specifically, not generic `demo.kizz.space`. Caddy config gets `homekeep.demo.kizz.space` block with the demo-specific overlay.
