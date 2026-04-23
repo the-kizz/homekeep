@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
-status: executing
-stopped_at: Completed 17-02-P01-PLAN.md (Phase 17 Wave 2 UI + integration — all 7 REBAL REQs closed)
-last_updated: "2026-04-23T09:54:29.263Z"
-last_activity: 2026-04-23 -- Phase 20 execution started
+status: verifying
+stopped_at: Completed 20-01-P01-PLAN.md — Phase 20 E2E Test Stabilization (TEST-01 closed; TEST-02 pending CI)
+last_updated: "2026-04-23T12:47:05.606Z"
+last_activity: 2026-04-23
 progress:
   total_phases: 19
   completed_phases: 15
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-04-22)
 
 Phase: 20 (E2E Test Stabilization) — EXECUTING
 Plan: 1 of 1
-Status: Executing Phase 20
-Last activity: 2026-04-23 -- Phase 20 execution started
+Status: Phase complete — ready for verification
+Last activity: 2026-04-23
 
 Progress: [██████████] 100%
 
@@ -115,6 +115,7 @@ Progress: [██████████] 100%
 | Phase 16 P01 | 40 | 5 tasks | 16 files |
 | Phase 17 P01 | ~20min | 2 tasks | 4 files |
 | Phase 17 P02 | ~14min | 2 tasks | 6 files |
+| Phase Phase 20 PP01 | 12min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -327,6 +328,8 @@ Recent decisions affecting current work:
 - Phase 17 Plan 17-02 Scenario 3 reformulated from 2-run to 3-run idempotency proof — D-06 marker-clear legitimately shifts cohort placements between Run 1 and Run 2, so idempotency must be verified Run 2 vs Run 3 (stable rebalanceable set)
 - Cancel button label flips Cancel↔Close in RebalanceDialog based on update_count=0 empty state — small UX lift preserving semantic consistency of the remaining button
 - Radix Dialog jsdom polyfill stack cataloged in tests/unit/rebalance-dialog.test.tsx: matchMedia + ResizeObserver + hasPointerCapture + scrollIntoView — canonical reference for future 'use client' Dialog tests
+- Phase 20 TEST-01: Adopted Option C (flow-assertions) for core-loop E2E — band-transition assertions are brittle under LOAD's ±tolerance + load-map scoring; flow evidence (dialog visibility + toast + PB REST count delta) is the stable contract
+- Phase 20 TEST-01: seedCompletion uses POST-then-PATCH with next_due_smoothed='' + reschedule_marker='' to escape computeNextDue's smoothed-branch shadow (Phase 12 LOAD + Phase 13 TCSEM interaction)
 
 ### Pending Todos
 
@@ -352,8 +355,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-23T02:21:43.020Z
-Stopped at: Completed 17-02-P01-PLAN.md (Phase 17 Wave 2 UI + integration — all 7 REBAL REQs closed)
+Last session: 2026-04-23T12:47:05.587Z
+Stopped at: Completed 20-01-P01-PLAN.md — Phase 20 E2E Test Stabilization (TEST-01 closed; TEST-02 pending CI)
 Resume file: None
 
 **Planned Phase:** 17 () — 0 plans — 2026-04-23T01:11:23.880Z

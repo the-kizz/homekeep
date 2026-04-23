@@ -628,12 +628,13 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ### E2E Test Stabilization (TEST)
 
-- [ ] **TEST-01**: `core-loop.spec.ts` Scenario 1 + Scenario 2 pass in CI — back-dated-completion + LOAD-aware seed strategy documented and adopted
+- [x] **TEST-01
+**: `core-loop.spec.ts` Scenario 1 + Scenario 2 pass in CI — back-dated-completion + LOAD-aware seed strategy documented and adopted
 - [ ] **TEST-02**: CI E2E suite shows 23/23 passing; GHCR tier strategy advances `:latest` and `:1.1` tags on next release push
 
 **Traceability:**
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| TEST-01 | Phase 20 | Pending |
-| TEST-02 | Phase 20 | Pending |
+| TEST-01 | Phase 20 (Plan 20-01) | Complete |
+| TEST-02 | Phase 20 | Pending (closes on next CI green + stable tag push) |

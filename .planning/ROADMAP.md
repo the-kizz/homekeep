@@ -441,4 +441,4 @@ Plans:
 **Plans**: 1 plan (3 tasks)
 
 Plans:
-- [ ] 20-01-P01-PLAN.md — Stabilize Scenario 1+2 under LOAD (seedCompletion PATCH + Option C flow-assertions + LOAD-aware doc block)
+- [x] 20-01-P01-PLAN.md — Stabilize Scenario 1+2 under LOAD (seedCompletion PATCH + Option C flow-assertions + LOAD-aware doc block)
