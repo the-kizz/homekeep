@@ -7,6 +7,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write  # OIDC token for cosign keyless signing (SUPPLY-01)
 
 concurrency:
   group: release-${{ github.workflow }}-${{ github.ref }}
@@ -56,6 +57,7 @@ jobs:
             type=raw,value=beta,enable=${{ contains(github.ref_name, '-beta') }}
 
       - name: Build and push multi-arch
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -70,6 +72,20 @@ jobs:
             PB_VERSION=0.37.1
             S6_OVERLAY_VERSION=3.2.2.0
             HK_BUILD_ID=hk-${{ github.sha }}
+
+      # SUPPLY-01: Cosign keyless signing via GitHub OIDC.
+      # Signature is bound to workflow identity (repo + branch + workflow),
+      # no long-lived keys to manage. Verify with:
+      #   cosign verify ghcr.io/conroyke56/homekeep:<tag> \
+      #     --certificate-identity-regexp "^https://github.com/conroyke56/homekeep/.github/workflows/release.yml@.+" \
+      #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+      - name: Sign image with cosign
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign sign --yes "ghcr.io/${{ github.repository }}@${DIGEST}"
 
       - name: Verify multi-arch manifest
         # Use the semver-stripped tag from metadata-action (e.g. '1.0.0-rc1', not 'v1.0.0-rc1').
