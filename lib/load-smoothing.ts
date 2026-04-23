@@ -178,6 +178,34 @@ export function placeNextDue(
   // + freq which is ≥ now by construction for non-overdue tasks).
   void now;
 
+  // Phase 19 PATCH-03 — self-exclusion. The target task's OWN current
+  // smoothed contribution must NOT influence its re-placement. Without
+  // this, a repeat rebalance run over a stable set sees the task's own
+  // May-15 contribution when trying to re-score May-15 for itself — so
+  // it shifts away from its already-good slot each run and idempotency
+  // collapses (rebalance-integration Scenario 3 RED pre-patch).
+  //
+  // Clone the map so input is never mutated (LOAD-11 forward-only
+  // contract stays intact for callers). Only applies when the task
+  // already has a smoothed contribution in the map (post-v1.0 rows
+  // or post-rebalance); for creation / first-placement paths the
+  // subtraction is a no-op (prev falsy → skip). T-19-03 mitigated via
+  // the `prev > 0` guard.
+  const load = new Map(householdLoad);
+  if (task.next_due_smoothed) {
+    try {
+      const currentEffective = new Date(task.next_due_smoothed);
+      if (!isNaN(currentEffective.getTime())) {
+        const k = isoDateKey(currentEffective, options.timezone ?? 'UTC');
+        const prev = load.get(k) ?? 0;
+        if (prev > 0) load.set(k, prev - 1);
+      }
+    } catch {
+      // ignore — stale / corrupt smoothed value falls through; scoring
+      // without self-exclusion is still correct for the fresh case.
+    }
+  }
+
   // frequency_days is a positive integer here — OOFT path short-circuited
   // above. TS flow analysis can't see through isOoftTask, so we narrow
   // manually via `as number`.
@@ -221,10 +249,13 @@ export function placeNextDue(
   }
 
   // Step 6: score each candidate via Map lookup.
+  // Phase 19 PATCH-03: score against `load` (self-excluded clone),
+  // NOT the original `householdLoad` — the target task's own
+  // contribution was subtracted above so it cannot dodge itself.
   const tz = options.timezone ?? 'UTC';
   const scored = filtered.map((d) => ({
     date: d,
-    score: householdLoad.get(isoDateKey(d, tz)) ?? 0,
+    score: load.get(isoDateKey(d, tz)) ?? 0,
     distanceFromIdeal: Math.abs(differenceInDays(d, naturalIdeal)),
     time: d.getTime(),
   }));
