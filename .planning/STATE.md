@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Scheduling & Flexibility
 status: verifying
-stopped_at: Completed 24-01-P01-PLAN.md — HDR-01..04 shipped (CSP-Report-Only + HSTS + build-id stealth)
-last_updated: "2026-04-23T21:47:31.428Z"
+stopped_at: Completed 26-01-P01-PLAN.md — DEMO-01..05 shipped (docker-compose.demo overlay + ephemeral seeding + cleanup cron + amber banner + Caddy block)
+last_updated: "2026-04-23T22:55:24.421Z"
 last_activity: 2026-04-23
 progress:
   total_phases: 19
@@ -118,6 +118,7 @@ Progress: [██████████] 100%
 | Phase Phase 20 PP01 | 12min | 3 tasks | 1 files |
 | Phase 21 P01 | 8 | 1 tasks | 4 files |
 | Phase 24 P01-P01 | 20min | 4 tasks | 10 files |
+| Phase Phase 26 PP01 | 16min | 5 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -338,6 +339,11 @@ Recent decisions affecting current work:
 - 24-01: Triple-layer headers (Next + internal Caddy + external Caddy) — defense-in-depth
 - 24-01: HK_BUILD_STEALTH gate applies to header + meta + .well-known (Rule 2 expansion) — all public build-id surfaces redacted uniformly
 - 24-01: getBuildIdPublic() is a function not a const — per-call env read, no rebuild needed to flip stealth
+- 26-01: docker-compose.demo.yml tmpfs /app/data (256m cap) with DEMO_MODE=true gating seed-session helper + banner + cleanup cron
+- 26-01: Rule 1 fix in pb_hooks/demo_cleanup.pb.js — ISO Date.toISOString().replace('T',' ') required before embedding in PB filter (PB 0.37.x stores space-separated datetimes, lexicographic compare against ISO-T would match every row)
+- 26-01: Ephemeral demo-session cookie 'homekeep_demo_session'=userId (24h), pb_auth minted via PB 0.22+ users.impersonate(userId, 86400) on resume path
+- 26-01: Caddyfile.demo replaces Caddyfile.prod on demo deploys; NO ALLOW_PUBLIC_ADMIN_UI escape hatch (demo host never permits admin UI at edge)
+- 26-01: Port 18106 claimed for demo-session-integration.test.ts (allocation register 18090..18106; 18107+ reserved for Phase 27+)
 
 ### Pending Todos
 
@@ -363,8 +369,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-04-23T21:47:31.409Z
-Stopped at: Completed 24-01-P01-PLAN.md — HDR-01..04 shipped (CSP-Report-Only + HSTS + build-id stealth)
+Last session: 2026-04-23T22:55:12.552Z
+Stopped at: Completed 26-01-P01-PLAN.md — DEMO-01..05 shipped (docker-compose.demo overlay + ephemeral seeding + cleanup cron + amber banner + Caddy block)
 Resume file: None
 
 **Planned Phase:** 17 () — 0 plans — 2026-04-23T01:11:23.880Z

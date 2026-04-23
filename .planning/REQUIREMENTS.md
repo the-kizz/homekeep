@@ -710,11 +710,16 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ### Demo Instance Architecture (DEMO)
 
-- [ ] **DEMO-01**: New `docker/docker-compose.demo.yml` overlay — tmpfs for `/app/data/pb_data` (ephemeral), `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, SMTP disabled, `NTFY_URL=""`, `PB_ADMIN_EMAIL` scoped to throwaway account.
-- [ ] **DEMO-02**: Per-visitor ephemeral home — admin-client helper seeds a home + 3 areas + 15 seed tasks on first visit, keyed by session cookie; reset on cookie expiry.
-- [ ] **DEMO-03**: 2-hour idle cron wipes demo PB state; 24-hour absolute TTL regardless of activity.
-- [ ] **DEMO-04**: Demo landing page warns "This is a demo. Data resets every 2 hours. Do not enter real info."
-- [ ] **DEMO-05**: `demo.homekeep.example` subdomain separate from production VPS (or dedicated port on same VPS).
+- [x] **DEMO-01
+**: New `docker/docker-compose.demo.yml` overlay — tmpfs for `/app/data/pb_data` (ephemeral), `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, SMTP disabled, `NTFY_URL=""`, `PB_ADMIN_EMAIL` scoped to throwaway account.
+- [x] **DEMO-02
+**: Per-visitor ephemeral home — admin-client helper seeds a home + 3 areas + 15 seed tasks on first visit, keyed by session cookie; reset on cookie expiry.
+- [x] **DEMO-03
+**: 2-hour idle cron wipes demo PB state; 24-hour absolute TTL regardless of activity.
+- [x] **DEMO-04
+**: Demo landing page warns "This is a demo. Data resets every 2 hours. Do not enter real info."
+- [x] **DEMO-05
+**: `demo.homekeep.example` subdomain separate from production VPS (or dedicated port on same VPS).
 
 ### Supply Chain Hardening (SUPPLY)
 
