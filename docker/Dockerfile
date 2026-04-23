@@ -1,9 +1,16 @@
 # syntax=docker/dockerfile:1.7
 
+# SUPPLY-04: Base images are digest-pinned so rebuilds across time are
+# bit-identical. Dependabot (`.github/dependabot.yml`, `docker` ecosystem)
+# watches these pins weekly and opens PRs when upstream publishes a new
+# digest, so we get CVE patches without silent rebase drift.
+# Human-readable tags are kept in the comment after the digest.
 ARG NODE_VERSION=22-alpine
+ARG NODE_DIGEST=sha256:8ea2348b068a9544dae7317b4f3aafcdc032df1647bb7d768a05a5cad1a7683f
 ARG PB_VERSION=0.37.1
 ARG S6_OVERLAY_VERSION=3.2.2.0
 ARG CADDY_VERSION=2.11.2
+ARG CADDY_DIGEST=sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d
 
 # Tier-3 canary — unique build fingerprint. Injected via
 #   docker buildx build --build-arg HK_BUILD_ID=hk-<uuid>
@@ -14,7 +21,7 @@ ARG HK_BUILD_ID=hk-dev-local
 ############################################
 # 1. deps
 ############################################
-FROM node:${NODE_VERSION} AS deps
+FROM node:${NODE_VERSION}@${NODE_DIGEST} AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -22,7 +29,7 @@ RUN npm ci --no-audit --no-fund
 ############################################
 # 2. builder
 ############################################
-FROM node:${NODE_VERSION} AS builder
+FROM node:${NODE_VERSION}@${NODE_DIGEST} AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -31,7 +38,7 @@ RUN npm run build
 ############################################
 # 3. runtime
 ############################################
-FROM node:${NODE_VERSION} AS runtime
+FROM node:${NODE_VERSION}@${NODE_DIGEST} AS runtime
 ARG TARGETARCH
 ARG PB_VERSION
 ARG S6_OVERLAY_VERSION
@@ -62,8 +69,8 @@ RUN case "${TARGETARCH}" in \
     && tar -C / -Jxpf "s6-overlay-${S6_ARCH}.tar.xz" \
     && rm -f "/tmp/s6-overlay-${S6_ARCH}.tar.xz" "/tmp/s6-overlay-${S6_ARCH}.tar.xz.sha256"
 
-# Caddy 2.11.2 static binary from official image
-COPY --from=caddy:2.11.2-alpine /usr/bin/caddy /usr/bin/caddy
+# Caddy 2.11.2 static binary from official image (digest-pinned; see SUPPLY-04)
+COPY --from=caddy:2.11.2-alpine@sha256:834468128c7696cec0ceea6172f7d692daf645ae51983ca76e39da54a97c570d /usr/bin/caddy /usr/bin/caddy
 
 # PocketBase 0.37.1 (checksum-verified).
 # Save the zip under its upstream filename so the checksum line from checksums.txt
