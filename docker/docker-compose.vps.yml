@@ -1,0 +1,11 @@
+# VPS deployment override: pull from GHCR + named volume (avoids host bind-mount
+# UID issues under userns-remap on Hetzner VPS per STATE.md v1.0 learning).
+services:
+  homekeep:
+    image: ghcr.io/${GHCR_OWNER:-conroyke56}/homekeep:${TAG:-latest}
+    volumes:
+      - homekeep_data:/app/data
+volumes:
+  homekeep_data:
+    external: true
+    name: docker_homekeep_data

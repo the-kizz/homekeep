@@ -8,7 +8,30 @@ A self-hosted, open-source household maintenance PWA for couples and families. E
 
 The household's recurring maintenance is visible, evenly distributed, and nothing falls through the cracks — without creating anxiety or guilt.
 
-## Current Milestone: v1.1 Scheduling & Flexibility
+## Current Milestone: v1.2-security — Red Team Audit & Public-Facing Hardening
+
+**Goal:** Prove HomeKeep is safe to expose on a public-facing VPS + safe to install and run by anyone pulling the Docker image. Red-team audit, penetration-probe the running demo, and ship a hardening pass across auth, deployment config, supply chain, and documentation — before announcing the project more widely.
+
+**Target outcomes:**
+- **No HIGH/CRITICAL findings from the audit remain open** (3 CRITICAL + ~10 HIGH identified in discovery research)
+- **PB admin `/_/` blocked from public** in default compose + Caddy overlays
+- **All live secrets rotated** on the VPS (PB admin password, scheduler token, GitHub PAT scopes reviewed)
+- **Security headers present** on every response — CSP (Report-Only → enforce), HSTS, X-Frame, Permissions-Policy, Referrer-Policy
+- **All template-literal PB filters eliminated** (currently ~20 sites including scheduler under admin client)
+- **Row-creation + signup + invite-accept rate limits** proportional to threat
+- **Demo-instance architecture** documented + shippable (ephemeral home, tmpfs PB, no SMTP, no ntfy, build-id redacted)
+- **Supply-chain hardening** — cosign signed images + SBOM + SHA-pinned GitHub Actions
+- **SECURITY.md published** — threat model, supported versions, responsible-disclosure policy
+
+**Discovery:** 4 parallel security researchers (attack-surface, auth/access-control, public-facing, supply-chain) produced reports under `.planning/v1.2-security/research/` on 2026-04-23. Headline: 0 critical auth-bypass / RCE / SQL-injection vulnerabilities; 3 CRITICAL *deployment* exposures (admin UI publicly proxied, weak live secrets, GitHub PAT on prod VPS); ~10 HIGH hardening gaps (headers, filter-injection sweep, rate limits, row quotas, PB rule tightening).
+
+**Scope boundary:** Pure hardening + audit milestone. No new user-facing features. No data-model changes (exception: PB rule tightening + row quotas at migration level). All fixes must be additive — existing v1.1.1 deployments upgrade without data migration.
+
+## Previous Milestone: v1.1 Scheduling & Flexibility (shipped 2026-04-23)
+
+Archived to `.planning/milestones/v1.1-ROADMAP.md`. Key deliverables: LOAD smoother, LVIZ horizon density + ⚖️ badges, TCSEM task creation semantics, REBAL manual rebalance, OOFT one-off tasks, PREF preferred-days constraint, SEAS seasonal windows, SNZE snooze + reschedule, v0.4 SPEC + AGPL drift fix. 598/598 tests, 69/69 REQs, tagged `v1.1.0-rc1`. v1.1.1 patch (2026-04-23) closed three interacting seasonal/LOAD bugs + 2 test-methodology fixes + INFR-03 image budget bump; tagged `v1.1.1`, GHCR tiered tags advanced.
+
+## v1.1 Scheduling & Flexibility (historic goal)
 
 **Goal:** Deliver the SPEC thesis — *"spread the year's work evenly across weeks so nothing piles up"* — by making tasks know about each other. Per-task flexibility (one-off, preferred-days, seasonal, snooze) becomes the substrate; household-global LOAD smoothing is the user-visible payoff.
 

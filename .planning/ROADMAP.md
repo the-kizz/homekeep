@@ -461,3 +461,159 @@ Plans:
 
 Plans:
 - [ ] 21-01-P01-PLAN.md — Raise INFR-03 image budget 300MB → 320MB (script + SPEC §15 + PROJECT.md + ci.yml label); four forward source-of-truth edits, no code/workflow logic changes.
+
+---
+
+## v1.2-security: Red Team Audit & Public-Facing Hardening
+
+**Discovery:** 4 parallel researchers (attack-surface, auth/access-control, public-facing, supply-chain) on 2026-04-23. Reports under `.planning/v1.2-security/research/`.
+**Audit verdict:** 0 critical auth-bypass/RCE; 3 CRITICAL deployment exposures; ~10 HIGH hardening gaps. Safe to fix incrementally (hotfix first, structural fixes follow).
+
+### Phase 22: Emergency Deployment Hotfix
+
+**Goal**: Same-day triage of the 3 CRITICAL deployment exposures before they can be exploited. Pure ops — no code changes to core app.
+
+**Depends on**: v1.1.1 shipped
+**Requirements**: HOTFIX-01, HOTFIX-02, HOTFIX-03
+
+**Success Criteria**:
+  1. `curl -s http://46.62.151.57:3000/_/` returns 404 (not PB admin login page)
+  2. `docker/.env` contains freshly-generated secrets (openssl rand), permission 600
+  3. GitHub PAT in `/root/projects/homekeep/.env` replaced with fine-grained scope, old PAT revoked in GitHub settings
+  4. VPS container restarted with new secrets
+  5. Health endpoint still responds ok after rotation
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 22-01: TBD
+
+### Phase 23: Code Attack Surface Sweep
+
+**Goal**: Close remaining code-level security gaps identified in research: filter-injection sweep, PB rule tightening, timing-safe comparisons, cross-field validation.
+
+**Depends on**: Phase 22
+**Requirements**: SEC-01..07
+
+**Success Criteria**:
+  1. `grep 'filter: \`' app/ lib/` returns zero matches (all callers use `pb.filter(...)`)
+  2. `schedule_overrides` migration adds body-check rule; integration test proves forged attribution rejected
+  3. Admin scheduler token uses `crypto.timingSafeEqual`
+  4. updateTask rejects cross-home area_id; unit test proves
+  5. 610 unit + 23 E2E still green
+
+**Plans**: 2 plans (estimate)
+
+Plans:
+- [ ] 23-01: TBD
+- [ ] 23-02: TBD
+
+### Phase 24: HTTP Headers + Transport
+
+**Goal**: Ship CSP (Report-Only initially), HSTS, X-Frame, Permissions-Policy, Referrer-Policy across both Next.js and Caddy layers. 30-day Report-Only soak before enforcement.
+
+**Depends on**: Phase 23
+**Requirements**: HDR-01..04
+
+**Success Criteria**:
+  1. `curl -sI https://<deployment>/` returns all 5 security headers
+  2. `/api/csp-report` accepts reports without 500s; no PII logged
+  3. `HK_BUILD_STEALTH=true` env flag redacts build ID to `hk-hidden`
+  4. Frontend renders correctly under Report-Only (no blocked resources)
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 24-01: TBD
+
+### Phase 25: Rate Limits + Abuse Prevention
+
+**Goal**: Tighten rate limits + add row-creation quotas so the open-signup model can't be weaponized on a public deployment.
+
+**Depends on**: Phase 22 (hotfix must land first)
+**Requirements**: RATE-01..06
+
+**Success Criteria**:
+  1. Owner can't create 6th home (PB rule rejects)
+  2. Home can't accept 501st task or 11th area
+  3. Signup bucket 10/60s per-IP; E2E still passes with 5s wait between scenarios
+  4. Invite-accept lockout after 3 failed attempts on same token
+  5. Ntfy topic `alice` rejected by zod schema; `alice-7k3q2m9` accepted
+
+**Plans**: 2 plans (estimate)
+
+Plans:
+- [ ] 25-01: TBD
+- [ ] 25-02: TBD
+
+### Phase 26: Demo Instance Architecture
+
+**Goal**: Ship a safe public demo pattern — ephemeral per-visitor home, tmpfs PB, 2-hour reset. Operators can `docker compose -f docker-compose.demo.yml up` to run a throwaway instance.
+
+**Depends on**: Phase 22, 23, 24, 25
+**Requirements**: DEMO-01..05
+
+**Success Criteria**:
+  1. `docker compose -f docker-compose.demo.yml up -d` boots an isolated demo
+  2. Container restart wipes PB data (tmpfs)
+  3. First-visit cookie triggers home+area+task seed via admin client
+  4. Cron job clears idle sessions (>2h); 24h absolute TTL
+  5. Landing page warns about reset semantics
+
+**Plans**: 2 plans (estimate)
+
+Plans:
+- [ ] 26-01: TBD
+- [ ] 26-02: TBD
+
+### Phase 27: Supply Chain Hardening
+
+**Goal**: Cosign-signed images, SBOM, SLSA provenance, SHA-pinned GitHub Actions, digest-pinned base images. Closes Phase 7's deferred supply-chain item.
+
+**Depends on**: none (can run parallel to 23-26 since it only touches CI)
+**Requirements**: SUPPLY-01..06
+
+**Success Criteria**:
+  1. `cosign verify ghcr.io/conroyke56/homekeep:v1.2.0 ...` passes
+  2. SBOM (SPDX or CycloneDX) attached to GHCR release
+  3. `grep 'uses:.*@v[0-9]$' .github/workflows/` returns zero (all SHA-pinned)
+  4. `FROM node:22-alpine@sha256:...` in Dockerfile (digest-pinned)
+  5. Dependabot config for SHA auto-bumps
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 27-01: TBD
+
+### Phase 28: SECURITY.md + Responsible Disclosure
+
+**Goal**: Publish SECURITY.md with threat model, supported versions, disclosure policy. Ship operator hardening checklist. Update SPEC.md v0.5 changelog.
+
+**Depends on**: Phase 22..27 (documents what was shipped)
+**Requirements**: SECDOC-01..04
+
+**Success Criteria**:
+  1. `SECURITY.md` at repo root with all sections: supported versions, threat model, disclosure email + PGP, scope, SLA
+  2. `docs/deployment-hardening.md` — 15-item operator checklist
+  3. README links SECURITY.md
+  4. SPEC.md v0.5 changelog documents every SEC/HDR/RATE/SUPPLY item
+
+**Plans**: 1 plan
+
+Plans:
+- [ ] 28-01: TBD
+
+## Progress (v1.2-security)
+
+**Execution Order:**
+22 → 23 → (24, 25 parallel) → 26 → (27 parallel anywhere) → 28
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 22. Emergency Deployment Hotfix | 0/1 | Not started | - |
+| 23. Code Attack Surface Sweep | 0/2 | Not started | - |
+| 24. HTTP Headers + Transport | 0/1 | Not started | - |
+| 25. Rate Limits + Abuse Prevention | 0/2 | Not started | - |
+| 26. Demo Instance Architecture | 0/2 | Not started | - |
+| 27. Supply Chain Hardening | 0/1 | Not started | - |
+| 28. SECURITY.md + Responsible Disclosure | 0/1 | Not started | - |
