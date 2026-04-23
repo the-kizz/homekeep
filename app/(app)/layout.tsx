@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createServerClient } from '@/lib/pocketbase-server';
+import { createServerClientWithRefresh } from '@/lib/pocketbase-server';
 import { AccountMenu } from '@/components/account-menu';
 import { HomeSwitcher } from '@/components/home-switcher';
 
@@ -26,7 +26,14 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pb = await createServerClient();
+  // Phase 23 SEC-07: use the refresh variant at the authed route
+  // boundary so the PB token is re-validated + rotated on every
+  // authed render. One extra PB roundtrip per (app) request —
+  // acceptable cost for the defense: stale/revoked tokens are
+  // rejected here rather than surfacing as a 401 from some
+  // subsequent collection call (or worse, silently succeeding
+  // because a downstream path didn't re-check isValid).
+  const pb = await createServerClientWithRefresh();
   if (!pb.authStore.isValid) {
     redirect('/login');
   }
