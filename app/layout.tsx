@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Geist, Lora } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
+import { DemoBanner } from '@/components/demo-banner';
 import { HOMEKEEP_BUILD, getBuildIdPublic } from '@/lib/constants';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -64,6 +65,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen antialiased">
         {/* HomeKeep (https://github.com/conroyke56/homekeep) — AGPL-3.0-or-later. */}
+        {/*
+         * Phase 26 DEMO-04: amber warning banner on public demo instances.
+         * Returns null on personal instances (DEMO_MODE unset) — zero bytes
+         * shipped to the client.
+         */}
+        <DemoBanner />
         {children}
         <Toaster />
       </body>
