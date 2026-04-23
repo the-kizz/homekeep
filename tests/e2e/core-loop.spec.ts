@@ -2,38 +2,62 @@ import { test, expect, type APIRequestContext, type Page } from '@playwright/tes
 import { skipOnboardingIfPresent } from './helpers';
 
 /**
- * D-21 Phase 3 core-loop E2E (03-03 Plan Task 3).
+ * Phase 3 core-loop E2E — stabilized under Phase 12 LOAD + Phase 13 TCSEM.
  *
- * Two scenarios cover the entire tap-to-complete flow end-to-end:
+ * === LOAD-aware seed pattern (Phase 20 TEST-01) ===
+ *
+ * Post-Phase-12, `createTaskAction` writes `next_due_smoothed` at task-
+ * insert time (Phase 13 TCSEM-04, `lib/actions/tasks.ts:296-307`).
+ * `completeTaskAction` re-writes it on completion (Phase 12 LOAD-10,
+ * `lib/actions/completions.ts:343-358`). `computeNextDue`'s smoothed
+ * branch (`lib/task-scheduling.ts:255-281`) short-circuits on that field
+ * BEFORE the natural-cycle branch runs — so a back-dated completion
+ * seeded via PB REST is INVISIBLE to band classification unless the
+ * smoothed field is cleared.
+ *
+ * Specs that seed back-dated completions to control task placement MUST
+ * also null `tasks.next_due_smoothed` AND (defensively, Phase 15+)
+ * `tasks.reschedule_marker` via a follow-up PATCH. See `seedCompletion`.
+ *
+ * For tests that care about the completion FLOW (guard fires/does-not-
+ * fire, toast appears, completion record persisted) — NOT about post-
+ * completion band transitions — prefer flow-assertion evidence:
+ *   (a) [data-testid="early-completion-dialog"] visibility (or count=0)
+ *   (b) page.getByText(/Done — next due/) with { timeout: 5000 }
+ *   (c) PB REST completion-count delta via getCompletionCount()
+ *
+ * Band-transition semantics are already covered exhaustively in unit
+ * tests: `tests/unit/band-classification.test.ts` (21+ cases) and
+ * `tests/unit/early-completion-guard.test.ts` (8 cases). Duplicating
+ * them in E2E is brittle under LOAD's ±tolerance + load-map scoring.
+ *
+ * Why Scenario 2 does NOT leave Overdue after completion (verified
+ * against completions.ts:149-166 + :343-358 in Phase 20 research):
+ * `placeNextDue` inside `completeTaskAction`'s batch uses the PRE-batch
+ * `lastCompletion` fetch, NOT the just-queued fresh completion. For a
+ * seed 10d ago + freq 7d, `naturalIdeal = -10d + 7d = -3d`, placed in
+ * `{-4d, -3d, -2d}` window — all < localMidnight → task STAYS in
+ * Overdue. Assert on flow evidence, not band transition.
+ *
+ * === Pre-existing notes ===
  *
  * Scenario 1 — early-completion guard fires when a recent completion exists
  *   Flow: signup -> home -> Kitchen -> Weekly (7d cycle) "Wipe benches".
- *   Seed a completion dated ONE day ago (via the PB REST API as the newly-
- *   signed-up user). The task's nextDue is now (yesterday + 7d) = ~6 days
- *   from now, placing it in the This Week band. Because elapsed since
- *   that completion is 1d < 0.25 * 7d = 1.75d, the early-completion guard
- *   fires when the user taps the row. Accepting ("Mark done anyway")
- *   records a fresh completion, the toast appears, and the task leaves
- *   This Week (nextDue shifts ~7d into the future).
- *
- *   NOTE on why we don't rely on task.created alone: PB's `created` field
- *   is an AutodateField (onCreate: true) which the server always stamps
- *   at insert time and is not client-settable. A brand-new Weekly task
- *   therefore has nextDue = now + 7d, which lands in Horizon, not This
- *   Week — the band classification boundary is strict (<= 7d of local
- *   midnight). Seeding a back-dated completion is the path the guard
- *   was designed to handle (see lib/early-completion-guard.ts: the
- *   reference is always the LATEST completion when one exists).
+ *   Seed a completion dated ONE day ago. With `next_due_smoothed` cleared
+ *   by the PATCH, the natural cycle branch resolves nextDue = -1d + 7d =
+ *   +6d, placing it in This Week. Elapsed 1d < 0.25*7d = 1.75d → guard
+ *   fires. Accepting ("Mark done anyway") records a fresh completion and
+ *   the toast appears. Under LOAD the task remains in This Week (re-
+ *   placement candidates {T+5d, T+6d, T+7d} — all within band).
  *
  * Scenario 2 — stale task in Overdue, no guard fires
- *   Same signup/home/task scaffolding, but seed a completion dated
- *   TEN days ago. nextDue = 10d ago + 7d = 3d ago → Overdue band.
- *   Tapping the row: elapsed 10d >> 1.75d threshold → guard does NOT
- *   fire. A completion is recorded immediately and the toast appears.
- *   The task moves out of Overdue (its new nextDue is ~7d from now,
- *   which under Perth/UTC+8 lands in Horizon, not This Week).
+ *   Same scaffolding, but seed a completion dated TEN days ago. With
+ *   `next_due_smoothed` cleared, natural cycle resolves nextDue = -10d
+ *   + 7d = -3d → Overdue. Elapsed 10d > 1.75d threshold → guard does
+ *   NOT fire. Toast appears immediately. Under LOAD the task STAYS in
+ *   Overdue after completion (see "Why Scenario 2..." note above).
  *
- * Flake mitigations:
+ * Flake mitigations (preserve — still relevant):
  *   - Unique email per scenario via Date.now() + random suffix.
  *   - URL regex uses {15} for PB id length — prevents the ambiguous
  *     `/h/new` match that would otherwise let `expect(toHaveURL)` return
@@ -141,6 +165,17 @@ async function findTaskId(
  * Seeds a completion whose completed_at is `daysAgo` days before now.
  * PB's completions.createRule requires `completed_by_id = @request.auth.id`,
  * so we send userId in the body.
+ *
+ * Phase 20 TEST-01: After the POST, PATCH the task to null
+ * `next_due_smoothed` AND `reschedule_marker` (Phase 15 defensive
+ * forward-compat). Without this, `computeNextDue`'s smoothed branch
+ * (lib/task-scheduling.ts:255-281) short-circuits on the value that
+ * `createTaskAction` wrote at insert time (Phase 13 TCSEM-04), and
+ * the back-dated completion is invisible to band classification.
+ *
+ * Empty-string (not null) matches production-writer convention
+ * (lib/actions/tasks.ts:344, lib/actions/completions.ts:357). PB
+ * 0.37.1 nullable DateField accepts both and stores as null.
  */
 async function seedCompletion(
   request: APIRequestContext,
@@ -150,7 +185,8 @@ async function seedCompletion(
   daysAgo: number,
 ) {
   const completedAt = new Date(Date.now() - daysAgo * 86400000).toISOString();
-  const res = await request.post(
+  // Step 1: POST the back-dated completion.
+  const postRes = await request.post(
     `${PB_URL}/api/collections/completions/records`,
     {
       headers: { Authorization: token },
@@ -163,7 +199,41 @@ async function seedCompletion(
       },
     },
   );
+  expect(postRes.ok()).toBeTruthy();
+
+  // Step 2: Null the Phase 12 + Phase 15 shadow fields so
+  // computeNextDue falls through to the natural-cycle branch.
+  const patchRes = await request.patch(
+    `${PB_URL}/api/collections/tasks/records/${taskId}`,
+    {
+      headers: { Authorization: token },
+      data: {
+        next_due_smoothed: '',
+        reschedule_marker: '',
+      },
+    },
+  );
+  expect(patchRes.ok()).toBeTruthy();
+}
+
+/**
+ * Returns the count of completions for a given task via PB REST.
+ * Uses `?perPage=1` + `body.totalItems` for constant-time count.
+ * Phase 20 TEST-01: flow-assertion evidence that a completion was
+ * actually persisted (replaces the brittle band-exit assertion).
+ */
+async function getCompletionCount(
+  request: APIRequestContext,
+  token: string,
+  taskId: string,
+): Promise<number> {
+  const res = await request.get(
+    `${PB_URL}/api/collections/completions/records?filter=${encodeURIComponent(`task_id = "${taskId}"`)}&perPage=1`,
+    { headers: { Authorization: token } },
+  );
   expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return (body?.totalItems ?? 0) as number;
 }
 
 function extractHomeId(homeUrl: string): string {
