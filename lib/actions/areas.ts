@@ -79,7 +79,7 @@ export async function createArea(
     // at 0 from the hook, but this is a safe default — E2E reorder test
     // re-writes sort_order anyway).
     const existing = await pb.collection('areas').getFullList({
-      filter: `home_id = "${parsed.data.home_id}"`,
+      filter: pb.filter('home_id = {:hid}', { hid: parsed.data.home_id }),
       sort: '-sort_order',
       fields: 'sort_order',
     });

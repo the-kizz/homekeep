@@ -35,7 +35,7 @@ export default async function AreasPage({
   }
 
   const areas = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     sort: 'sort_order,name',
     fields: 'id,name,icon,color,sort_order,is_whole_home_system',
   });

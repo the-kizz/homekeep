@@ -53,7 +53,7 @@ export default async function AreaDetailPage({
   }
 
   const tasksRaw = await pb.collection('tasks').getFullList({
-    filter: `area_id = "${areaId}" && archived = false`,
+    filter: pb.filter('area_id = {:aid} && archived = false', { aid: areaId }),
     sort: '-created',
     fields:
       'id,name,created,frequency_days,schedule_mode,anchor_date,archived',

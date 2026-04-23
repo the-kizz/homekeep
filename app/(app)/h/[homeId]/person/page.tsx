@@ -74,7 +74,7 @@ export default async function PersonPage({
 
   // Members (for cascade + history display names).
   const memberRows = await pb.collection('home_members').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     expand: 'user_id',
     fields:
       'id,role,user_id,expand.user_id.id,expand.user_id.name,expand.user_id.email',
@@ -98,7 +98,7 @@ export default async function PersonPage({
 
   // Areas (for default_assignee cascade).
   const areasRaw = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     fields: 'id,default_assignee_id',
   });
   const areaById = new Map<string, AreaLite>(
@@ -120,7 +120,7 @@ export default async function PersonPage({
   // shift map (⚖️ badges) + TaskDetailSheet (not used on Person view,
   // but field parity keeps the PersonTask type aligned with TaskWithName).
   const tasksRaw = await pb.collection('tasks').getFullList({
-    filter: `home_id = "${homeId}" && archived = false`,
+    filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
     fields:
       'id,name,area_id,created,frequency_days,schedule_mode,anchor_date,archived,assigned_to_id,active_from_month,active_to_month,next_due_smoothed,preferred_days,due_date,reschedule_marker',
   });

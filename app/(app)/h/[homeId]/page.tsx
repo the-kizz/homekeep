@@ -64,7 +64,7 @@ export default async function HomeDashboardPage({
   // cascading resolveAssignee can run server-side. Also drives the
   // AvatarStack in the dashboard header.
   const memberRows = await pb.collection('home_members').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     expand: 'user_id',
     fields:
       'id,role,user_id,expand.user_id.id,expand.user_id.name,expand.user_id.email',
@@ -87,7 +87,7 @@ export default async function HomeDashboardPage({
     .filter((m): m is Member => m !== null);
 
   const areasRaw = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     fields: 'id,default_assignee_id',
   });
   const areaById = new Map(
@@ -101,7 +101,7 @@ export default async function HomeDashboardPage({
   );
 
   const tasks = await pb.collection('tasks').getFullList({
-    filter: `home_id = "${homeId}" && archived = false`,
+    filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
     expand: 'area_id',
     // Phase 16 Plan 01 (LVIZ-03, LVIZ-05): widen projection to include
     // next_due_smoothed + preferred_days + due_date + reschedule_marker

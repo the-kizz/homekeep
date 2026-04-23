@@ -46,7 +46,7 @@ export default async function TaskDetailPage({
   }
 
   const areasRaw = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     sort: 'sort_order,name',
     fields: 'id,name',
   });
@@ -57,7 +57,7 @@ export default async function TaskDetailPage({
 
   // 04-03 TASK-02: members for the assignee dropdown (see new/page.tsx).
   const memberRows = await pb.collection('home_members').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     expand: 'user_id',
     fields:
       'id,user_id,expand.user_id.id,expand.user_id.name,expand.user_id.email',

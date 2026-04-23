@@ -41,7 +41,7 @@ export default async function HomesLandingPage() {
   }
 
   const homes = await pb.collection('homes').getFullList({
-    filter: `owner_id = "${userId}"`,
+    filter: pb.filter('owner_id = {:uid}', { uid: userId }),
     sort: '-created',
     fields: 'id,name,address',
   });

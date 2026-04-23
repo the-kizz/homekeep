@@ -47,7 +47,7 @@ export default async function OnboardingPage({
   }
 
   const areas = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     sort: 'sort_order,name',
     fields: 'id,name,is_whole_home_system',
   });

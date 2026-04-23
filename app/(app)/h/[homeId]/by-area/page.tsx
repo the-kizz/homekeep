@@ -63,13 +63,13 @@ export default async function ByAreaPage({
   }
 
   const areas = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     sort: 'sort_order,name',
     fields: 'id,name,icon,color,sort_order,is_whole_home_system',
   });
 
   const tasksRaw = await pb.collection('tasks').getFullList({
-    filter: `home_id = "${homeId}" && archived = false`,
+    filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
     fields:
       'id,name,area_id,created,frequency_days,schedule_mode,anchor_date,archived,active_from_month,active_to_month',
   });

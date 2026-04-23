@@ -76,7 +76,7 @@ export async function batchCreateSeedTasks(input: {
   let areaIds: Set<string>;
   try {
     const areas = await pb.collection('areas').getFullList({
-      filter: `home_id = "${parsed.data.home_id}"`,
+      filter: pb.filter('home_id = {:hid}', { hid: parsed.data.home_id }),
       fields: 'id',
     });
     areaIds = new Set(areas.map((a) => a.id as string));

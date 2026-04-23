@@ -65,7 +65,7 @@ export default async function AppLayout({
   // derived, not client input). Returns homes the user is a member of,
   // regardless of ownership role. Owner badge is derived from r.role.
   const membershipRows = await pb.collection('home_members').getFullList({
-    filter: `user_id = "${userId}"`,
+    filter: pb.filter('user_id = {:uid}', { uid: userId }),
     sort: 'home_id.name',
     fields:
       'id,role,home_id,expand.home_id.id,expand.home_id.name,expand.home_id.owner_id',

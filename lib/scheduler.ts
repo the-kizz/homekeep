@@ -163,7 +163,7 @@ async function fetchHomeMembers(
   homeId: string,
 ): Promise<MemberLite[]> {
   const rows = await pb.collection('home_members').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     expand: 'user_id',
   });
   return rows.map((r) => {
@@ -207,7 +207,7 @@ export async function processOverdueNotifications(
     if (eligible.length === 0) continue;
 
     const tasks = (await pb.collection('tasks').getFullList({
-      filter: `home_id = "${homeId}" && archived = false`,
+      filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
       fields:
         'id,home_id,name,frequency_days,schedule_mode,anchor_date,created,archived',
     })) as unknown as Array<Task & { name: string }>;
@@ -310,13 +310,13 @@ export async function processWeeklySummaries(
     if (eligible.length === 0) continue;
 
     const tasks = (await pb.collection('tasks').getFullList({
-      filter: `home_id = "${homeId}" && archived = false`,
+      filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
       fields:
         'id,home_id,area_id,name,frequency_days,schedule_mode,anchor_date,created,archived',
     })) as unknown as TaskWithAreaName[];
 
     const areas = (await pb.collection('areas').getFullList({
-      filter: `home_id = "${homeId}"`,
+      filter: pb.filter('home_id = {:hid}', { hid: homeId }),
       fields: 'id,name',
     })) as unknown as Array<{ id: string; name: string }>;
 

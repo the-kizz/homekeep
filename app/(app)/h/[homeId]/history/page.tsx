@@ -75,7 +75,7 @@ export default async function HistoryPage({
 
   // Members (for filter dropdown + timeline display names).
   const memberRows = await pb.collection('home_members').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     expand: 'user_id',
     fields:
       'id,user_id,expand.user_id.id,expand.user_id.name,expand.user_id.email',
@@ -97,7 +97,7 @@ export default async function HistoryPage({
 
   // Areas (filter dropdown + area chip color).
   const areasRaw = await pb.collection('areas').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     sort: 'sort_order,name',
     fields: 'id,name,color',
   });
@@ -114,7 +114,7 @@ export default async function HistoryPage({
 
   // Tasks (for taskAreaMap + name lookup).
   const tasksRaw = await pb.collection('tasks').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     fields: 'id,name,area_id',
   });
   const taskAreaMap = new Map<string, string>(

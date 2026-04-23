@@ -30,7 +30,7 @@ export default async function MembersPage({
   }
 
   const rows = await pb.collection('home_members').getFullList({
-    filter: `home_id = "${homeId}"`,
+    filter: pb.filter('home_id = {:hid}', { hid: homeId }),
     expand: 'user_id',
     sort: '-role,joined_at',
     fields:
