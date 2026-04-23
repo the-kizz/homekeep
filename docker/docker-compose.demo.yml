@@ -1,0 +1,83 @@
+# DEMO variant: ephemeral, public-facing demo instance.
+#
+# Usage (Phase 26 DEMO-01):
+#   docker compose \
+#     -f docker/docker-compose.yml \
+#     -f docker/docker-compose.caddy.yml \
+#     -f docker/docker-compose.demo.yml \
+#     --env-file docker/.env.demo \
+#     up -d
+#
+# Layered on top of docker-compose.yml (baseline) + docker-compose.caddy.yml
+# (external TLS terminator for homekeep.demo.kizz.space). The key divergences
+# from a regular production instance:
+#
+#   1. `/app/data/pb_data` is mounted as tmpfs — PB state NEVER hits disk.
+#      Container restart == total wipe, no cleanup needed beyond cron TTL.
+#   2. `DEMO_MODE=true` gates the per-visitor demo-session helper
+#      (lib/demo-session.ts) and the amber banner in app/layout.tsx.
+#   3. `DISABLE_SCHEDULER=true` prevents ntfy/email spam from ephemeral users.
+#   4. `HK_BUILD_STEALTH=true` redacts build-id emissions (Phase 24 HDR-04
+#      — meta tag, response header, .well-known/homekeep.json).
+#   5. `NTFY_URL=""` + `SMTP_HOST=""` — no outbound notifications from demo.
+#   6. Image comes from GHCR (not a local build) so demos always run a
+#      published version; TAG defaults to `latest` but `edge` can be pinned
+#      during active development.
+#
+# The docker-compose.yml baseline mounts `./data:/app/data` on the host.
+# We OVERRIDE the whole volumes section here so the pb_data subtree is
+# a fresh tmpfs per boot. The /app/data parent stays bind-mounted so the
+# PB binary, hooks, and migrations still resolve from the image (they
+# live at /app in the Dockerfile, NOT inside /app/data — the bind mount
+# only covers mutable runtime state).
+#
+# tmpfs sizing: pb_data for a single demo instance with ~20 concurrent
+# sessions stays well under 50MB. We cap at 256MB as a belt-and-braces
+# upper bound — if someone somehow fills it, the container OOMs cleanly
+# rather than corrupting shared VPS state.
+
+services:
+  homekeep:
+    # Image pin: supports `TAG=edge` during dev and `TAG=latest` in steady
+    # state. Users can override via docker/.env.demo.
+    image: ghcr.io/${GHCR_OWNER:-conroyke56}/homekeep:${TAG:-latest}
+
+    # Replace the baseline ./data bind-mount with tmpfs for PB state.
+    # The `volumes: !reset []` wipes the host bind-mount so it cannot
+    # persist across restarts (Compose v2.24+ reset-to-empty directive,
+    # matches the docker-compose.caddy.yml `ports: !reset []` idiom).
+    volumes: !reset []
+    tmpfs:
+      - /app/data:size=256m,mode=1777
+
+    environment:
+      # Gates lib/demo-session.ts + components/demo-banner.tsx +
+      # app/api/demo/session/route.ts. Every demo-specific code path
+      # is dead-code when this is any value other than the literal
+      # string 'true' (single source of truth).
+      - DEMO_MODE=true
+
+      # Kill the in-process cron — ephemeral demo users should never
+      # receive overdue/weekly-summary pings (they're fake accounts).
+      # See instrumentation.ts + lib/scheduler.ts.
+      - DISABLE_SCHEDULER=true
+
+      # Phase 24 HDR-04: redact build-id emissions in the public demo.
+      # The real HK_BUILD_ID still flows through scheduler logs and is
+      # readable by the admin UI (which is blocked at the edge anyway).
+      - HK_BUILD_STEALTH=true
+
+      # No outbound notifications. Empty NTFY_URL short-circuits sendNtfy
+      # at the top of lib/ntfy.ts (returns {ok:false,error:'NTFY_URL unset'}).
+      - NTFY_URL=
+
+      # Public URL used for PWA manifest + invite links. Must match the
+      # Caddy block in Caddyfile.prod (or Caddyfile.demo) that terminates TLS.
+      - SITE_URL=https://homekeep.demo.kizz.space
+
+      # Standard passthroughs from .env.demo (PB admin, SMTP — which is
+      # intentionally blank so password reset gracefully degrades per D-02).
+      - TZ=${TZ:-Etc/UTC}
+
+    # Healthcheck inherited from baseline docker-compose.yml — the demo
+    # image is byte-identical to prod.
