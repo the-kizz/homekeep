@@ -10,18 +10,35 @@ import { z } from 'zod';
  * filter skips users with empty topics so the no-topic row costs nothing
  * at tick time.
  *
- * Topic regex: `^[A-Za-z0-9_-]{4,64}$` matches `lib/ntfy.ts` at send
- * time. Intentionally stricter than ntfy.sh's server-side accept — no
- * dots, no percent-encoding. See 06-01-SUMMARY §Decisions for rationale.
+ * Phase 25 RATE-06 — topic hardening:
+ *   - Minimum length raised 4 → 12 chars (a 12-char random topic lives
+ *     in a ~10^21-item keyspace, outside practical enumeration).
+ *   - Must contain at least one digit (raises entropy floor; rejects
+ *     English-word-only topics like "kitchen" or "alicealice" which a
+ *     targeted guesser could enumerate from common nouns + names).
+ *
+ * Existing users with pre-RATE-06 topics are grandfathered — their
+ * rows stay as-is; only NEW updates routed through this schema must
+ * satisfy the tightened rule. See 25-01-SUMMARY §Deviations for the
+ * PB-migration tradeoff (no DB-layer regex is enforced).
+ *
+ * Regex: `^[A-Za-z0-9_-]{12,64}$` + `.regex(/\d/)` refinement keeps
+ * URL-safety (matches `lib/ntfy.ts` at send time) while adding the
+ * min-length + digit floor.
  */
 export const notificationPrefsSchema = z.object({
   ntfy_topic: z
     .string()
     .trim()
     .max(64)
-    .refine((v) => v === '' || /^[A-Za-z0-9_-]{4,64}$/.test(v), {
-      message: 'Topic must be 4-64 URL-safe characters',
-    }),
+    .refine(
+      (v) => v === '' || /^[A-Za-z0-9_-]{12,64}$/.test(v),
+      { message: 'Topic must be 12-64 URL-safe characters' },
+    )
+    .refine(
+      (v) => v === '' || /\d/.test(v),
+      { message: 'Topic must contain at least one digit' },
+    ),
   notify_overdue: z.boolean(),
   notify_assigned: z.boolean(),
   notify_partner_completed: z.boolean(),

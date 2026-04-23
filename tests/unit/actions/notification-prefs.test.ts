@@ -96,4 +96,48 @@ describe('notificationPrefsSchema', () => {
     });
     expect(r.success).toBe(false);
   });
+
+  // Phase 25 RATE-06: min length 12 + must contain a digit.
+  test('RATE-06: rejects topic shorter than 12 chars (was 4)', () => {
+    const r = notificationPrefsSchema.safeParse({
+      ...baseValid,
+      ntfy_topic: 'alice1', // 6 chars, has digit — still rejected for length
+    });
+    expect(r.success).toBe(false);
+  });
+
+  test('RATE-06: rejects 12-char topic with no digit', () => {
+    const r = notificationPrefsSchema.safeParse({
+      ...baseValid,
+      ntfy_topic: 'alicealiceaa', // 12 chars, no digit → rejected
+    });
+    expect(r.success).toBe(false);
+    if (!r.success) {
+      expect(r.error.flatten().fieldErrors.ntfy_topic).toBeDefined();
+    }
+  });
+
+  test('RATE-06: accepts 12-char topic containing a digit', () => {
+    const r = notificationPrefsSchema.safeParse({
+      ...baseValid,
+      ntfy_topic: 'alice12345678', // 13 chars, has digits → accepted
+    });
+    expect(r.success).toBe(true);
+  });
+
+  test('RATE-06: accepts the minimum-length boundary (12 chars + digit)', () => {
+    const r = notificationPrefsSchema.safeParse({
+      ...baseValid,
+      ntfy_topic: 'aliceaabbcc1', // exactly 12 chars, ends with digit
+    });
+    expect(r.success).toBe(true);
+  });
+
+  test('RATE-06: empty topic still accepted (grandfather / unconfigured)', () => {
+    const r = notificationPrefsSchema.safeParse({
+      ...baseValid,
+      ntfy_topic: '',
+    });
+    expect(r.success).toBe(true);
+  });
 });

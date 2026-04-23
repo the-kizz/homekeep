@@ -54,6 +54,12 @@ vi.mock('@/lib/pocketbase-server', () => ({
       getOne: (...args: unknown[]) => mockGetOne(_name, ...args),
       getFullList: (...args: unknown[]) => mockGetFullList(_name, ...args),
       create: (...args: unknown[]) => mockCreate(_name, ...args),
+      // Phase 25 RATE-01 added assertTasksQuota → calls getList. Stub
+      // it with an empty totalItems so the quota check always passes
+      // in these existing TCSEM tests (they exercise a single task
+      // create — no quota-related assertion here).
+      getList: (..._args: unknown[]) =>
+        Promise.resolve({ items: [], totalItems: 0, page: 1, perPage: 1, totalPages: 0 }),
     }),
   }),
 }));

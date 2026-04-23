@@ -14,7 +14,10 @@ import type { ActionState } from '@/lib/schemas/auth';
  * escalate. The action still re-validates via zod defence-in-depth.
  *
  * Input shape (FormData):
- *   - ntfy_topic        : text (4-64 URL-safe chars, or empty)
+ *   - ntfy_topic        : text (12-64 URL-safe chars + ≥1 digit, or empty)
+ *                          (tightened from 4 chars in Phase 25 RATE-06 to
+ *                          thwart topic enumeration; empty is still the
+ *                          "not configured" sentinel)
  *   - notify_overdue          : 'on' | 'true' | absent
  *   - notify_assigned         : 'on' | 'true' | absent
  *   - notify_partner_completed: 'on' | 'true' | absent
