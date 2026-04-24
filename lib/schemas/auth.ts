@@ -64,9 +64,9 @@ export const signupSchema = z
       const min = signupPasswordMin();
       if (val.length < min) {
         ctx.addIssue({
-          code: z.ZodIssueCode.too_small,
+          code: 'too_small',
           minimum: min,
-          type: 'string',
+          origin: 'string',
           inclusive: true,
           message: `Password must be at least ${min} characters`,
         });
@@ -77,9 +77,9 @@ export const signupSchema = z
       const min = signupPasswordMin();
       if (val.length < min) {
         ctx.addIssue({
-          code: z.ZodIssueCode.too_small,
+          code: 'too_small',
           minimum: min,
-          type: 'string',
+          origin: 'string',
           inclusive: true,
           message: `Password must be at least ${min} characters`,
         });
@@ -102,9 +102,9 @@ export const resetConfirmSchema = z
       const min = signupPasswordMin();
       if (val.length < min) {
         ctx.addIssue({
-          code: z.ZodIssueCode.too_small,
+          code: 'too_small',
           minimum: min,
-          type: 'string',
+          origin: 'string',
           inclusive: true,
           message: `Password must be at least ${min} characters`,
         });
@@ -114,9 +114,9 @@ export const resetConfirmSchema = z
       const min = signupPasswordMin();
       if (val.length < min) {
         ctx.addIssue({
-          code: z.ZodIssueCode.too_small,
+          code: 'too_small',
           minimum: min,
-          type: 'string',
+          origin: 'string',
           inclusive: true,
           message: `Password must be at least ${min} characters`,
         });
