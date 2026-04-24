@@ -91,16 +91,30 @@ jobs:
       - name: Docker build (arm64 cross-build validation; no --load, Phase-1 success criterion #4)
         run: docker buildx build --platform linux/arm64 --output type=image,push=false -f docker/Dockerfile .
 
-      - name: Regression check - no NEXT_PUBLIC_ baked into client bundle (Pitfall #3)
+      - name: Regression check - no unexpected NEXT_PUBLIC_ baked into client bundle (Pitfall #3)
         run: |
           set -e
-          LEAK=$(docker run --rm --entrypoint sh homekeep:ci -c 'grep -rIE NEXT_PUBLIC_ /app/.next 2>/dev/null || true')
-          if [ -n "$LEAK" ]; then
-            echo "FAIL: NEXT_PUBLIC_* leaked into built bundle:"
-            echo "$LEAK"
+          # Pitfall #3 banned ALL NEXT_PUBLIC_* to catch accidentally-leaked
+          # secrets. v1.2.1 PATCH2-05 introduced NEXT_PUBLIC_PASSWORD_POLICY
+          # which is intentionally client-readable (the zod schema consults
+          # it for simple|strong password-policy branching). Allow-list
+          # known intentional public vars; fail on anything else.
+          ALLOWED='NEXT_PUBLIC_PASSWORD_POLICY'
+          LEAK=$(docker run --rm --entrypoint sh homekeep:ci -c 'grep -rIhoE NEXT_PUBLIC_[A-Z0-9_]+ /app/.next 2>/dev/null | sort -u || true')
+          UNEXPECTED=''
+          for var in $LEAK; do
+            case "$var" in
+              $ALLOWED) ;;
+              *) UNEXPECTED="$UNEXPECTED $var" ;;
+            esac
+          done
+          if [ -n "$UNEXPECTED" ]; then
+            echo "FAIL: unexpected NEXT_PUBLIC_* in built bundle:"
+            echo "$UNEXPECTED" | tr ' ' '\n' | sed '/^$/d'
+            echo "(Allow-listed: $ALLOWED)"
             exit 1
           fi
-          echo "OK: no NEXT_PUBLIC_* in /app/.next"
+          echo "OK: only allow-listed NEXT_PUBLIC_* present (allowed: $ALLOWED)"
 
       - name: Regression check - .env is gitignored
         run: |
