@@ -1,0 +1,29 @@
+# Repo-level gitleaks config — tightens scanner behaviour to match this
+# repo's layout while keeping all format-specific secret rules active.
+#
+# Suppresses ONLY the broad `generic-api-key` rule inside known test /
+# planning paths (where fake literals like `password: 'alice1234567'` or
+# shell examples like `SPROUT_JWT_SECRET=test-secret-...` routinely fire
+# as false positives).
+#
+# Format-specific rules — stripe, github-pat, aws-access-key, slack,
+# etc. — continue to fire everywhere, including test files. So pasting a
+# real Stripe/GitHub/AWS key into a test file would still be caught.
+#
+# Bypass a single finding: add `# gitleaks:allow` (or `// gitleaks:allow`)
+# on the offending line. For a permanent allowlist of a specific
+# fingerprint, add it to `.gitleaksignore`.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Test fixtures + planning docs: suppress generic-api-key rule only"
+targetRules = ["generic-api-key"]
+paths = [
+    '''tests/.*''',
+    '''.*\.test\.(ts|tsx|js|jsx)$''',
+    '''.*_test\.go$''',
+    '''tools/e2e/playwright\.config\.ts$''',
+    '''\.planning/.*\.md$''',
+]
