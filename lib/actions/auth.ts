@@ -22,7 +22,9 @@ import {
  * Cookie contract (D-03 + RESEARCH Pitfall 3/4):
  *   - Name: pb_auth
  *   - HttpOnly: true (JS cannot read — cookie is same-origin only)
- *   - Secure: process.env.NODE_ENV === 'production' (LAN-HTTP dev/prod works)
+ *   - Secure: derived from SITE_URL (https:// → true; http:// → false).
+ *     v1.2.1: previously NODE_ENV-gated, which broke LAN-HTTP prod deploys
+ *     because browsers drop Secure cookies over plain HTTP.
  *   - SameSite: 'lax' (cross-site form posts blocked; top-level nav allowed)
  *   - Path: '/'
  *   - Max-Age: 14 days (matches PB default authTokenDuration)
@@ -41,17 +43,44 @@ type CookieOptions = {
   secure: boolean;
   sameSite: 'lax';
   path: '/';
-  maxAge: number;
+  // v1.2.1: optional — omit to produce a session cookie (browser drops
+  // on close). Used when Remember Me is unchecked on login.
+  maxAge?: number;
 };
 
-function cookieOptions(): CookieOptions {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+/**
+ * v1.2.1 cookie-secure fix: derive Secure from SITE_URL protocol, not
+ * NODE_ENV. A LAN-HTTP production deployment (SITE_URL=http://...)
+ * with NODE_ENV=production was setting Secure=true, which causes
+ * browsers to drop the cookie over plain HTTP. That broke signup →
+ * create-home flow on 46.62.151.57:3000 (surfaced by v1.2 live smoke).
+ *
+ * Rule: Secure=true ONLY when SITE_URL begins with `https://`. This
+ * handles localhost dev, LAN-HTTP production, AND public-HTTPS
+ * correctly — the common denominator is "does the user see HTTPS?".
+ */
+function isSecureSite(): boolean {
+  const siteUrl = process.env.SITE_URL ?? '';
+  return siteUrl.startsWith('https://');
+}
+
+/**
+ * v1.2.1 Remember-me support: when `rememberMe` is false, omit `maxAge`
+ * so the cookie becomes a session cookie (browser deletes on close).
+ * Default behavior (rememberMe=true) keeps the 14-day persistent cookie.
+ */
+function cookieOptions(rememberMe: boolean = true): CookieOptions {
+  const base = {
+    httpOnly: true as const,
+    secure: isSecureSite(),
     sameSite: 'lax' as const,
     path: '/' as const,
-    maxAge: COOKIE_MAX_AGE,
   };
+  if (rememberMe) {
+    return { ...base, maxAge: COOKIE_MAX_AGE };
+  }
+  // Session cookie: no maxAge → browser drops on close.
+  return { ...base, maxAge: undefined };
 }
 
 /**
@@ -79,6 +108,11 @@ export async function loginAction(
   }
 
   const nextTarget = safeNext(String(formData.get('next') ?? '')) ?? '/h';
+  // v1.2.1: Remember Me checkbox — present + value "on" means the user
+  // wants the 14-day persistent cookie. Unchecked → session cookie.
+  // Default (no field at all, e.g. SDK/API login) is persistent.
+  const rememberMeRaw = formData.get('rememberMe');
+  const rememberMe = rememberMeRaw === null || rememberMeRaw === 'on';
 
   const pb = await createServerClient();
   try {
@@ -93,13 +127,13 @@ export async function loginAction(
 
   const exported = pb.authStore.exportToCookie({
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureSite(),
     sameSite: 'Lax',
   });
   const rawValue = extractPbAuthValue(exported);
 
   const store = await cookies();
-  store.set(COOKIE_NAME, rawValue, cookieOptions());
+  store.set(COOKIE_NAME, rawValue, cookieOptions(rememberMe));
 
   revalidatePath('/h');
   redirect(nextTarget);
@@ -148,7 +182,7 @@ export async function signupAction(
 
   const exported = pb.authStore.exportToCookie({
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureSite(),
     sameSite: 'Lax',
   });
   const rawValue = extractPbAuthValue(exported);
