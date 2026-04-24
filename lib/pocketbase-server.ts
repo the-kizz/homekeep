@@ -53,11 +53,24 @@ export async function createServerClientWithRefresh(): Promise<PocketBase> {
     try {
       await pb.collection('users').authRefresh();
     } catch {
-      // Token rejected by PB (expired / revoked). Clear the in-memory
-      // authStore so downstream code sees the user as logged out; the
-      // stale cookie is handled by the caller (usually by deleting it
-      // via cookies().delete in the same response).
-      pb.authStore.clear();
+      // v1.3 TESTFIX-03: transient PB failure under concurrent
+      // signup/login load can briefly reject a freshly-issued
+      // token (the race is visible to CI when rate-limits are
+      // disabled and 15+ parallel users signup in a window).
+      // Retry once after a short pause before treating the token
+      // as definitively invalid. Only the error path pays the
+      // extra round-trip; the happy path is untouched.
+      try {
+        await new Promise((r) => setTimeout(r, 150));
+        await pb.collection('users').authRefresh();
+      } catch {
+        // Token rejected on retry — really is expired / revoked.
+        // Clear the in-memory authStore so downstream code sees
+        // the user as logged out; the stale cookie is handled by
+        // the caller (usually by deleting it via cookies().delete
+        // in the same response).
+        pb.authStore.clear();
+      }
     }
   }
   return pb;

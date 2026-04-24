@@ -139,15 +139,13 @@ async function findTaskId(
 /* ======================================================================= */
 
 test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
-  // v1.2.1 tech-debt: pre-existing flake on RHF-Controller-wrapped
-  // weekly-summary checkbox → conditional day-select reveal. The
-  // `weeklyBox.check()` call doesn't reliably trigger the conditional
-  // re-render in CI's headless browser on the same tick as the
-  // subsequent visibility assertion. Deferred to v1.3 E2E stabilization
-  // along with the homes-areas rename flake. Notification-prefs unit
-  // coverage (tests/unit/lib/schemas/notification-prefs.test.ts)
-  // continues to gate the schema + server action paths.
-  test.skip('Part 1: /person shows real notification prefs form; save + reload persists topic and weekly_summary_day', async ({
+  // v1.3 TESTFIX-02: un-skipped. Prior flake was `toBeVisible()` on
+  // the RHF conditional-reveal `[data-field=weekly-summary-day]`
+  // firing before React committed the re-render. Fix: bump
+  // visibility timeout to give useWatch → conditional render a
+  // deterministic window to settle (10s), plus add an explicit
+  // `waitForFunction` to confirm the checkbox actually took state.
+  test('Part 1: /person shows real notification prefs form; save + reload persists topic and weekly_summary_day', async ({
     page,
   }) => {
     const pw = 'password1234';
@@ -170,13 +168,17 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     await page.locator('[data-field=ntfy-topic] input').fill(topic);
 
     // Toggle weekly summary → weekly day select should reveal.
+    // v1.3 TESTFIX-02: wait for the checkbox's checked state to
+    // propagate (React 19 controlled component commits on next
+    // tick), then give the conditional render up to 10s to land.
     const weeklyBox = page.locator(
       '[data-field=notify-weekly-summary] input[type=checkbox]',
     );
     await weeklyBox.check();
+    await expect(weeklyBox).toBeChecked({ timeout: 5_000 });
     await expect(
       page.locator('[data-field=weekly-summary-day]'),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 10_000 });
 
     // Pick Monday.
     await page

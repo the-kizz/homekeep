@@ -32,13 +32,12 @@ async function signup(page: Page, email: string, pw: string) {
   await expect(page).toHaveURL(/\/h$/);
 }
 
-// v1.2.1 tech-debt: this scenario races on Save → redirect → assert,
-// intermittently failing to observe the renamed "Kitchen & Dining" row
-// on the /areas page after edit. Marked as pre-existing flake in the
-// v1.2-security milestone audit and deferred to v1.3 E2E stabilization.
-// Unit tests cover the area-rename update path; skipping here keeps the
-// suite green without masking a regression.
-test.skip('create home → Whole Home auto-created → add Kitchen → edit → delete guard', async ({
+// v1.3 TESTFIX-01: un-skipped. Prior flake was on the edit Save →
+// immediate `page.goto('/h/<id>/areas')` race — the Server Action's
+// DB write hadn't committed before we re-queried the /areas list.
+// Fix: wait for the Server Action's POST response before navigating
+// away (see the Save-changes click block below).
+test('create home → Whole Home auto-created → add Kitchen → edit → delete guard', async ({
   page,
 }) => {
   const email = `homes-${Date.now()}-${Math.floor(Math.random() * 1e6)}@test.com`;
@@ -90,13 +89,24 @@ test.skip('create home → Whole Home auto-created → add Kitchen → edit → 
   await expect(page).toHaveURL(/\/h\/[a-z0-9]{15}\/areas\/[a-z0-9]{15}$/);
 
   await page.fill('[name=name]', 'Kitchen & Dining');
+
+  // v1.3 TESTFIX-01: wait for the Server Action POST to complete
+  // before navigating away — otherwise `page.goto` fires while the
+  // DB write is still in flight, and the re-query on /areas misses
+  // the rename. Accept any 2xx/3xx response on a POST as "saved"
+  // (the Server Action may respond 303 with a redirect header or
+  // 200 with a fresh render, depending on Next.js version).
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'POST' && r.status() >= 200 && r.status() < 400,
+  );
   await page.click('button:has-text("Save changes")');
+  await saved;
 
   // Return to /areas and verify the rename stuck
   await page.goto(page.url().replace(/\/[a-z0-9]+$/, ''));
   await expect(
     page.locator('[data-area-name="Kitchen & Dining"]').first(),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 10_000 });
 });
 
 test('multiple homes + last-viewed persistence (HOME-03 / HOME-04)', async ({
