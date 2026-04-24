@@ -46,3 +46,14 @@
 /public/sw.js.map
 /public/swe-worker-*.js
 /public/swe-worker-*.js.map
+
+# Claude Code per-session artifacts (settings, lock files, backups).
+# Project-level settings that should travel with the repo live in
+# .claude/agents/ and .claude/skills/ and are committed explicitly.
+/.claude/scheduled_tasks.lock
+/.claude/settings.json
+/.claude/settings.local.json
+/.claude/settings.json.pre-*
+
+# Docker env backups generated during hotfix / migration sessions.
+docker/.env.pre-*-backup

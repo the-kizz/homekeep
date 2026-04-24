@@ -1,0 +1,173 @@
+# VPS operating manual — the-kizz.com multi-project host
+
+**Install location:** `/opt/vps/CLAUDE.md` (mode 644, root-owned).
+**Symlink target:** each service user's `~/.claude/CLAUDE.md`.
+
+> This file is loaded by every Claude Code session that runs under a
+> user whose `~/.claude/CLAUDE.md` symlinks here. It carries VPS-wide
+> operating context so one edit propagates to every project.
+
+---
+
+## Host
+
+- **Hetzner VPS** (46.62.151.57, IPv6 `2a01:4f9:c013:3b16::1`), Ubuntu 24.04
+- **UFW:** 22, 80, 443 always open; per-project 127.0.0.1-bound ports never public
+- **Docker:** 29.x rootful, userns-remap enabled — **host bind-mounts
+  break** for containers that run as non-root; use **named volumes**
+  or `tmpfs` for container-writable paths
+- **Projects live under:**
+  - `/home/sprout/<stuff>/` — sprout-owned ops: revproxy-caddy, godaddy
+    creds, primary dev work
+  - `/srv/<project>/` — dedicated service users' home (e.g.
+    `/srv/homekeep` for the `homekeep` user)
+  - `/opt/<project>/` — legacy path for earlier projects (aom-wiki)
+- Every service user is in the `docker` group → effectively root at the
+  daemon level. Treat per-user isolation as defense-in-depth only.
+
+## Multi-project serving pattern
+
+### Subdomain convention on `the-kizz.com`
+
+- `<project>.the-kizz.com` — prod
+- `<project>.dev.the-kizz.com` — staging
+- `<project>.demo.the-kizz.com` — public demo / tmpfs ephemeral
+
+Admin UIs live **behind the same origin** as `/admin` path-prefix with
+auth middleware, NOT as a separate subdomain. Keeps cookies same-origin
+and avoids recon surface.
+
+### DNS
+
+- **Wildcard A record** `*.the-kizz.com → 46.62.151.57` is live
+  (created 2026-04-24). **Every new subdomain resolves automatically
+  — no GoDaddy API call needed per project.**
+- Apex `@` / special records (MX, TXT for mail, etc.) still need
+  explicit entries.
+- GoDaddy creds: `/home/sprout/.config/godaddy/credentials` (mode 600,
+  sprout-only) OR `/etc/secrets/godaddy.creds` (once centralized, with
+  POSIX ACLs per consuming project).
+
+### TLS
+
+- `revproxy-caddy-1` (Caddy 2.x, `--network host`, compose project
+  `revproxy`) terminates TLS on 80/443.
+- **Preferred:** wildcard cert for `*.the-kizz.com` via DNS-01 using
+  the `caddy-dns/godaddy` plugin. One cert covers every subdomain,
+  past and future.
+- **Fallback (current):** per-subdomain HTTP-01 challenge via port 80.
+  Works but slower to provision new subdomains.
+- Caddyfile at `/home/sprout/revproxy/Caddyfile` imports vhosts from
+  `/home/sprout/revproxy/vhosts/*.caddy`.
+
+### Reverse proxy → project
+
+- Every project binds its container(s) to **`127.0.0.1:<port>`** on the
+  host (never `0.0.0.0`). Ports allocated from
+  `/opt/vps/PORTS.md` to avoid collisions.
+- Shared Caddy proxies `<project>.the-kizz.com` → `127.0.0.1:<port>`
+  via a vhost snippet the project ships in its repo.
+- Per-project Docker Compose uses `-p <project-name>` for
+  namespace isolation.
+
+## Secrets
+
+### Per-project `/srv/<project>/.env` (mode 600)
+
+Owned by that project's service user. Should contain:
+- `GITHUB_PAT` — **fine-grained, scoped to this repo only**
+  (not a shared classic PAT). Rotate in the GitHub UI when needed.
+- Per-project secrets (DB, SMTP, API keys) specific to this project.
+
+### Shared creds at `/etc/secrets/` (once centralized)
+
+Files like `godaddy.creds`, `ntfy.creds`, etc. owned `root:secrets`,
+mode `640`. Per-project ACL grants: `setfacl -m u:<project>:r
+/etc/secrets/<file>`.
+
+**Do NOT duplicate shared creds into each service user's home** —
+rotation becomes a multi-file ritual and drift is inevitable.
+
+## Per-project onboarding checklist
+
+Run as root. Assumes an **empty** `<project>` label, e.g. `wiki`,
+`notes`, etc.
+
+```bash
+PROJECT=<project>
+
+# 1. Service user + home
+adduser --disabled-password --gecos "" "$PROJECT"
+usermod -aG docker "$PROJECT"
+mkdir -p "/srv/$PROJECT"
+chown "$PROJECT:$PROJECT" "/srv/$PROJECT"
+
+# 2. Wire VPS-wide CLAUDE.md
+sudo -u "$PROJECT" mkdir -p "/home/$PROJECT/.claude"
+ln -sfn /opt/vps/CLAUDE.md "/home/$PROJECT/.claude/CLAUDE.md"
+
+# 3. Allocate a port from /opt/vps/PORTS.md
+# (edit PORTS.md to reserve, then paste the reserved port below)
+PROJECT_PORT=<reserved port>
+
+# 4. Grant read on shared creds the project needs
+setfacl -m u:"$PROJECT":r /etc/secrets/godaddy.creds  # if needed
+
+# 5. Caddy vhost
+cat > "/home/sprout/revproxy/vhosts/$PROJECT.caddy" <<EOF
+$PROJECT.the-kizz.com {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:$PROJECT_PORT {
+        flush_interval -1
+    }
+}
+EOF
+chown sprout:sprout "/home/sprout/revproxy/vhosts/$PROJECT.caddy"
+
+# 6. Reload Caddy (wildcard cert covers the new subdomain immediately)
+docker exec revproxy-caddy-1 caddy reload --config /etc/caddy/Caddyfile
+
+# 7. Project-specific compose up should now bind 127.0.0.1:$PROJECT_PORT
+```
+
+## Backups
+
+Nightly (root cron):
+
+```bash
+# /etc/cron.daily/backups-projects
+for dir in /srv/*; do
+  project=$(basename "$dir")
+  tar czf "/var/backups/${project}-$(date +%Y%m%d).tgz" "$dir"
+done
+find /var/backups -name '*.tgz' -mtime +14 -delete
+```
+
+Weekly off-site via `restic` or `rclone` to a cheap object store
+(B2 / S3 / Wasabi).
+
+## Claude Code operating rules
+
+- `~/.claude/CLAUDE.md` → this file (via symlink in each service user's
+  home). Loaded automatically in every session.
+- Per-project `/srv/<project>/CLAUDE.md` adds project-specific rules
+  and is version-controlled.
+- `/srv/<project>/CLAUDE.local.md` for per-machine personal overrides
+  (gitignored).
+- Use `@path/to/file` imports inside any CLAUDE.md to pull in
+  additional context (Claude Code supports it natively).
+
+## Known failure modes / gotchas
+
+- **Host bind-mounts silently break** on containers that run as
+  non-root when userns-remap is enabled. The container sees permission
+  errors on writes. Use **named volumes** (managed by Docker) or
+  `tmpfs` for any container-writable path.
+- **Docker group = root-equivalent.** Someone in `docker` can mount
+  `/` into a container and `chroot`. Don't grant group docker casually;
+  treat per-user isolation as a layer, not the wall.
+- **Port collisions** on `127.0.0.1:3000-3999` if two projects pick the
+  same port. Update `/opt/vps/PORTS.md` when allocating.
+- **Fine-grained PATs** have 90-day max expiry. Calendar a rotation
+  reminder per project. Classic PATs don't expire and should be
+  retired.
