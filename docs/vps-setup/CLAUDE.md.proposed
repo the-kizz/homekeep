@@ -37,11 +37,24 @@ Admin UIs live **behind the same origin** as `/admin` path-prefix with
 auth middleware, NOT as a separate subdomain. Keeps cookies same-origin
 and avoids recon surface.
 
+### Domain scope — read before picking a subdomain
+
+- **`the-kizz.com`** = this VPS. Public / GitHub / multi-project work
+  goes here. Wildcard `*.the-kizz.com → 46.62.151.57`.
+- **`kizz.space`** = the operator's private home-network server
+  (audiobooks, booking, budget, calibre, plex, sonarr, etc.). Wildcard
+  `*.kizz.space → 144.6.229.170`. **Do not provision VPS services on
+  `kizz.space`** — pick `the-kizz.com` instead.
+- Legacy exception: `sprout-m0.kizz.space` still points at this VPS
+  via an explicit A record; it's the only `kizz.space` subdomain
+  served from here and will migrate to `sprout-m0.the-kizz.com`
+  eventually.
+
 ### DNS
 
-- **Wildcard A record** `*.the-kizz.com → 46.62.151.57` is live
-  (created 2026-04-24). **Every new subdomain resolves automatically
-  — no GoDaddy API call needed per project.**
+- Wildcard A record `*.the-kizz.com → 46.62.151.57` is live
+  (created 2026-04-24). **Every new VPS subdomain resolves
+  automatically — no GoDaddy API call needed per project.**
 - Apex `@` / special records (MX, TXT for mail, etc.) still need
   explicit entries.
 - GoDaddy creds: `/home/sprout/.config/godaddy/credentials` (mode 600,
@@ -97,21 +110,31 @@ Run as root. Assumes an **empty** `<project>` label, e.g. `wiki`,
 PROJECT=<project>
 
 # 1. Service user + home
+#    adduser populates ~/.claude/CLAUDE.md from /etc/skel automatically
+#    (the skel file imports /opt/vps/CLAUDE.md via @-syntax).
 adduser --disabled-password --gecos "" "$PROJECT"
 usermod -aG docker "$PROJECT"
 mkdir -p "/srv/$PROJECT"
 chown "$PROJECT:$PROJECT" "/srv/$PROJECT"
 
-# 2. Wire VPS-wide CLAUDE.md
-sudo -u "$PROJECT" mkdir -p "/home/$PROJECT/.claude"
-ln -sfn /opt/vps/CLAUDE.md "/home/$PROJECT/.claude/CLAUDE.md"
+# 2. Verify VPS-wide CLAUDE.md was bootstrapped from /etc/skel
+test -f "/home/$PROJECT/.claude/CLAUDE.md" \
+  && grep -q "^@/opt/vps/CLAUDE.md" "/home/$PROJECT/.claude/CLAUDE.md" \
+  && echo "OK: shared manual imported for $PROJECT"
+# (If missing — e.g. adduser bypassed skel — copy manually:
+#   install -m 644 -o "$PROJECT" -g "$PROJECT" \
+#     /etc/skel/.claude/CLAUDE.md "/home/$PROJECT/.claude/CLAUDE.md")
 
 # 3. Allocate a port from /opt/vps/PORTS.md
-# (edit PORTS.md to reserve, then paste the reserved port below)
+#    (edit PORTS.md to reserve a row, then paste the port below)
 PROJECT_PORT=<reserved port>
 
-# 4. Grant read on shared creds the project needs
-setfacl -m u:"$PROJECT":r /etc/secrets/godaddy.creds  # if needed
+# 4. Grant access to shared creds the project needs
+#    (group membership is the durable path; ACLs are the per-file
+#    override. Use both: group for future expansion, ACL for narrow
+#    reads today.)
+usermod -aG secrets "$PROJECT"                              # future-proof
+setfacl -m u:"$PROJECT":r /etc/secrets/godaddy.creds        # if needed
 
 # 5. Caddy vhost
 cat > "/home/sprout/revproxy/vhosts/$PROJECT.caddy" <<EOF
@@ -148,8 +171,10 @@ Weekly off-site via `restic` or `rclone` to a cheap object store
 
 ## Claude Code operating rules
 
-- `~/.claude/CLAUDE.md` → this file (via symlink in each service user's
-  home). Loaded automatically in every session.
+- `~/.claude/CLAUDE.md` → imports this file via `@/opt/vps/CLAUDE.md`
+  (each service user keeps their own thin wrapper; new users get one
+  via `/etc/skel/.claude/CLAUDE.md`). Loaded automatically in every
+  session.
 - Per-project `/srv/<project>/CLAUDE.md` adds project-specific rules
   and is version-controlled.
 - `/srv/<project>/CLAUDE.local.md` for per-machine personal overrides
@@ -157,67 +182,25 @@ Weekly off-site via `restic` or `rclone` to a cheap object store
 - Use `@path/to/file` imports inside any CLAUDE.md to pull in
   additional context (Claude Code supports it natively).
 
-### Which Claude files go in git
+## Scheduled follow-ups (`/opt/vps/FOLLOWUP-*.md`)
 
-**Commit (team-shareable):**
-- `CLAUDE.md` at repo root (most important file in the repo)
-- `.claude/agents/*.md`
-- `.claude/skills/*/`
-- `.claude/commands/*.md`
-- `.claude/hooks/*`
+Systemd timers (`systemctl list-timers 'vps-followup-*.timer'`) may
+drop report files at `/opt/vps/FOLLOWUP-<date>.md` to flag deferred
+work. **At session start, check:**
 
-**Gitignore (personal / runtime / secrets):**
-- `.claude/settings.json`, `.claude/settings.local.json`,
-  `.claude/settings.json.pre-*`
-- `.claude/scheduled_tasks.lock`
-- `.claude/.credentials.json` (NEVER commit)
-- `.claude/cache/`, `.claude/sessions/`, `.claude/history.jsonl`,
-  `.claude/file-history/`
-- `CLAUDE.local.md`
+```bash
+ls /opt/vps/FOLLOWUP-*.md 2>/dev/null && echo "^ pending follow-up(s)"
+```
 
-**User-global** (`~/.claude/projects/<hash>/memory/`,
-`~/.claude/CLAUDE.md`): never committed from a project repo — lives
-in the user's home.
+If one exists, read it, walk through the items with the operator,
+then delete the file and disable the matching timer:
 
-Full detail + rationale:
-**[`/srv/homekeep/docs/vps-setup/github-repo-hygiene.md §3`](/srv/homekeep/docs/vps-setup/github-repo-hygiene.md)**.
-
-## GitHub repo hygiene (every new the-kizz/* repo, day one)
-
-Every new public repo must have these enabled on first push:
-
-1. **Secret scanning + push protection** — blocks pushes containing
-   detected secrets (AWS keys, GitHub PATs, Stripe, …).
-2. **Dependabot security updates** — auto-PRs for CVE'd dependencies.
-3. **Dependabot vulnerability alerts** — issues for known vulns.
-4. **Baseline `.gitignore`** from the template at
-   [`/srv/homekeep/docs/vps-setup/gitignore-baseline.md`](/srv/homekeep/docs/vps-setup/gitignore-baseline.md).
-5. **PAT:** fine-grained, repo-scoped, in `/srv/<project>/.env`
-   (mode 600, gitignored). Rotate on 90-day cadence.
-
-One-shot enable API call is in
-[`github-repo-hygiene.md §1`](/srv/homekeep/docs/vps-setup/github-repo-hygiene.md).
-
-Current state (2026-04-24): all 4 repos under
-`github.com/the-kizz/*` have all three features enabled.
-
-## Project emails (the-kizz.com)
-
-Pattern: `security@the-kizz.com`, `hello@/kizz@the-kizz.com`,
-`abuse@the-kizz.com`, per-project `<project>@the-kizz.com`.
-
-Stack: **Zoho Mail free tier** (5 mailbox/alias limit on free) +
-**Gmail "Send mail as"** for reply-from-alias behavior. Zoho holds
-the mailbox, Gmail is the reading surface, Send-As auto-picks the
-correct From header per thread so you can't accidentally reply from
-your personal address.
-
-Setup walkthrough:
-**[`/srv/homekeep/docs/vps-setup/email-setup.md`](/srv/homekeep/docs/vps-setup/email-setup.md)**.
-
-Adding a new project alias once the primary setup is live is a 1-min
-click in the Zoho console — no DNS change required (MX covers all
-`@the-kizz.com`).
+```bash
+systemctl disable --now vps-followup-<date>.timer
+rm /etc/systemd/system/vps-followup-<date>.{service,timer}
+systemctl daemon-reload
+rm /opt/vps/FOLLOWUP-<date>.md
+```
 
 ## Known failure modes / gotchas
 
