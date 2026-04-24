@@ -431,6 +431,46 @@ date -d '+90 days' +%Y-%m-%d
 
 ---
 
+## 12b. Set `PASSWORD_POLICY=strong` for public exposure
+
+**Description.** HomeKeep's default password policy is `simple` — an 8-char
+minimum on signup and reset — tuned for single-household LAN/Tailscale
+deployments where credential stuffing isn't in the threat model. Public
+internet exposure should tighten to `strong` (12-char minimum on signup
+and reset).
+
+**Why it matters.** An 8-char floor is survivable against a cached-bcrypt
+offline attack but is shallow coverage against modern GPU-accelerated
+online stuffing lists. The 12-char bar matches Phase 23 SEC-06 and brings
+every NEW credential well above the commonly-leaked-credential median.
+Existing accounts keep logging in with their current password regardless
+of policy (the login schema always accepts 8+ chars).
+
+**How.**
+
+```bash
+# docker/.env — set BOTH so client-side validation and server-action
+# validation see the same policy:
+PASSWORD_POLICY=strong
+NEXT_PUBLIC_PASSWORD_POLICY=strong
+
+docker compose \
+  -f docker/docker-compose.yml \
+  -f docker/docker-compose.caddy.yml \
+  up -d --force-recreate
+```
+
+**Verify.**
+
+```bash
+# Signup form should reject < 12 char passwords with the "at least 12
+# characters" message. A quick check via curl against the Server Action
+# endpoint is simplest with a form submission; inspect the DevTools
+# response body on the /signup page for { fieldErrors: { password: ... } }.
+```
+
+---
+
 ## 13. Monitor the `/api/csp-report` endpoint
 
 **Description.** The CSP is currently deployed in Report-Only mode. The
@@ -566,6 +606,7 @@ docker buildx imagetools inspect ghcr.io/conroyke56/homekeep:${TAG} \
 | 10 | `HK_BUILD_STEALTH=true` | `HomeKeep-Build: hk-hidden` |
 | 11 | Row quotas reviewed | `env` shows MAX_* values |
 | 12 | 90-day rotation planned | next rotation date on calendar |
+| 12b | `PASSWORD_POLICY=strong` | signup rejects 11-char passwords |
 | 13 | CSP reports monitored | `docker logs` shows `[CSP-REPORT]` pipeline |
 | 14 | Release feed subscribed | GitHub Watch → Releases |
 | 15 | `cosign verify` on pull | cosign prints matched claims |

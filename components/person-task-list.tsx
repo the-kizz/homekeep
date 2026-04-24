@@ -238,11 +238,15 @@ export function PersonTaskList({
         </Card>
       ) : (
         <>
+          {/* v1.2.1 PATCH2-06: PersonTaskList keeps tap=complete because
+              its onDetail opens the reschedule sheet (not a real detail
+              view). Opt out of the new tap=detail default explicitly. */}
           <TaskBand
             label="Overdue"
             tasks={overdueWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={(id) => setRescheduleTaskId(id)}
+            primaryTap="complete"
             pendingTaskId={pendingTaskId}
             timezone={timezone}
             variant="overdue"
@@ -254,6 +258,7 @@ export function PersonTaskList({
             tasks={thisWeekWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={(id) => setRescheduleTaskId(id)}
+            primaryTap="complete"
             pendingTaskId={pendingTaskId}
             timezone={timezone}
             variant="thisWeek"

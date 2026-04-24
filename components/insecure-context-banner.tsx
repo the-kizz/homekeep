@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
-import Link from 'next/link';
 import { isSecureContext, isStandaloneMode } from '@/lib/secure-context';
 
 /**
@@ -74,13 +73,7 @@ export function InsecureContextBanner() {
       className="bg-accent text-accent-foreground border-b border-border px-4 py-3 text-sm flex items-center justify-between gap-3"
     >
       <p className="flex-1">
-        You&apos;re on HTTP — install-to-home-screen and offline support require HTTPS.{' '}
-        <Link
-          href="/deployment"
-          className="underline underline-offset-4 font-medium"
-        >
-          Learn more
-        </Link>
+        You&apos;re on HTTP — install-to-home-screen and offline support require HTTPS.
       </p>
       <button
         type="button"

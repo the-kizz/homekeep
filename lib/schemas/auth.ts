@@ -17,33 +17,74 @@ import { z } from 'zod';
  */
 
 /**
- * Phase 23 SEC-06: password minimum length raised 8 -> 12.
+ * v1.2.1 PATCH2-05: configurable password policy.
  *
- * loginSchema keeps min(8) because existing users authenticate with
- * whatever password they set pre-23 (grandfathered — no forced reset).
- * signup + reset-confirm schemas both require 12 chars, so NEW passwords
- * land above the tightened bar. PB's own password floor is min(8), so
- * the zod refine runs BEFORE the PB call and surfaces the stricter
- * error to the user.
+ * Phase 23 SEC-06 raised the signup/reset-confirm floor 8 → 12 chars for
+ * public-facing deployments. Self-hosted operators on LAN / Tailscale
+ * don't need that bar — and the mismatch between login (8) and signup
+ * (12) made for a confusing UX. The env flag lets operators opt in:
+ *
+ *   PASSWORD_POLICY (or NEXT_PUBLIC_PASSWORD_POLICY for client bundles)
+ *   = 'simple' (default) → signup/reset min 8, login min 8
+ *   = 'strong'           → signup/reset min 12, login min 8 (back-compat
+ *                          so pre-flip accounts can still authenticate)
+ *
+ * The refine reads `process.env` at parse time (not module load) so
+ * tests can stub via vi.stubEnv() without module cache juggling. Next.js
+ * inlines `NEXT_PUBLIC_*` at build time in the client bundle; docker
+ * compose passes both at runtime for the server action path.
  */
+function isStrongPolicy(): boolean {
+  const v =
+    process.env.NEXT_PUBLIC_PASSWORD_POLICY ??
+    process.env.PASSWORD_POLICY ??
+    'simple';
+  return v === 'strong';
+}
+
+function signupPasswordMin(): number {
+  return isStrongPolicy() ? 12 : 8;
+}
+
+// Login always tolerates 8-char minimums so pre-SEC-06 accounts
+// (and simple-mode accounts after flipping to strong) can still log in.
+const LOGIN_PASSWORD_MIN = 8;
 
 export const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
-  // Keep min(8) here so grandfathered users with pre-SEC-06 8-char
-  // passwords can still log in. The signupSchema below and the
-  // resetConfirmSchema enforce the new 12-char floor on NEW passwords.
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z
+    .string()
+    .min(LOGIN_PASSWORD_MIN, `Password must be at least ${LOGIN_PASSWORD_MIN} characters`),
 });
 
 export const signupSchema = z
   .object({
     email: z.string().email('Please enter a valid email'),
-    // SEC-06: new signups must use at least 12 characters.
-    password: z.string().min(12, 'Password must be at least 12 characters'),
+    password: z.string().superRefine((val, ctx) => {
+      const min = signupPasswordMin();
+      if (val.length < min) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.too_small,
+          minimum: min,
+          type: 'string',
+          inclusive: true,
+          message: `Password must be at least ${min} characters`,
+        });
+      }
+    }),
     name: z.string().min(1, 'Name is required').max(80, 'Name too long'),
-    passwordConfirm: z
-      .string()
-      .min(12, 'Password must be at least 12 characters'),
+    passwordConfirm: z.string().superRefine((val, ctx) => {
+      const min = signupPasswordMin();
+      if (val.length < min) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.too_small,
+          minimum: min,
+          type: 'string',
+          inclusive: true,
+          message: `Password must be at least ${min} characters`,
+        });
+      }
+    }),
   })
   .refine((d) => d.password === d.passwordConfirm, {
     message: 'Passwords do not match',
@@ -57,12 +98,30 @@ export const resetRequestSchema = z.object({
 export const resetConfirmSchema = z
   .object({
     token: z.string().min(1, 'Reset token is required'),
-    // SEC-06: reset-confirm writes a NEW password, so enforce the
-    // tightened 12-char floor (mirrors signupSchema).
-    password: z.string().min(12, 'Password must be at least 12 characters'),
-    passwordConfirm: z
-      .string()
-      .min(12, 'Password must be at least 12 characters'),
+    password: z.string().superRefine((val, ctx) => {
+      const min = signupPasswordMin();
+      if (val.length < min) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.too_small,
+          minimum: min,
+          type: 'string',
+          inclusive: true,
+          message: `Password must be at least ${min} characters`,
+        });
+      }
+    }),
+    passwordConfirm: z.string().superRefine((val, ctx) => {
+      const min = signupPasswordMin();
+      if (val.length < min) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.too_small,
+          minimum: min,
+          type: 'string',
+          inclusive: true,
+          message: `Password must be at least ${min} characters`,
+        });
+      }
+    }),
   })
   .refine((d) => d.password === d.passwordConfirm, {
     message: 'Passwords do not match',

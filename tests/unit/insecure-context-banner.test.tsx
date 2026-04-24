@@ -51,12 +51,14 @@ describe('InsecureContextBanner', () => {
     cleanup();
   });
 
-  it('renders with "You\'re on HTTP" copy + Learn more link when on HTTP and not dismissed', () => {
+  it('renders with "You\'re on HTTP" copy when on HTTP and not dismissed', () => {
     stubSecureContext(false);
     render(<InsecureContextBanner />);
     expect(screen.getByText(/You're on HTTP/i)).toBeInTheDocument();
-    const learn = screen.getByRole('link', { name: /Learn more/i });
-    expect(learn).toHaveAttribute('href', '/deployment');
+    // v1.2.1 PATCH2-04: "Learn more" link removed — it pointed at
+    // `/deployment`, a route that does not exist, producing 9+ console
+    // 404s per HTTP session (Next.js prefetches RSC on hydration).
+    expect(screen.queryByRole('link', { name: /Learn more/i })).not.toBeInTheDocument();
   });
 
   it('does NOT render when on HTTPS (isSecureContext=true)', () => {

@@ -23,7 +23,7 @@ describe('TaskRow', () => {
     expect(container.querySelector('button.min-h-\\[44px\\]')).toBeTruthy();
   });
 
-  it('invokes onComplete(task.id) on click', () => {
+  it('invokes onComplete(task.id) on click when no onDetail is provided', () => {
     const onComplete = vi.fn();
     render(
       <TaskRow
@@ -35,6 +35,41 @@ describe('TaskRow', () => {
     );
     fireEvent.click(screen.getByText('Wipe benches'));
     expect(onComplete).toHaveBeenCalledWith('t1');
+  });
+
+  it('v1.2.1 PATCH2-06: invokes onDetail(task.id) on click by default when onDetail is provided', () => {
+    const onComplete = vi.fn();
+    const onDetail = vi.fn();
+    render(
+      <TaskRow
+        task={baseTask}
+        onComplete={onComplete}
+        onDetail={onDetail}
+        pending={false}
+        daysDelta={3}
+      />,
+    );
+    fireEvent.click(screen.getByText('Wipe benches'));
+    expect(onDetail).toHaveBeenCalledWith('t1');
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it('v1.2.1 PATCH2-06: primaryTap="complete" restores pre-v1.2.1 tap=complete behavior', () => {
+    const onComplete = vi.fn();
+    const onDetail = vi.fn();
+    render(
+      <TaskRow
+        task={baseTask}
+        onComplete={onComplete}
+        onDetail={onDetail}
+        primaryTap="complete"
+        pending={false}
+        daysDelta={3}
+      />,
+    );
+    fireEvent.click(screen.getByText('Wipe benches'));
+    expect(onComplete).toHaveBeenCalledWith('t1');
+    expect(onDetail).not.toHaveBeenCalled();
   });
 
   it('is disabled when pending=true and swallows clicks', () => {

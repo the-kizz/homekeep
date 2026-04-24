@@ -28,26 +28,27 @@ import { ShiftBadge } from '@/components/shift-badge';
  *   - today (|daysDelta| < 1):  "today"
  *   - future (daysDelta ≥ 1):   "in {N}d"
  *
- * Detail affordance (03-03 extension, VIEW-06):
- *   - Optional `onDetail` prop. When provided, right-click
- *     (onContextMenu) and long-press (500ms touch hold) invoke it
- *     with the task id. Both handlers are wired on the <button> so
- *     the whole row is the long-press target (not just a corner).
- *     onDetail is backward-compatible — existing call sites that
- *     omit it get the 03-02 behaviour unchanged.
- *
- * Reschedule (Phase 15 Plan 02, D-05, D-17):
- *   - Reschedule is NOT a per-row menu button. It lives behind the
- *     detail sheet (BandView path) or behind the long-press onDetail
- *     handler (PersonTaskList path — no detail sheet there by design).
- *     Keeping the primary tap = completion preserves SPEC §19
- *     "information, not alarm." A future plan may add a row-level
- *     dropdown menu via a separate component — out of scope for 15-02.
+ * Detail affordance (03-03 extension, VIEW-06 / v1.2.1 PATCH2-06):
+ *   - Optional `onDetail` prop. When provided, the primary tap opens
+ *     the detail view by default (v1.2.1 flip — prior behavior routed
+ *     tap to onComplete). Right-click (onContextMenu) and long-press
+ *     (500ms touch hold) also invoke onDetail so any input modality
+ *     lands in the same place. Completion is reachable from the detail
+ *     sheet's "Complete" button (one extra tap, far fewer accidental
+ *     completions).
+ *   - Call sites that want the pre-v1.2.1 "tap = complete" UX (notably
+ *     PersonTaskList, where `onDetail` opens a reschedule sheet rather
+ *     than a true detail view) can pass `primaryTap="complete"` to
+ *     opt out.
+ *   - When `onDetail` is omitted entirely, tap always invokes
+ *     `onComplete` — legacy call sites that never rendered a detail
+ *     affordance are unaffected.
  */
 export function TaskRow({
   task,
   onComplete,
   onDetail,
+  primaryTap,
   pending,
   daysDelta,
   variant,
@@ -62,6 +63,14 @@ export function TaskRow({
   };
   onComplete: (taskId: string) => void;
   onDetail?: (taskId: string) => void;
+  /**
+   * v1.2.1 PATCH2-06: primary tap semantic. Defaults to 'detail' when
+   * `onDetail` is provided (opens the detail sheet; completion lives
+   * behind the sheet's Complete button). Pass 'complete' to restore the
+   * pre-v1.2.1 "tap marks done" behavior (PersonTaskList uses this —
+   * its `onDetail` is a reschedule sheet, not a true detail view).
+   */
+  primaryTap?: 'complete' | 'detail';
   pending: boolean;
   daysDelta: number;
   variant?: 'overdue' | 'thisWeek' | 'horizon';
@@ -100,6 +109,15 @@ export function TaskRow({
     onDetail(task.id);
   };
 
+  // v1.2.1 PATCH2-06: primary tap opens details by default when
+  // onDetail is provided; caller can opt out with primaryTap='complete'.
+  const effectivePrimary =
+    primaryTap ?? (onDetail ? 'detail' : 'complete');
+  const handleClick =
+    effectivePrimary === 'detail' && onDetail
+      ? () => onDetail(task.id)
+      : () => onComplete(task.id);
+
   return (
     <button
       type="button"
@@ -109,7 +127,7 @@ export function TaskRow({
       data-task-name={task.name}
       data-variant={variant}
       data-assignee-kind={task.effective?.kind}
-      onClick={() => onComplete(task.id)}
+      onClick={handleClick}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
       onTouchEnd={clearLongPressTimer}

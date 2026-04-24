@@ -17,13 +17,17 @@ import { shouldWarnEarly } from '@/lib/early-completion-guard';
  */
 
 describe('shouldWarnEarly', () => {
-  test('no completion + task just created (elapsed ~0) + freq=7 → warn', () => {
+  // v1.2.1 PATCH2-07: never-completed tasks now bypass the guard.
+  // Previously the guard referenced `task.created`, which warned on every
+  // first-completion of a fresh task. The new rule: warn only when there
+  // was a PRIOR completion and the user is re-completing too soon.
+  test('v1.2.1 PATCH2-07: no completion + task just created → NO warn (was warn pre-v1.2.1)', () => {
     const now = new Date('2026-04-20T12:00:00.000Z');
     const task = {
       created: '2026-04-20T11:59:59.000Z', // 1s ago
       frequency_days: 7,
     };
-    expect(shouldWarnEarly(task, null, now)).toBe(true);
+    expect(shouldWarnEarly(task, null, now)).toBe(false);
   });
 
   test('completion 1d ago + freq=7 (threshold=1.75) → warn (1 < 1.75)', () => {
@@ -54,10 +58,10 @@ describe('shouldWarnEarly', () => {
     expect(shouldWarnEarly(task, null, now)).toBe(false);
   });
 
-  test('never completed + task created 1 hour ago + freq=90 (threshold=22.5) → warn', () => {
+  test('v1.2.1 PATCH2-07: never completed + created 1h ago + freq=90 → NO warn (was warn pre-v1.2.1)', () => {
     const now = new Date('2026-04-20T12:00:00.000Z');
     const task = { created: '2026-04-20T11:00:00.000Z', frequency_days: 90 };
-    expect(shouldWarnEarly(task, null, now)).toBe(true);
+    expect(shouldWarnEarly(task, null, now)).toBe(false);
   });
 
   test('completion 10 days ago + freq=30 (threshold=7.5) → no warn (10 >= 7.5)', () => {

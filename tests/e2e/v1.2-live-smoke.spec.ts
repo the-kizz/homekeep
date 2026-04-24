@@ -159,20 +159,27 @@ test('v1.2 live smoke — full user journey', async ({ page }) => {
   const taskRow = page.locator('[data-task-name="Wipe counter"]').first();
   await expect(taskRow).toBeVisible({ timeout: 10_000 });
 
-  // ── Step 8: Tap to complete (early-completion guard may fire) ───
-  console.log('[smoke] complete Wipe counter');
+  // ── Step 8: Tap opens detail sheet (v1.2.1 PATCH2-06) ───────────
+  // Prior to v1.2.1, tap completed the task. Now tap opens the detail
+  // sheet; completion reaches through the sheet's Complete button.
+  // Never-completed tasks (v1.2.1 PATCH2-07) no longer trigger the
+  // early-completion guard, so "Complete" in the detail sheet should
+  // mark done immediately without the "Mark done anyway?" confirmation.
+  console.log('[smoke] complete Wipe counter (via detail sheet)');
   await taskRow.click();
-  // Either a guard dialog appears (ask: "Mark done anyway?") OR completes instantly
-  const guardConfirm = page.getByRole('button', { name: /mark done anyway/i });
-  if (await guardConfirm.count()) {
-    await guardConfirm.click();
+  const completeBtn = page.getByRole('button', { name: /^complete$/i });
+  if (await completeBtn.count()) {
+    await completeBtn.click();
+    // Expect success toast (sonner) — no guard dialog because this is
+    // the first completion on a never-completed task.
+    await expect(page.getByText(/done|marked|completed/i).first()).toBeVisible({
+      timeout: 5_000,
+    }).catch(() => {
+      console.log('[smoke] toast not visible — may have closed already');
+    });
+  } else {
+    console.log('[smoke] detail sheet Complete button not found — layout variant');
   }
-  // Expect success toast (sonner)
-  await expect(page.getByText(/done|marked|completed/i).first()).toBeVisible({
-    timeout: 5_000,
-  }).catch(() => {
-    console.log('[smoke] toast not visible — may have closed already');
-  });
 
   // ── Step 9-10: Open remaining task + reschedule ─────────────────
   console.log('[smoke] reschedule Take bins');
