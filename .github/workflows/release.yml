@@ -5,7 +5,7 @@ on:
     tags: ['v*']
 
 permissions:
-  contents: read
+  contents: write  # create GitHub Release on tag push (v1.2.1 follow-up)
   packages: write
   id-token: write  # OIDC token for cosign keyless signing (SUPPLY-01)
 
@@ -96,3 +96,31 @@ jobs:
       - name: Verify multi-arch manifest
         # Use the semver-stripped tag from metadata-action (e.g. '1.0.0-rc1', not 'v1.0.0-rc1').
         run: sh scripts/check-multiarch.sh ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+
+      # v1.2.1 follow-up: auto-create a GitHub Release for every pushed
+      # tag. Prior workflow published images + SBOM + provenance but never
+      # created the Release object, so the Releases page still listed
+      # v1.0.0 as Latest even after v1.1.x and v1.2.0 shipped. The git tag
+      # annotation becomes the release body (falls back to a default body
+      # on lightweight tags).
+      #
+      # `-rc` / `-beta` / `-alpha` tags are flagged prerelease so they
+      # don't steal the "Latest" badge from the most recent stable.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') && 'true' || 'false' }}
+          body: |
+            Multi-arch image (`linux/amd64`, `linux/arm64`) published to GHCR:
+            `ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}`
+
+            Supply-chain attestations:
+            - **Cosign signature** (keyless, GitHub OIDC — see SUPPLY-01)
+            - **SBOM** (SPDX, OCI attestation on manifest)
+            - **SLSA-3 provenance** (mode=max)
+
+            See `SECURITY.md` and `docs/deployment-hardening.md` for verification and operator guidance.
