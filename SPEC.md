@@ -683,7 +683,7 @@ Phases 22-28.
   `localStorage['dismissed_demo_banner']`. Zero bytes shipped to
   non-demo clients (`DEMO_MODE !== 'true'` returns `null`).
 - DEMO-05: `docker/Caddyfile.demo` — dedicated block for
-  `homekeep.demo.kizz.space` with the Phase 24 header set. NO
+  `homekeep.demo.the-kizz.com` with the Phase 24 header set. NO
   `ALLOW_PUBLIC_ADMIN_UI` escape hatch; the admin UI is always 404 on
   demo hosts. `docs/deployment.md` gains a 60-line "Deploying a public
   demo" section covering DNS, `.env.demo` rotation, compose chain,
@@ -758,7 +758,7 @@ Phases 22-28.
 - Numbered advisory site at a dedicated domain (v1.3+)
 - CSP flip from Report-Only to enforced (needs 30-day soak corpus;
   target v1.2.1)
-- DNS-01 wildcard cert via GoDaddy plugin for `*.demo.kizz.space`
+- DNS-01 wildcard cert via GoDaddy plugin for `*.demo.the-kizz.com`
   (currently operator manual DNS; target v1.3)
 
 ### v0.4 — v1.1 Scheduling & Flexibility (2026-04-22)

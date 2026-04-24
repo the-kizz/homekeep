@@ -157,10 +157,10 @@ This is **NOT** the mode to run your personal household on. For personal use, ru
 
 ### Prereqs (`user_setup`)
 
-1. **DNS A record** for `homekeep.demo.kizz.space` → VPS IP (`46.62.151.57`). GoDaddy manual step for now; DNS-01 + godaddy plugin automation is deferred to v1.3.
+1. **DNS A record** for `homekeep.demo.the-kizz.com` → VPS IP (`46.62.151.57`). GoDaddy manual step for now; DNS-01 + godaddy plugin automation is deferred to v1.3.
 2. **Ports 80 + 443** open on the VPS firewall (ACME HTTP-01 on 80, HTTPS on 443, HTTP/3 on UDP 443).
 3. **`docker/.env.demo`** populated locally (the checked-in template is the starting point — you MUST rotate `PB_ADMIN_PASSWORD` via `openssl rand -hex 24` before `compose up` or the admin client fails fast).
-4. **Caddyfile swap**: by default the `docker-compose.caddy.yml` overlay mounts `Caddyfile.prod`. For the demo host, swap to `Caddyfile.demo` via an ad-hoc compose override (see below) or run a single demo instance where `DOMAIN=homekeep.demo.kizz.space` is set in `.env.demo` — Caddyfile.prod's `{$DOMAIN}` substitution works just as well for the demo host (the hostnames in the block are env-driven).
+4. **Caddyfile swap**: by default the `docker-compose.caddy.yml` overlay mounts `Caddyfile.prod`. For the demo host, swap to `Caddyfile.demo` via an ad-hoc compose override (see below) or run a single demo instance where `DOMAIN=homekeep.demo.the-kizz.com` is set in `.env.demo` — Caddyfile.prod's `{$DOMAIN}` substitution works just as well for the demo host (the hostnames in the block are env-driven).
 
 ### Start
 
@@ -177,7 +177,7 @@ docker compose \
   up -d
 ```
 
-The first request to `https://homekeep.demo.kizz.space/api/demo/session` triggers:
+The first request to `https://homekeep.demo.the-kizz.com/api/demo/session` triggers:
 
 1. ACME HTTP-01 challenge on port 80 (Caddy auto-fetches a Let's Encrypt cert — ~15s on first run, persisted in the `caddy_data` volume).
 2. `lib/demo-session.ts` spawns a throwaway user + "Demo House" + Kitchen + Outdoor + Whole Home areas + 15 seed tasks.
@@ -187,10 +187,10 @@ The first request to `https://homekeep.demo.kizz.space/api/demo/session` trigger
 
 ```bash
 # from anywhere — TLS should auto-negotiate within 15s of first hit:
-curl -sS https://homekeep.demo.kizz.space/api/health
+curl -sS https://homekeep.demo.the-kizz.com/api/health
 
 # first-visit flow returns a 303 to /h/<id>:
-curl -sSI https://homekeep.demo.kizz.space/api/demo/session
+curl -sSI https://homekeep.demo.the-kizz.com/api/demo/session
 ```
 
 ### Expected resource usage

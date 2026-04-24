@@ -7,16 +7,16 @@
 <domain>
 ## Phase Boundary
 
-Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public demo can run at `homekeep.demo.kizz.space` without risk to real user data or spam-abuse vectors.
+Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public demo can run at `homekeep.demo.the-kizz.com` without risk to real user data or spam-abuse vectors.
 
-**Target deployment:** `homekeep.demo.kizz.space` (hierarchical subdomain per STATE.md decision). Wildcard Let's Encrypt cert `*.demo.kizz.space` via DNS-01 + godaddy plugin.
+**Target deployment:** `homekeep.demo.the-kizz.com` (hierarchical subdomain per STATE.md decision). Wildcard Let's Encrypt cert `*.demo.the-kizz.com` via DNS-01 + godaddy plugin.
 
 **In scope (5 REQ-IDs):**
 - DEMO-01 `docker-compose.demo.yml` overlay — tmpfs PB_DATA, DISABLE_SCHEDULER=true, HK_BUILD_STEALTH=true, SMTP off, NTFY_URL="", throwaway admin account
 - DEMO-02 Per-visitor ephemeral home — admin-client helper seeds home + 3 areas + 15 seed tasks on first visit, cookie-keyed
 - DEMO-03 Cleanup cron — 2-hour idle TTL + 24-hour absolute TTL; wipes stale sessions
 - DEMO-04 Landing page warning banner — "This is a demo. Data resets every 2 hours. Do not enter real info."
-- DEMO-05 Public DNS record `homekeep.demo.kizz.space` pointed to VPS; Caddy block serves it with wildcard cert
+- DEMO-05 Public DNS record `homekeep.demo.the-kizz.com` pointed to VPS; Caddy block serves it with wildcard cert
 
 **Out of scope:**
 - SMS / email verification
@@ -25,7 +25,7 @@ Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public
 
 **Deliverables:**
 1. `docker/docker-compose.demo.yml` overlay (ports, env, tmpfs mount, image pinning)
-2. `Caddyfile.demo` or additional Caddy block for `homekeep.demo.kizz.space`
+2. `Caddyfile.demo` or additional Caddy block for `homekeep.demo.the-kizz.com`
 3. `lib/demo-session.ts` — cookie-keyed ephemeral-home seeding helper
 4. `app/api/demo/session/route.ts` — GET handler that checks/creates demo session + seeds home
 5. `components/demo-banner.tsx` + layout integration (conditionally rendered when `DEMO_MODE=true`)
@@ -39,7 +39,7 @@ Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public
 ### DEMO-01: Compose overlay
 
 - **D-01 (compose file structure):** New `docker/docker-compose.demo.yml` extends the base compose with:
-  - Service env overrides: `DEMO_MODE=true`, `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, `NTFY_URL=""`, `SMTP=""`, `SITE_URL=https://homekeep.demo.kizz.space`
+  - Service env overrides: `DEMO_MODE=true`, `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, `NTFY_URL=""`, `SMTP=""`, `SITE_URL=https://homekeep.demo.the-kizz.com`
   - Volume: `/app/data/pb_data` mounted as tmpfs (no disk persistence)
   - Image: `ghcr.io/the-kizz/homekeep:latest` (or `:edge` during active dev)
   - Healthcheck + restart policy preserved
@@ -73,9 +73,9 @@ Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public
 
 ### DEMO-05: DNS + Caddy
 
-- **D-13 (DNS):** manually add A record `homekeep.demo.kizz.space → 46.62.151.57` in godaddy UI (API automation deferred to v1.3). Also add wildcard placeholder `*.demo.kizz.space → 46.62.151.57` if using wildcard cert strategy.
-- **D-14 (Caddy block):** new `homekeep.demo.kizz.space` block in a demo-specific Caddyfile that runs alongside the existing `docker-compose.caddy.yml`. Uses auto-HTTPS via HTTP-01 (simpler than DNS-01 for initial ship). DNS-01 + godaddy plugin upgrade deferred.
-- **D-15 (wildcard cert future):** once DNS-01 + godaddy plugin added, swap to wildcard `*.demo.kizz.space` cert that covers future project demos (notes.demo, wiki.demo, etc).
+- **D-13 (DNS):** manually add A record `homekeep.demo.the-kizz.com → 46.62.151.57` in godaddy UI (API automation deferred to v1.3). Also add wildcard placeholder `*.demo.the-kizz.com → 46.62.151.57` if using wildcard cert strategy.
+- **D-14 (Caddy block):** new `homekeep.demo.the-kizz.com` block in a demo-specific Caddyfile that runs alongside the existing `docker-compose.caddy.yml`. Uses auto-HTTPS via HTTP-01 (simpler than DNS-01 for initial ship). DNS-01 + godaddy plugin upgrade deferred.
+- **D-15 (wildcard cert future):** once DNS-01 + godaddy plugin added, swap to wildcard `*.demo.the-kizz.com` cert that covers future project demos (notes.demo, wiki.demo, etc).
 
 ### Migration + tests
 
@@ -105,7 +105,7 @@ Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public
 
 <deferred>
 - DNS-01 + godaddy plugin for wildcard cert (v1.3)
-- Per-project demo wildcard `*.demo.kizz.space` (v1.3)
+- Per-project demo wildcard `*.demo.the-kizz.com` (v1.3)
 - Demo analytics (visitor counts, session length)
 - Onboarding-flow adjustment for demo (maybe skip wizard)
 </deferred>

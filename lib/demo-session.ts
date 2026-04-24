@@ -36,7 +36,7 @@
  *     on /api/demo/session at the Caddy layer (documented in
  *     Caddyfile.demo block, not enforced here — keep the lib pure).
  *   - The route handler sets the pb_auth cookie under the SAME origin as
- *     homekeep.demo.kizz.space; cross-origin cookie leakage is impossible
+ *     homekeep.demo.the-kizz.com; cross-origin cookie leakage is impossible
  *     per standard SameSite=Lax semantics.
  *
  * Module-level guard (D-03, T-26-01): throws if DEMO_MODE !== 'true'.

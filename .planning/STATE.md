@@ -393,12 +393,12 @@ Resume file: None
 
 ## Subdomain + DNS Architecture Addition (2026-04-23)
 
-**Resource available:** `kizz.space` domain controlled by user, godaddy API token available for DNS automation.
+**Resource available:** `the-kizz.com` domain controlled by user, godaddy API token available for DNS automation.
 
 **Phase 26 (DEMO) target architecture refined:**
 
-- `demo.kizz.space` → public HomeKeep demo (Phase 26 DEMO pattern: tmpfs PB, ephemeral homes, 2h TTL, no SMTP, no ntfy, build-ID stealth). Caddy auto-TLS via Let's Encrypt.
-- `homekeep.kizz.space` → personal instance (Tailscale-gated OR Caddy basic_auth; not publicly signable-up-able). Same Caddy auto-TLS.
+- `demo.the-kizz.com` → public HomeKeep demo (Phase 26 DEMO pattern: tmpfs PB, ephemeral homes, 2h TTL, no SMTP, no ntfy, build-ID stealth). Caddy auto-TLS via Let's Encrypt.
+- `homekeep.the-kizz.com` → personal instance (Tailscale-gated OR Caddy basic_auth; not publicly signable-up-able). Same Caddy auto-TLS.
 - Root VPS IP (`46.62.151.57:3000`) retired once subdomains cut over.
 
 **DNS automation option:** godaddy API can write A records programmatically — can be wired into a phase task that creates the subdomain records as part of demo deploy. Or (simpler) user adds them manually once.
@@ -408,18 +408,18 @@ Resume file: None
 **Updates Phase 26 success criteria:**
 
 - SC previously: "`docker-compose.demo.yml` overlay boots a demo instance"
-- SC now: "Public demo live at `demo.kizz.space` via auto-TLS; personal instance moved to `homekeep.kizz.space` behind Tailscale/auth; godaddy A records created (manual or API-automated)"
+- SC now: "Public demo live at `demo.the-kizz.com` via auto-TLS; personal instance moved to `homekeep.the-kizz.com` behind Tailscale/auth; godaddy A records created (manual or API-automated)"
 
 ## Subdomain Naming Decision (2026-04-23)
 
-**Convention:** `<project>.demo.kizz.space` — hierarchical, wildcard-friendly.
+**Convention:** `<project>.demo.the-kizz.com` — hierarchical, wildcard-friendly.
 
-- Public HomeKeep demo: `homekeep.demo.kizz.space`
-- Future project demos: `wiki.demo.kizz.space`, `notes.demo.kizz.space`, etc.
-- Wildcard Let's Encrypt cert `*.demo.kizz.space` via DNS-01 (godaddy plugin) covers all project demos with one cert.
+- Public HomeKeep demo: `homekeep.demo.the-kizz.com`
+- Future project demos: `wiki.demo.the-kizz.com`, `notes.demo.the-kizz.com`, etc.
+- Wildcard Let's Encrypt cert `*.demo.the-kizz.com` via DNS-01 (godaddy plugin) covers all project demos with one cert.
 
 **VPS role refined:** `46.62.151.57` is a DEVELOPMENT + public-demo host. Multiple projects may share it. Not a personal-data host.
 
 **Personal instance:** user's homelab (home server / NAS), LAN or Tailscale only. Not on VPS, not on any public subdomain.
 
-**Phase 26 updated:** target is `homekeep.demo.kizz.space` specifically, not generic `demo.kizz.space`. Caddy config gets `homekeep.demo.kizz.space` block with the demo-specific overlay.
+**Phase 26 updated:** target is `homekeep.demo.the-kizz.com` specifically, not generic `demo.the-kizz.com`. Caddy config gets `homekeep.demo.the-kizz.com` block with the demo-specific overlay.

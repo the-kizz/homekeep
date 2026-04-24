@@ -69,7 +69,7 @@ docker exec homekeep pocketbase superuser update "$PB_ADMIN_EMAIL" "$PB_ADMIN_PA
 - `b16eaf6` docs(22): capture phase context
 - `279b379` fix(22): block PB admin /_/ from public (HOTFIX-01)
 - `05eca53` docs(v1.2): lock personal-vs-demo architecture decision
-- `6cb918a` docs(v1.2): record kizz.space subdomain + godaddy API architecture
+- `6cb918a` docs(v1.2): record the-kizz.com subdomain + godaddy API architecture
 - `5c7c4f5` docs(v1.2): refine subdomain convention + VPS role
 
 ## Architecture decisions captured during Phase 22
@@ -77,8 +77,8 @@ docker exec homekeep pocketbase superuser update "$PB_ADMIN_EMAIL" "$PB_ADMIN_PA
 Recorded in STATE.md:
 
 1. **Personal vs demo:** Personal instance goes to user's homelab (LAN/Tailscale), not VPS. VPS is development + public demo host.
-2. **Subdomain convention:** `<project>.demo.kizz.space` for demos. HomeKeep demo target: `homekeep.demo.kizz.space`.
-3. **Wildcard cert:** `*.demo.kizz.space` via Let's Encrypt DNS-01 + godaddy plugin covers all future project demos with one cert.
+2. **Subdomain convention:** `<project>.demo.the-kizz.com` for demos. HomeKeep demo target: `homekeep.demo.the-kizz.com`.
+3. **Wildcard cert:** `*.demo.the-kizz.com` via Let's Encrypt DNS-01 + godaddy plugin covers all future project demos with one cert.
 4. **VPS retirement of IP:3000:** Current `46.62.151.57:3000` path retired once subdomain cuts over in Phase 26.
 
 ## Verification checklist

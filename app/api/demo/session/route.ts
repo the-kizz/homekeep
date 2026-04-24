@@ -22,7 +22,7 @@ import {
  *     tracking cookie keyed to the user id, and redirect to /h/<homeId>.
  *
  * First-visit link pattern: the demo landing page (or any button on
- * homekeep.demo.kizz.space) should link to `/api/demo/session` instead
+ * homekeep.demo.the-kizz.com) should link to `/api/demo/session` instead
  * of `/login`. The handler creates the ephemeral user + home + 15 seed
  * tasks on the first hit, then redirects to the newly-minted dashboard
  * with the user already authenticated.

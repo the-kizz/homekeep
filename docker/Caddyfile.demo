@@ -6,7 +6,7 @@
 # via a compose volume override (see docs/deployment.md "Deploying a
 # public demo" section).
 #
-# The block below is tuned for homekeep.demo.kizz.space specifically:
+# The block below is tuned for homekeep.demo.the-kizz.com specifically:
 #   - HTTP-01 ACME on port 80 (DNS-01 + godaddy plugin deferred to v1.3
 #     per STATE.md "v1.2-security Architecture Decision" — ship now,
 #     wildcard later).
@@ -18,15 +18,17 @@
 #     container directly (pb CLI + localhost:8090 behind caddy).
 #
 # NOTE: this is an ENTIRE Caddyfile, not a snippet. It replaces
-# Caddyfile.prod wholesale when the demo overlay is active. If we ever
-# want homekeep.kizz.space (personal) + homekeep.demo.kizz.space (demo)
-# served by the SAME caddy sidecar we'd merge the blocks — but the
-# v1.2-security architecture intentionally separates these hosts.
+# Caddyfile.prod wholesale when the demo overlay is active.
+#
+# Architecture (post-v1.2.1 — confirmed 2026-04-24):
+#   - DEMO  → homekeep.demo.the-kizz.com (public, Caddy + Let's Encrypt)
+#   - PERSONAL instance → homelab via Tailscale/LAN (no public DNS)
+# The demo overlay therefore only needs to serve ONE hostname here.
 {
-	email {$CADDY_EMAIL:admin@kizz.space}
+	email {$CADDY_EMAIL:admin@the-kizz.com}
 }
 
-homekeep.demo.kizz.space {
+homekeep.demo.the-kizz.com {
 	encode zstd gzip
 
 	# Phase 24 HDR-02: same hardening headers as Caddyfile.prod. HSTS

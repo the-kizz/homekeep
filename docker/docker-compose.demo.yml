@@ -9,7 +9,7 @@
 #     up -d
 #
 # Layered on top of docker-compose.yml (baseline) + docker-compose.caddy.yml
-# (external TLS terminator for homekeep.demo.kizz.space). The key divergences
+# (external TLS terminator for homekeep.demo.the-kizz.com). The key divergences
 # from a regular production instance:
 #
 #   1. `/app/data/pb_data` is mounted as tmpfs — PB state NEVER hits disk.
@@ -73,7 +73,7 @@ services:
 
       # Public URL used for PWA manifest + invite links. Must match the
       # Caddy block in Caddyfile.prod (or Caddyfile.demo) that terminates TLS.
-      - SITE_URL=https://homekeep.demo.kizz.space
+      - SITE_URL=https://homekeep.demo.the-kizz.com
 
       # Standard passthroughs from .env.demo (PB admin, SMTP — which is
       # intentionally blank so password reset gracefully degrades per D-02).

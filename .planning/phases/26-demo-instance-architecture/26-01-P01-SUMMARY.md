@@ -13,7 +13,7 @@ provides:
   - lib/demo-session.ts + /api/demo/session route (per-visitor seed)
   - pb_hooks/demo_cleanup.pb.js (2h idle + 24h absolute TTL cron)
   - components/demo-banner.tsx (amber warning)
-  - docker/Caddyfile.demo (homekeep.demo.kizz.space TLS block)
+  - docker/Caddyfile.demo (homekeep.demo.the-kizz.com TLS block)
   - docs/deployment.md "Deploying a public demo" section
 affects:
   - app/layout.tsx (DemoBanner inserted above children)
@@ -58,7 +58,7 @@ metrics:
 
 # Phase 26 Plan 01: Demo Instance Architecture Summary
 
-**One-liner:** Ship a `docker-compose.demo.yml` overlay + per-visitor ephemeral session helper + 2h/24h cleanup cron + amber warning banner + Caddyfile.demo block, so `homekeep.demo.kizz.space` can run the public HomeKeep demo without risk to real-user data.
+**One-liner:** Ship a `docker-compose.demo.yml` overlay + per-visitor ephemeral session helper + 2h/24h cleanup cron + amber warning banner + Caddyfile.demo block, so `homekeep.demo.the-kizz.com` can run the public HomeKeep demo without risk to real-user data.
 
 ## What Shipped
 
@@ -66,7 +66,7 @@ metrics:
 
 `docker/docker-compose.demo.yml` layers on top of the baseline + caddy overlay and:
 - replaces `./data:/app/data` bind-mount with a 256 MB tmpfs (`volumes: !reset []` + `tmpfs:` block, Compose v2.24+);
-- sets `DEMO_MODE=true`, `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, `NTFY_URL=""`, `SITE_URL=https://homekeep.demo.kizz.space`;
+- sets `DEMO_MODE=true`, `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, `NTFY_URL=""`, `SITE_URL=https://homekeep.demo.the-kizz.com`;
 - pins the image via `GHCR_OWNER=${GHCR_OWNER:-the-kizz}` + `TAG=${TAG:-latest}`, so `TAG=edge` supports active-dev deploys.
 
 `docker/.env.demo` is the committed operator template — fail-fast placeholder for `PB_ADMIN_PASSWORD` forces a rotation before first `compose up`.
@@ -96,7 +96,7 @@ metrics:
 
 ### DEMO-05 — Caddy block + docs (commit `aa35632`)
 
-- `docker/Caddyfile.demo` — dedicated block for `homekeep.demo.kizz.space` with the same Phase 24 HDR-02 headers as `Caddyfile.prod`. No `ALLOW_PUBLIC_ADMIN_UI` escape hatch — the admin UI is always 404 on the demo host.
+- `docker/Caddyfile.demo` — dedicated block for `homekeep.demo.the-kizz.com` with the same Phase 24 HDR-02 headers as `Caddyfile.prod`. No `ALLOW_PUBLIC_ADMIN_UI` escape hatch — the admin UI is always 404 on the demo host.
 - `docs/deployment.md` gains a 60-line "Deploying a public demo" section covering DNS prereq, `.env.demo` rotation, 3-file compose chain, verification, resource usage, and tear-down.
 
 ### Tests — 5 integration scenarios (commit `b317a0e`)
@@ -144,9 +144,9 @@ None. Every new surface (public `/api/demo/session` route, Caddy block, cron hoo
 
 The phase ships primitives; the user activates them with:
 
-1. Add DNS A record `homekeep.demo.kizz.space → 46.62.151.57` in GoDaddy.
+1. Add DNS A record `homekeep.demo.the-kizz.com → 46.62.151.57` in GoDaddy.
 2. Copy `docker/.env.demo` → `docker/.env.demo.local` on the VPS; run `openssl rand -hex 24` and paste the output into `PB_ADMIN_PASSWORD=`.
-3. Decide which Caddyfile to mount: either edit the `docker-compose.caddy.yml` volume mount to point at `Caddyfile.demo`, or set `DOMAIN=homekeep.demo.kizz.space` in `.env.demo.local` and let `Caddyfile.prod`'s `{$DOMAIN}` substitution serve it.
+3. Decide which Caddyfile to mount: either edit the `docker-compose.caddy.yml` volume mount to point at `Caddyfile.demo`, or set `DOMAIN=homekeep.demo.the-kizz.com` in `.env.demo.local` and let `Caddyfile.prod`'s `{$DOMAIN}` substitution serve it.
 4. `docker compose -f docker/docker-compose.yml -f docker/docker-compose.caddy.yml -f docker/docker-compose.demo.yml --env-file docker/.env.demo.local up -d`.
 
 Steps 1-4 are documented in `docs/deployment.md` "Deploying a public demo".
