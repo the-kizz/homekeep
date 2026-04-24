@@ -32,7 +32,17 @@ export const E2E_ADMIN_SCHEDULER_TOKEN =
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
-  reporter: 'list',
+  // v1.3 TESTFIX-05: flake-retry budget. CI gets up to 2 retries
+  // per test to absorb genuine transient conditions (network blip,
+  // PB hot-start after fresh bootstrap); local runs get 0 retries
+  // (fail fast on actual bugs). CI also emits a JSON report so a
+  // downstream workflow step can surface retry-count and fail the
+  // build if retries were actually consumed (silent green-with-retries
+  // is what we're preventing).
+  retries: process.env.CI ? 2 : 0,
+  reporter: process.env.CI
+    ? [['list'], ['json', { outputFile: 'test-results/e2e-report.json' }]]
+    : 'list',
   globalSetup: process.env.E2E_BASE_URL
     ? undefined
     : require.resolve('./tests/e2e/global-setup.ts'),

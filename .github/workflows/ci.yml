@@ -78,6 +78,55 @@ jobs:
           DISABLE_RATE_LIMITS: "true"
         run: npm run test:e2e
 
+      # v1.3 TESTFIX-05: flake-retry budget. playwright.config.ts runs
+      # CI with retries=2 to absorb genuine transient failures. This
+      # step parses the JSON report and fails the build if ANY retry
+      # was actually consumed — silent green-with-retries is the
+      # regression we're preventing. A clean PR has "0/N tests retried".
+      - name: Flake budget check (TESTFIX-05 — zero retries allowed on master)
+        if: always()
+        run: |
+          set -eu
+          REPORT=test-results/e2e-report.json
+          if [ ! -f "$REPORT" ]; then
+            echo "no JSON report at $REPORT (E2E step likely errored before writing). Skipping flake audit."
+            exit 0
+          fi
+          # Count any test whose .results[] array has length > 1 — that's
+          # a retry. Also count outright failures.
+          RESULT=$(python3 -c "
+          import json,sys
+          d=json.load(open('$REPORT'))
+          retried=failed=passed=0
+          def walk(suite):
+            global retried,failed,passed
+            for s in suite.get('suites',[]): walk(s)
+            for spec in suite.get('specs',[]):
+              for t in spec.get('tests',[]):
+                results=t.get('results',[])
+                if not results: continue
+                final=results[-1].get('status','')
+                if final=='passed': passed+=1
+                elif final=='failed': failed+=1
+                if len(results)>1 and final=='passed': retried+=1
+          for s in d.get('suites',[]): walk(s)
+          print(f'{passed}|{failed}|{retried}')
+          ")
+          PASSED=$(echo "$RESULT" | cut -d'|' -f1)
+          FAILED=$(echo "$RESULT" | cut -d'|' -f2)
+          RETRIED=$(echo "$RESULT" | cut -d'|' -f3)
+          echo "E2E outcome: passed=$PASSED failed=$FAILED retried-but-passed=$RETRIED"
+          if [ "$FAILED" -gt 0 ]; then
+            echo "FAIL: $FAILED E2E test(s) failed outright."
+            exit 1
+          fi
+          if [ "$RETRIED" -gt 0 ]; then
+            echo "FAIL: $RETRIED E2E test(s) required retry to pass — flake budget is zero on master."
+            echo "Either fix the flake at its source or document the known-flake in the test file."
+            exit 1
+          fi
+          echo "OK: zero retries consumed."
+
       - name: Set up Buildx (for docker build sanity)
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
 
