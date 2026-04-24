@@ -41,7 +41,7 @@ Ship a `docker-compose.demo.yml` overlay + app-layer demo primitives so a public
 - **D-01 (compose file structure):** New `docker/docker-compose.demo.yml` extends the base compose with:
   - Service env overrides: `DEMO_MODE=true`, `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, `NTFY_URL=""`, `SMTP=""`, `SITE_URL=https://homekeep.demo.kizz.space`
   - Volume: `/app/data/pb_data` mounted as tmpfs (no disk persistence)
-  - Image: `ghcr.io/conroyke56/homekeep:latest` (or `:edge` during active dev)
+  - Image: `ghcr.io/the-kizz/homekeep:latest` (or `:edge` during active dev)
   - Healthcheck + restart policy preserved
 - **D-02 (env file):** `docker/.env.demo` separate from production `docker/.env` so secrets don't mix. Uses throwaway admin email (e.g. `admin@demo.homekeep.local`) with fresh generated password.
 

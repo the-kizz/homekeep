@@ -1,6 +1,6 @@
 /// <reference path="../pb_data/types.d.ts" />
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 
 /**
  * 11-01 Plan Task 1 — additive task-model extensions (OOFT-01, OOFT-03,

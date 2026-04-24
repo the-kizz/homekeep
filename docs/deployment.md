@@ -153,7 +153,7 @@ This is **NOT** the mode to run your personal household on. For personal use, ru
   - `components/demo-banner.tsx` — the amber warning banner in the app layout.
   - `pocketbase/pb_hooks/demo_cleanup.pb.js` — 15-minute cron that sweeps idle / absolute-TTL-expired demo users.
 - Sets `DISABLE_SCHEDULER=true` + `HK_BUILD_STEALTH=true` + `NTFY_URL=""` so the demo emits no outbound notifications and redacts build-id metadata.
-- Pins the image via `GHCR_OWNER` + `TAG` env vars (`conroyke56/latest` by default; `edge` during active dev).
+- Pins the image via `GHCR_OWNER` + `TAG` env vars (`the-kizz/latest` by default; `edge` during active dev).
 
 ### Prereqs (`user_setup`)
 

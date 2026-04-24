@@ -66,10 +66,10 @@ export default async function LandingPage() {
           parent flex) so it reads as a quiet attribution link rather
           than part of the primary pitch. */}
       <a
-        href="https://github.com/conroyke56/homekeep"
+        href="https://github.com/the-kizz/homekeep"
         className="text-xs text-muted-foreground underline-offset-2 hover:text-primary hover:underline"
       >
-        github.com/conroyke56/homekeep
+        github.com/the-kizz/homekeep
       </a>
     </main>
   );

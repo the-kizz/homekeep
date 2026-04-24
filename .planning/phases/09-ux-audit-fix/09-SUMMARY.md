@@ -54,7 +54,7 @@ metrics:
 Post-launch UX audit fix pass driven by screenshot review. 11 discrete
 issues identified, fixed atomically (one commit per issue), rebuilt
 the image with a fresh tier-3 UUID, redeployed, re-captured all 8
-screenshots, and pushed to `github.com/conroyke56/homekeep`. Warm-
+screenshots, and pushed to `github.com/the-kizz/homekeep`. Warm-
 palette-only render across every surface; no sage green, no pure red,
 no mid-phrase wrap, no sprawling whitespace on the landing page.
 
@@ -237,7 +237,7 @@ prior phases; out of Phase 9 scope.
 
 - **Image:** `homekeep:phase-9-ux` (also tagged `homekeep:latest`)
 - **Tier-3 UUID:** `hk-11d485d7-6609-4066-9e1b-ae82ead435c0`
-- **Repo:** https://github.com/conroyke56/homekeep
+- **Repo:** https://github.com/the-kizz/homekeep
 - **License:** AGPL-3.0-or-later (untouched per constraint)
 - **Container:** `homekeep` — healthy, port 3000, force-recreated
 

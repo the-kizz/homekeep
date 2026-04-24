@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/causes
+// HomeKeep (c) 2026 — github.com/the-kizz/causes
 
 /**
  * Phase 16 Plan 01 Task 3 — TaskDetailSheet Schedule section tests (RED).

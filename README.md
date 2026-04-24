@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/conroyke56/homekeep/releases"><img src="https://img.shields.io/github/v/release/conroyke56/homekeep?include_prereleases&sort=semver&color=D4A574" alt="Latest release"></a>
-  <a href="https://github.com/conroyke56/homekeep/actions"><img src="https://img.shields.io/github/actions/workflow/status/conroyke56/homekeep/ci.yml?branch=master&label=CI" alt="CI"></a>
+  <a href="https://github.com/the-kizz/homekeep/releases"><img src="https://img.shields.io/github/v/release/the-kizz/homekeep?include_prereleases&sort=semver&color=D4A574" alt="Latest release"></a>
+  <a href="https://github.com/the-kizz/homekeep/actions"><img src="https://img.shields.io/github/actions/workflow/status/the-kizz/homekeep/ci.yml?branch=master&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/License-AGPL%20v3-ff6b35" alt="AGPL v3 License">
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js 16">
   <img src="https://img.shields.io/badge/PocketBase-0.37-ff8c00" alt="PocketBase 0.37">
@@ -125,7 +125,7 @@ docker run -d -p 3000:3000 \
   -e SITE_URL=http://localhost:3000 \
   -e NTFY_URL=https://ntfy.sh \
   --name homekeep --restart unless-stopped \
-  ghcr.io/conroyke56/homekeep:latest
+  ghcr.io/the-kizz/homekeep:latest
 ```
 
 Open <http://localhost:3000>, sign up, create a home. The PocketBase admin UI lives at `/_/` — on first boot check the container logs for an installer link.
@@ -150,7 +150,7 @@ Drop this file anywhere as `docker-compose.yml` — no clone required:
 ```yaml
 services:
   homekeep:
-    image: ghcr.io/conroyke56/homekeep:latest
+    image: ghcr.io/the-kizz/homekeep:latest
     container_name: homekeep
     restart: unless-stopped
     ports:
@@ -177,7 +177,7 @@ Then `docker compose up -d`. Data lives in the `homekeep_data` named volume — 
 **Or clone the repo** if you want the full LAN/Caddy/Tailscale overlay set:
 
 ```bash
-git clone https://github.com/conroyke56/homekeep.git
+git clone https://github.com/the-kizz/homekeep.git
 cd homekeep
 cp .env.example docker/.env   # edit as needed
 docker compose -f docker/docker-compose.yml up -d
@@ -303,7 +303,7 @@ made directly to the serving host.
 
 ```bash
 curl -fsS https://your-homekeep.example.com/.well-known/homekeep.json
-# => {"app":"HomeKeep","repo":"https://github.com/conroyke56/homekeep","license":"AGPL-3.0-or-later","build":"hk-<uuid>"}
+# => {"app":"HomeKeep","repo":"https://github.com/the-kizz/homekeep","license":"AGPL-3.0-or-later","build":"hk-<uuid>"}
 ```
 
 If you ever come across HomeKeep running on a domain that isn't yours or

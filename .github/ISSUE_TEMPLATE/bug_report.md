@@ -15,7 +15,7 @@ labels: bug
 3.
 
 **Environment**
-- Image tag (e.g. `ghcr.io/conroyke56/homekeep:v1.0.0-rc1` or commit SHA):
+- Image tag (e.g. `ghcr.io/the-kizz/homekeep:v1.0.0-rc1` or commit SHA):
 - Browser:
 - Deployment mode (LAN / Caddy / Tailscale / other):
 

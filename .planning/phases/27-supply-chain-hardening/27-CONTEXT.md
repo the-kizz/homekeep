@@ -37,7 +37,7 @@ Close the supply-chain gaps surfaced by research: no cosign signing, no SBOM, no
 
 - **D-01 (keyless via GitHub OIDC):** Use `cosign sign --yes` with `SIGSTORE_ID_TOKEN` from the GitHub OIDC provider. No long-lived cosign keys to manage; the signature is bound to the workflow identity (repo + branch + workflow).
 - **D-02 (release.yml step):** After build-and-push, add a `cosign sign` step that signs the just-pushed image digest. Requires `id-token: write` permission.
-- **D-03 (verification doc):** `cosign verify ghcr.io/conroyke56/homekeep:v1.2.0 --certificate-identity-regexp "^https://github.com/conroyke56/homekeep/.github/workflows/release.yml@.+" --certificate-oidc-issuer https://token.actions.githubusercontent.com` — document in SECURITY.md.
+- **D-03 (verification doc):** `cosign verify ghcr.io/the-kizz/homekeep:v1.2.0 --certificate-identity-regexp "^https://github.com/the-kizz/homekeep/.github/workflows/release.yml@.+" --certificate-oidc-issuer https://token.actions.githubusercontent.com` — document in SECURITY.md.
 
 ### SUPPLY-02: SBOM + provenance
 

@@ -19,7 +19,7 @@
 | TEST-01 | Unit suite stays green (no production regression) | vitest | `npm run test -- --run` exits 0 | Yes |
 | TEST-01 | TypeScript compiles cleanly | tsc | `npx tsc --noEmit -p tsconfig.json` exits 0 | Yes |
 | TEST-02 | `.github/workflows/ci.yml` `test:e2e` step passes on the next push after local green | workflow-gated | Post-merge: `gh run list --workflow=ci.yml -L 1` → conclusion=success | Yes — workflow exists at `.github/workflows/ci.yml:62-68` |
-| TEST-02 | `.github/workflows/release.yml` advances `:latest` + `:1.1` GHCR tags on next stable tag push | workflow-gated | Post-tag: `docker manifest inspect ghcr.io/conroyke56/homekeep:latest` refs the new digest; `gh run view <release-run>` shows tier-tag step green | Yes — workflow exists at `.github/workflows/release.yml:48-57` |
+| TEST-02 | `.github/workflows/release.yml` advances `:latest` + `:1.1` GHCR tags on next stable tag push | workflow-gated | Post-tag: `docker manifest inspect ghcr.io/the-kizz/homekeep:latest` refs the new digest; `gh run view <release-run>` shows tier-tag step green | Yes — workflow exists at `.github/workflows/release.yml:48-57` |
 
 ---
 
@@ -106,7 +106,7 @@ No missing dependencies. Phase 20 executes entirely within the existing test har
   - 23 passed / 0 failed in E2E suite (per ROADMAP success criterion 2)
 - On the next stable tag push (`v1.1.1` or later) after CI green:
   - `.github/workflows/release.yml` runs
-  - Tier-tag step advances `ghcr.io/conroyke56/homekeep:latest` AND `ghcr.io/conroyke56/homekeep:1.1` to the new digest (per ROADMAP success criterion 3)
+  - Tier-tag step advances `ghcr.io/the-kizz/homekeep:latest` AND `ghcr.io/the-kizz/homekeep:1.1` to the new digest (per ROADMAP success criterion 3)
 
 No new workflow YAML changes are required. The planning prompt explicitly confirms this: the Release workflow's existing E2E gate (if any) advances tiered tags once CI goes green.
 

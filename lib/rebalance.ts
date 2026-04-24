@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 import type { Override } from '@/lib/schedule-overrides';
 import type { CompletionRecord } from '@/lib/completions';
 import {

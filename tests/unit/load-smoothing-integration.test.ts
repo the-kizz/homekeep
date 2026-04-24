@@ -1,6 +1,6 @@
 // @vitest-environment node
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 
 /**
  * Phase 12 LOAD integration suite — port 18100.

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 
 /**
  * Phase 26 DEMO-04 — demo-mode warning banner (D-10, D-11, D-12).

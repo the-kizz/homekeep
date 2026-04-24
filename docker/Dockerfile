@@ -122,7 +122,7 @@ ENV NODE_ENV=production \
 # OCI label surfaces the build fingerprint via `docker inspect` even if the
 # container is offline. Matches HOMEKEEP_BUILD at runtime.
 LABEL org.opencontainers.image.revision="${HK_BUILD_ID}" \
-      org.opencontainers.image.source="https://github.com/conroyke56/homekeep" \
+      org.opencontainers.image.source="https://github.com/the-kizz/homekeep" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 EXPOSE 3000

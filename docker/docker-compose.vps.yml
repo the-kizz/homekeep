@@ -2,7 +2,7 @@
 # UID issues under userns-remap on Hetzner VPS per STATE.md v1.0 learning).
 services:
   homekeep:
-    image: ghcr.io/${GHCR_OWNER:-conroyke56}/homekeep:${TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER:-the-kizz}/homekeep:${TAG:-latest}
     volumes:
       - homekeep_data:/app/data
 volumes:

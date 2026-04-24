@@ -9,7 +9,7 @@ Scope: `package.json`, `package-lock.json` (lockfileVersion 3, 770 integrity has
 - **2 medium findings:** GitHub Actions pinned to floating majors (not SHAs); dev-only PB download in `scripts/dev-pb.js` has **no** checksum (only the production Dockerfile does).
 - **Exact-pin invariant holds.** `package.json` has zero caret or tilde ranges in runtime or dev deps. The Phase 1 "strip all carets" rule survived Phases 2–21 intact.
 
-**Overall posture grade: B-.** The fundamentals (exact pins, lockfile integrity hashes, PB checksum in prod, s6 drops root, least-priv workflow permissions) are solid. The gap is artifact-level assurance: a consumer pulling `ghcr.io/conroyke56/homekeep:latest` today cannot verify signature, provenance, or SBOM. Phase 7's deferred "cosign + SHA-pin actions" work remains unfunded.
+**Overall posture grade: B-.** The fundamentals (exact pins, lockfile integrity hashes, PB checksum in prod, s6 drops root, least-priv workflow permissions) are solid. The gap is artifact-level assurance: a consumer pulling `ghcr.io/the-kizz/homekeep:latest` today cannot verify signature, provenance, or SBOM. Phase 7's deferred "cosign + SHA-pin actions" work remains unfunded.
 
 ## npm dependency audit
 
@@ -84,7 +84,7 @@ The Dockerfile COPIES a known-version PB binary, uses a pinned Caddy, and npm lo
 
 ## Image signing (cosign)
 
-**Not signed.** Zero `cosign` references across the entire repo (`.github/`, `docker/`, `scripts/`). Released images at `ghcr.io/conroyke56/homekeep:*` have no signature, no attestation, no provenance record.
+**Not signed.** Zero `cosign` references across the entire repo (`.github/`, `docker/`, `scripts/`). Released images at `ghcr.io/the-kizz/homekeep:*` have no signature, no attestation, no provenance record.
 
 Minimum viable addition (one job after `build-and-push` in `release.yml`):
 ```yaml
@@ -112,7 +112,7 @@ Drift surfaces that remain:
 **H1. Released images are unsigned and carry no attestation.**
 - Location: `.github/workflows/release.yml`, `.github/workflows/edge.yml`
 - Evidence: no `cosign` step, no `provenance:` or `sbom:` inputs on `docker/build-push-action@v7`.
-- Impact: Consumers pulling `ghcr.io/conroyke56/homekeep:latest` have no cryptographic proof the image was built by this repo. A compromised GHCR token or compromised GHCR mirror could swap in a malicious image. Downstream `docker pull` has no verification surface.
+- Impact: Consumers pulling `ghcr.io/the-kizz/homekeep:latest` have no cryptographic proof the image was built by this repo. A compromised GHCR token or compromised GHCR mirror could swap in a malicious image. Downstream `docker pull` has no verification surface.
 - Fix: Add `sigstore/cosign-installer@v3` + `cosign sign --yes …@${digest}` step; enable `provenance: true, sbom: true` on `build-push-action`; add `permissions: id-token: write`.
 
 **H2. No SBOM is published.**

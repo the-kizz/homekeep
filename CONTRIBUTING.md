@@ -12,7 +12,7 @@ First — thanks. This is a small weekend-ish project, but it's open and public 
 ## Setting up
 
 ```bash
-git clone https://github.com/conroyke56/homekeep.git
+git clone https://github.com/the-kizz/homekeep.git
 cd homekeep
 npm install
 npm run dev

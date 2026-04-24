@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 
 /**
  * Phase 15 Plan 02 (SNZE-01, SNZE-02, SNZE-03, D-04..D-06) —

@@ -141,7 +141,7 @@ No missing dependencies. Phase 21 is a pure text edit — executes entirely with
   - Expected output: `Image homekeep:ci = 309MB (limit 320MB)` → `OK`
 - On the next stable tag push (post-Phase-21 commit):
   - `.github/workflows/release.yml` runs
-  - Tier-tag step advances `ghcr.io/conroyke56/homekeep:latest` AND `ghcr.io/conroyke56/homekeep:1.1` to the new digest (unblocked by — not required within — this phase)
+  - Tier-tag step advances `ghcr.io/the-kizz/homekeep:latest` AND `ghcr.io/the-kizz/homekeep:1.1` to the new digest (unblocked by — not required within — this phase)
 
 No workflow YAML logic changes are required. The only YAML edit is the cosmetic step-name label (line 77), so the run remains functionally identical — just honest about what it now enforces.
 

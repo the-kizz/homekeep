@@ -574,7 +574,7 @@ Plans:
 **Requirements**: SUPPLY-01..06
 
 **Success Criteria**:
-  1. `cosign verify ghcr.io/conroyke56/homekeep:v1.2.0 ...` passes
+  1. `cosign verify ghcr.io/the-kizz/homekeep:v1.2.0 ...` passes
   2. SBOM (SPDX or CycloneDX) attached to GHCR release
   3. `grep 'uses:.*@v[0-9]$' .github/workflows/` returns zero (all SHA-pinned)
   4. `FROM node:22-alpine@sha256:...` in Dockerfile (digest-pinned)

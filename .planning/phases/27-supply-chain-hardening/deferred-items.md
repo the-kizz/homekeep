@@ -30,7 +30,7 @@ Push ac2b464 to master triggered Edge workflow run 24864528550 which:
 - Built multi-arch image with digest-pinned bases (SUPPLY-04)
 - Attached SBOM + SLSA-3 provenance to both amd64 and arm64 manifests
   (SUPPLY-02) — verified via `docker buildx imagetools inspect
-  ghcr.io/conroyke56/homekeep:edge` showing `vnd.docker.reference.type:
+  ghcr.io/the-kizz/homekeep:edge` showing `vnd.docker.reference.type:
   attestation-manifest` for each platform
 - Used SHA-pinned actions throughout (SUPPLY-03)
 - Emitted the telemetry-disabled runtime image (SUPPLY-06)

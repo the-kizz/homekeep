@@ -64,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="hk-build" content={publicBuildId} />
       </head>
       <body className="min-h-screen antialiased">
-        {/* HomeKeep (https://github.com/conroyke56/homekeep) — AGPL-3.0-or-later. */}
+        {/* HomeKeep (https://github.com/the-kizz/homekeep) — AGPL-3.0-or-later. */}
         {/*
          * Phase 26 DEMO-04: amber warning banner on public demo instances.
          * Returns null on personal instances (DEMO_MODE unset) — zero bytes

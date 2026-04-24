@@ -724,7 +724,7 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 ### Supply Chain Hardening (SUPPLY)
 
 - [x] **SUPPLY-01
-**: `release.yml` emits cosign-signed container image (keyless via OIDC). Verifiable via `cosign verify ghcr.io/conroyke56/homekeep:v1.2.0 --certificate-identity-regexp ...`.
+**: `release.yml` emits cosign-signed container image (keyless via OIDC). Verifiable via `cosign verify ghcr.io/the-kizz/homekeep:v1.2.0 --certificate-identity-regexp ...`.
 - [x] **SUPPLY-02
 **: `release.yml` generates SBOM (SPDX or CycloneDX) + provenance attestation (SLSA Level 3).
 - [x] **SUPPLY-03

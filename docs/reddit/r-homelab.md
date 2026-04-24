@@ -21,7 +21,7 @@ Shared household (invite your partner), cascading assignment, seasonal tasks, on
 **Infra**
 
 - Single container: Next.js 16 + PocketBase 0.37 + Caddy, all supervised by s6-overlay
-- `ghcr.io/conroyke56/homekeep` — multi-arch (amd64 + arm64)
+- `ghcr.io/the-kizz/homekeep` — multi-arch (amd64 + arm64)
 - Tiered tags: `:latest`, `:1.1`, `:1`, `:v1.1.1` — pick your update channel (Plex/Grafana convention)
 - Single `./data` volume for everything (SQLite via PB + uploads). Backup = copy the folder.
 - Compose variants: LAN-only, Caddy (public domain, auto-TLS via Let's Encrypt), Tailscale sidecar
@@ -35,7 +35,7 @@ LAN-only:
 ```yaml
 services:
   homekeep:
-    image: ghcr.io/conroyke56/homekeep:latest
+    image: ghcr.io/the-kizz/homekeep:latest
     ports: ["3000:3000"]
     volumes: ["homekeep_data:/app/data"]
     environment:
@@ -49,6 +49,6 @@ volumes:
 
 Full deployment docs (Caddy + Tailscale overlays, env vars, fork checklist) in the README.
 
-Repo: https://github.com/conroyke56/homekeep
+Repo: https://github.com/the-kizz/homekeep
 
 Open to feedback on the infra side — compose ergonomics, healthcheck behavior, anything that would make it easier to run alongside other self-hosted stuff.

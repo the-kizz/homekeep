@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 
 /**
  * Phase 15 Plan 02 (OOFT-04, D-01, D-02, D-03) — task-form OOFT toggle

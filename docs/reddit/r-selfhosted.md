@@ -36,10 +36,10 @@ Mostly I wanted to test what I could actually ship using Claude Code as a side-p
 docker run -d -p 3000:3000 \
   -v homekeep_data:/app/data \
   -e SITE_URL=http://localhost:3000 \
-  --name homekeep ghcr.io/conroyke56/homekeep:latest
+  --name homekeep ghcr.io/the-kizz/homekeep:latest
 ```
 
-Repo: https://github.com/conroyke56/homekeep
+Repo: https://github.com/the-kizz/homekeep
 Screenshots in the README.
 
 Feedback welcome — happy to hear what's missing or what would make it more useful. Cheers.

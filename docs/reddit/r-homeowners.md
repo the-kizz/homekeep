@@ -26,7 +26,7 @@ Caveat: self-hosting means you need to be comfortable running a small Docker con
 
 If you're in the self-host-y crowd, though, the README has a one-line install and a quickstart:
 
-https://github.com/conroyke56/homekeep
+https://github.com/the-kizz/homekeep
 
 Built this while getting my head around owning a home, using Claude (AI assistant) to write a lot of the code — was a good test of what I could actually ship. Maybe it's useful to someone in the same boat.
 

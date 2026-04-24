@@ -289,7 +289,7 @@ installer), or delete the project entirely.
 **How.**
 
 1. https://github.com/settings/tokens?type=beta → Generate new token
-2. **Repository access:** only `conroyke56/homekeep` (or your fork)
+2. **Repository access:** only `the-kizz/homekeep` (or your fork)
 3. **Repository permissions:** contents rw, packages rw, issues rw,
    pull requests rw, actions read. Nothing else.
 4. Copy the new token, replace `GITHUB_PAT` in your deploy `.env`, then
@@ -528,7 +528,7 @@ Watching releases catches those in your notification feed.
 
 **How.**
 
-- **HomeKeep:** https://github.com/conroyke56/homekeep → Watch → Custom → Releases
+- **HomeKeep:** https://github.com/the-kizz/homekeep → Watch → Custom → Releases
 - **PocketBase:** https://github.com/pocketbase/pocketbase/releases
   (security advisories at
   https://github.com/pocketbase/pocketbase/security)
@@ -566,12 +566,12 @@ where the bits came from.
 TAG=v1.2.0   # or whatever you're about to deploy
 
 cosign verify \
-  --certificate-identity-regexp '^https://github\.com/conroyke56/homekeep/\.github/workflows/release\.yml@' \
+  --certificate-identity-regexp '^https://github\.com/the-kizz/homekeep/\.github/workflows/release\.yml@' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-  ghcr.io/conroyke56/homekeep:${TAG}
+  ghcr.io/the-kizz/homekeep:${TAG}
 ```
 
-Replace `conroyke56/homekeep` with your fork if relevant. The
+Replace `the-kizz/homekeep` with your fork if relevant. The
 `--certificate-identity-regexp` pin ensures the signature is bound to the
 `release.yml` workflow on a tag-triggered run, not a rogue branch build.
 
@@ -582,9 +582,9 @@ deploy**. Open an issue or email security@homekeep.example.
 To inspect the SBOM + provenance after a successful verify:
 
 ```bash
-docker buildx imagetools inspect ghcr.io/conroyke56/homekeep:${TAG} \
+docker buildx imagetools inspect ghcr.io/the-kizz/homekeep:${TAG} \
   --format '{{ json .SBOM }}'       | jq '.amd64.SPDX.name' 2>/dev/null
-docker buildx imagetools inspect ghcr.io/conroyke56/homekeep:${TAG} \
+docker buildx imagetools inspect ghcr.io/the-kizz/homekeep:${TAG} \
   --format '{{ json .Provenance }}' | jq '.amd64.SLSA.predicate.builder.id' 2>/dev/null
 ```
 

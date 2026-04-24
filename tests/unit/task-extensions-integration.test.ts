@@ -1,6 +1,6 @@
 // @vitest-environment node
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 import { describe, test, expect, beforeAll, afterAll, vi } from 'vitest';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { mkdirSync, rmSync } from 'node:fs';

@@ -102,7 +102,7 @@ home.)
 | ----------------------------------- | -------------------------------------- | ----------------------------------------------------------------- |
 | `<meta name="hk-build">`            | app/layout.tsx (Phase 7 baseline)      | `hk-1b6f3c0e-homekeep-public`                                     |
 | `<meta name="generator">`           | app/layout.tsx (Phase 7 baseline)      | `HomeKeep v1 (hk-1b6f3c0e-homekeep-public)`                       |
-| Manifest `description`              | public/manifest.webmanifest            | Appended `hk-1b6f3c0e-homekeep-public — github.com/conroyke56/homekeep` |
+| Manifest `description`              | public/manifest.webmanifest            | Appended `hk-1b6f3c0e-homekeep-public — github.com/the-kizz/homekeep` |
 | HTML comment                        | public/offline.html                    | `<!-- HomeKeep offline page — github.com/… — hk-1b6f3c0e… -->`    |
 | Scheduler startup log               | lib/scheduler.ts (via lib/constants.ts)| `[scheduler] started (overdue + weekly ticks) — build=hk-1b6f3c0e-homekeep-public` |
 | SPDX + repo header                  | lib/coverage.ts                        | Top-of-file comment                                               |

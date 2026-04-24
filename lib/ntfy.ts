@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// HomeKeep (c) 2026 — github.com/conroyke56/homekeep
+// HomeKeep (c) 2026 — github.com/the-kizz/homekeep
 /**
  * ntfy HTTP client — pure fetch wrapper (06-01 Task 2, D-03, NOTF-02).
  *

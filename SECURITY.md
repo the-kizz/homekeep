@@ -94,7 +94,7 @@ When you email, please include:
 - HomeKeep source code in this repository (`app/`, `lib/`, `components/`,
   `pocketbase/pb_hooks/`, `pocketbase/pb_migrations/`, `scripts/`)
 - Official container images published to
-  `ghcr.io/conroyke56/homekeep` (all tags)
+  `ghcr.io/the-kizz/homekeep` (all tags)
 - Shipped deployment configuration: `docker/Dockerfile`,
   `docker/docker-compose*.yml`, `docker/Caddyfile*`,
   `docker/s6-rc.d/*`, `.env.example`

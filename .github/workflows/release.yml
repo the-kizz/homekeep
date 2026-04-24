@@ -82,8 +82,8 @@ jobs:
       # SUPPLY-01: Cosign keyless signing via GitHub OIDC.
       # Signature is bound to workflow identity (repo + branch + workflow),
       # no long-lived keys to manage. Verify with:
-      #   cosign verify ghcr.io/conroyke56/homekeep:<tag> \
-      #     --certificate-identity-regexp "^https://github.com/conroyke56/homekeep/.github/workflows/release.yml@.+" \
+      #   cosign verify ghcr.io/the-kizz/homekeep:<tag> \
+      #     --certificate-identity-regexp "^https://github.com/the-kizz/homekeep/.github/workflows/release.yml@.+" \
       #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
       - name: Install cosign
         uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5 # v3.10.1

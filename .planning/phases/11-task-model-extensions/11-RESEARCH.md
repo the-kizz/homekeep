@@ -105,7 +105,7 @@ The high-risk surface is **cross-year wrap arithmetic in `isInActiveWindow`** (o
 ## Project Constraints (from CLAUDE.md)
 
 No `CLAUDE.md` file exists at the repository root. Project conventions are instead established by:
-- **AGPL-3.0-or-later license headers** on every source file — preserve in all new files (see any file in `lib/` for the canonical `// SPDX-License-Identifier: AGPL-3.0-or-later` + `// HomeKeep (c) 2026 — github.com/conroyke56/homekeep` preamble).
+- **AGPL-3.0-or-later license headers** on every source file — preserve in all new files (see any file in `lib/` for the canonical `// SPDX-License-Identifier: AGPL-3.0-or-later` + `// HomeKeep (c) 2026 — github.com/the-kizz/homekeep` preamble).
 - **Exact-pin dependencies** (no carets). Phase 11 adds zero dependencies so this is only relevant if something unexpected surfaces.
 - **Pure-module discipline** for `lib/` scheduling/coverage/classification code: no I/O, no wall-clock Date construction, no Date.now inside the function — every call deterministic given its arguments. Phase 11 extensions must follow this.
 - **Timezone discipline:** all date math on UTC-equivalent instants; rendering via `date-fns-tz.formatInTimeZone` at the UI boundary only. Phase 11's seasonal-wakeup branch needs a home timezone string to compute "first day of `active_from_month` in home timezone" — plan must pass timezone into `computeNextDue` OR extract the month comparison boundary at the caller level.

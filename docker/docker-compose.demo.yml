@@ -40,7 +40,7 @@ services:
   homekeep:
     # Image pin: supports `TAG=edge` during dev and `TAG=latest` in steady
     # state. Users can override via docker/.env.demo.
-    image: ghcr.io/${GHCR_OWNER:-conroyke56}/homekeep:${TAG:-latest}
+    image: ghcr.io/${GHCR_OWNER:-the-kizz}/homekeep:${TAG:-latest}
 
     # Replace the baseline ./data bind-mount with tmpfs for PB state.
     # The `volumes: !reset []` wipes the host bind-mount so it cannot

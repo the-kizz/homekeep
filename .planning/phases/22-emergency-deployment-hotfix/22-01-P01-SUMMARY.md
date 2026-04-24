@@ -25,7 +25,7 @@ test_delta: 0 (ops + config only, no unit/E2E impact)
 **Commit:** `279b379` fix(22): block PB admin /_/ from public (HOTFIX-01)
 
 **Build + deploy:**
-- Edge workflow rebuilt `ghcr.io/conroyke56/homekeep:edge` with new Caddyfile (commit 279b379)
+- Edge workflow rebuilt `ghcr.io/the-kizz/homekeep:edge` with new Caddyfile (commit 279b379)
 - VPS pulled `:edge`, redeployed via `docker-compose.yml + docker-compose.vps.yml`
 - Live verification:
   - `curl -sI http://46.62.151.57:3000/_/` → HTTP/1.1 **404 Not Found** ✓
@@ -57,7 +57,7 @@ docker exec homekeep pocketbase superuser update "$PB_ADMIN_EMAIL" "$PB_ADMIN_PA
 
 **Required steps (user, via browser):**
 1. Go to https://github.com/settings/tokens?type=beta (Fine-grained tokens)
-2. Generate new token: Repository access = `conroyke56/homekeep` only; Permissions: contents rw, packages rw, issues rw, pull requests rw, actions read
+2. Generate new token: Repository access = `the-kizz/homekeep` only; Permissions: contents rw, packages rw, issues rw, pull requests rw, actions read
 3. Copy new token, update `/root/projects/homekeep/.env` on VPS (replace `GITHUB_PAT=...`)
 4. Go to https://github.com/settings/tokens (classic PAT page), revoke the old token (scopes: admin:org, delete_repo, packages)
 5. Verify: `git fetch origin` with new PAT succeeds

@@ -299,4 +299,4 @@ A pentester should probe a live demo for:
 9. **CSP report mode** first — deploy CSP with `Content-Security-Policy-Report-Only` for one week, collect violations, then switch to enforcement.
 10. **HSTS preload submission** — only after 30 days of zero-downtime HTTPS, submit to `hstspreload.org`.
 11. **Dependency audit** — `npm audit --audit-level=high` in CI (not currently gated in `.github/workflows/ci.yml`). Add as a step.
-12. **Container-image scan** — Trivy or Grype against `ghcr.io/conroyke56/homekeep:latest`. Alpine + Node 22 base currently has no known CVEs, but add to release workflow.
+12. **Container-image scan** — Trivy or Grype against `ghcr.io/the-kizz/homekeep:latest`. Alpine + Node 22 base currently has no known CVEs, but add to release workflow.

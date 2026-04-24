@@ -102,7 +102,7 @@ All seven structural invariants from VALIDATION.md satisfied.
 - **Stat:** 7 files changed, 466 insertions(+), 4 deletions(-)
   - 4 policy edits (2 lines each = 8 line-level changes)
   - 3 planner artifacts captured alongside (21-01-P01-PLAN.md, 21-RESEARCH.md, 21-VALIDATION.md)
-- **Push:** `662e632..bbe3235 master -> master` to `github.com/conroyke56/homekeep` — confirmed green.
+- **Push:** `662e632..bbe3235 master -> master` to `github.com/the-kizz/homekeep` — confirmed green.
 
 ## Requirement closure
 

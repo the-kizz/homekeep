@@ -67,7 +67,7 @@ metrics:
 `docker/docker-compose.demo.yml` layers on top of the baseline + caddy overlay and:
 - replaces `./data:/app/data` bind-mount with a 256 MB tmpfs (`volumes: !reset []` + `tmpfs:` block, Compose v2.24+);
 - sets `DEMO_MODE=true`, `DISABLE_SCHEDULER=true`, `HK_BUILD_STEALTH=true`, `NTFY_URL=""`, `SITE_URL=https://homekeep.demo.kizz.space`;
-- pins the image via `GHCR_OWNER=${GHCR_OWNER:-conroyke56}` + `TAG=${TAG:-latest}`, so `TAG=edge` supports active-dev deploys.
+- pins the image via `GHCR_OWNER=${GHCR_OWNER:-the-kizz}` + `TAG=${TAG:-latest}`, so `TAG=edge` supports active-dev deploys.
 
 `docker/.env.demo` is the committed operator template — fail-fast placeholder for `PB_ADMIN_PASSWORD` forces a rotation before first `compose up`.
 
