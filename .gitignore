@@ -49,11 +49,34 @@
 
 # Claude Code per-session artifacts (settings, lock files, backups).
 # Project-level settings that should travel with the repo live in
-# .claude/agents/ and .claude/skills/ and are committed explicitly.
+# .claude/agents/ and .claude/skills/ and .claude/commands/ and
+# .claude/hooks/ — those are committed explicitly, not gitignored.
+# See docs/vps-setup/github-repo-hygiene.md for the full convention.
 /.claude/scheduled_tasks.lock
 /.claude/settings.json
 /.claude/settings.local.json
 /.claude/settings.json.pre-*
+/.claude/.credentials.json
+/.claude/cache/
+/.claude/sessions/
+/.claude/history.jsonl
+/.claude/file-history/
+CLAUDE.local.md
 
 # Docker env backups generated during hotfix / migration sessions.
 docker/.env.pre-*-backup
+
+# Secrets — belt-and-braces catch for common formats. The .env
+# entry above covers app-level config; these cover anything else
+# that might sneak in (TLS keys, SSH keys, GPG private material,
+# backup dumps that contain secrets).
+*.pem
+*.key
+!public.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+*.gpg
+*secret*.json
+!*.secret.template.json

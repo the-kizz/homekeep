@@ -21,6 +21,20 @@ Future projects should reference these files from their own
   user) cannot do itself: create `/opt/vps/CLAUDE.md`, wire ACLs for
   centralized secrets, optionally install the Caddy godaddy DNS-01
   plugin.
+- **[`github-repo-hygiene.md`](github-repo-hygiene.md)** — the
+  checklist every new public repo should satisfy on day one: secret
+  scanning, push protection, Dependabot, gitignore hygiene, PAT
+  convention, Claude-files-on-GitHub rules. Includes copy-pastable API
+  calls for enabling security features across multiple repos.
+- **[`gitignore-baseline.md`](gitignore-baseline.md)** — recommended
+  starter `.gitignore` for every project (language-agnostic section +
+  stack-specific additions for Next.js, Python, Docker, PocketBase).
+  Start every new repo from this.
+- **[`email-setup.md`](email-setup.md)** — how to set up
+  `security@the-kizz.com` / `<project>@the-kizz.com` using Zoho Mail
+  free tier + Gmail "Send mail as". Gives you full-mailbox semantics
+  (can reply from alias, personal email stays invisible) for free,
+  without migrating DNS off GoDaddy.
 
 ## Context for a future reader
 

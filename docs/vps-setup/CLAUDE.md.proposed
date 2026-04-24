@@ -157,6 +157,68 @@ Weekly off-site via `restic` or `rclone` to a cheap object store
 - Use `@path/to/file` imports inside any CLAUDE.md to pull in
   additional context (Claude Code supports it natively).
 
+### Which Claude files go in git
+
+**Commit (team-shareable):**
+- `CLAUDE.md` at repo root (most important file in the repo)
+- `.claude/agents/*.md`
+- `.claude/skills/*/`
+- `.claude/commands/*.md`
+- `.claude/hooks/*`
+
+**Gitignore (personal / runtime / secrets):**
+- `.claude/settings.json`, `.claude/settings.local.json`,
+  `.claude/settings.json.pre-*`
+- `.claude/scheduled_tasks.lock`
+- `.claude/.credentials.json` (NEVER commit)
+- `.claude/cache/`, `.claude/sessions/`, `.claude/history.jsonl`,
+  `.claude/file-history/`
+- `CLAUDE.local.md`
+
+**User-global** (`~/.claude/projects/<hash>/memory/`,
+`~/.claude/CLAUDE.md`): never committed from a project repo — lives
+in the user's home.
+
+Full detail + rationale:
+**[`/srv/homekeep/docs/vps-setup/github-repo-hygiene.md §3`](/srv/homekeep/docs/vps-setup/github-repo-hygiene.md)**.
+
+## GitHub repo hygiene (every new the-kizz/* repo, day one)
+
+Every new public repo must have these enabled on first push:
+
+1. **Secret scanning + push protection** — blocks pushes containing
+   detected secrets (AWS keys, GitHub PATs, Stripe, …).
+2. **Dependabot security updates** — auto-PRs for CVE'd dependencies.
+3. **Dependabot vulnerability alerts** — issues for known vulns.
+4. **Baseline `.gitignore`** from the template at
+   [`/srv/homekeep/docs/vps-setup/gitignore-baseline.md`](/srv/homekeep/docs/vps-setup/gitignore-baseline.md).
+5. **PAT:** fine-grained, repo-scoped, in `/srv/<project>/.env`
+   (mode 600, gitignored). Rotate on 90-day cadence.
+
+One-shot enable API call is in
+[`github-repo-hygiene.md §1`](/srv/homekeep/docs/vps-setup/github-repo-hygiene.md).
+
+Current state (2026-04-24): all 4 repos under
+`github.com/the-kizz/*` have all three features enabled.
+
+## Project emails (the-kizz.com)
+
+Pattern: `security@the-kizz.com`, `hello@/kizz@the-kizz.com`,
+`abuse@the-kizz.com`, per-project `<project>@the-kizz.com`.
+
+Stack: **Zoho Mail free tier** (5 mailbox/alias limit on free) +
+**Gmail "Send mail as"** for reply-from-alias behavior. Zoho holds
+the mailbox, Gmail is the reading surface, Send-As auto-picks the
+correct From header per thread so you can't accidentally reply from
+your personal address.
+
+Setup walkthrough:
+**[`/srv/homekeep/docs/vps-setup/email-setup.md`](/srv/homekeep/docs/vps-setup/email-setup.md)**.
+
+Adding a new project alias once the primary setup is live is a 1-min
+click in the Zoho console — no DNS change required (MX covers all
+`@the-kizz.com`).
+
 ## Known failure modes / gotchas
 
 - **Host bind-mounts silently break** on containers that run as
