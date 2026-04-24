@@ -10,17 +10,27 @@ Future projects should reference these files from their own
 
 ## Files
 
-- **[`CLAUDE.md.proposed`](CLAUDE.md.proposed)** — draft content for
-  `/opt/vps/CLAUDE.md`. A root user (or the operator's primary dev user
-  with `sudo`) should install this at `/opt/vps/CLAUDE.md` and
-  symlink each service user's `~/.claude/CLAUDE.md` to it.
-- **[`root-claude-prompt.md`](root-claude-prompt.md)** — a
-  self-contained prompt to paste into a Claude Code session **running
-  as root** (or as the operator's primary dev user with `sudo` access).
-  Executes the items this Claude (running as the `homekeep` service
-  user) cannot do itself: create `/opt/vps/CLAUDE.md`, wire ACLs for
-  centralized secrets, optionally install the Caddy godaddy DNS-01
-  plugin.
+### Root-handoff (bidirectional)
+
+- **[`ROOT-ONE-LINER.md`](ROOT-ONE-LINER.md)** — **START HERE** if you
+  have a root Claude session open. Contains the single line to paste
+  that triggers the full VPS-wide infra sync. Everything else below
+  is context the root Claude will read on its own.
+- **[`root-infra-sync.md`](root-infra-sync.md)** — the idempotent
+  procedure the root Claude follows: verify-before-apply for each
+  task, writes a timestamped report to `/opt/vps/reports/`,
+  generates a resume prompt to paste back into the homekeep Claude.
+  Covers `/opt/vps/CLAUDE.md` + per-user symlinks + PORTS.md
+  + centralized GoDaddy creds (ACLs) + optional nightly-backups cron.
+- **[`CLAUDE.md.proposed`](CLAUDE.md.proposed)** — the canonical
+  content that gets installed at `/opt/vps/CLAUDE.md`. Edits to this
+  file propagate on the next root sync.
+- **[`root-claude-prompt.md`](root-claude-prompt.md)** — earlier,
+  longer-form root procedure. Superseded by `root-infra-sync.md`
+  which is idempotent and self-reporting. Kept for reference.
+
+### Per-project hygiene (day-one rules)
+
 - **[`github-repo-hygiene.md`](github-repo-hygiene.md)** — the
   checklist every new public repo should satisfy on day one: secret
   scanning, push protection, Dependabot, gitignore hygiene, PAT
