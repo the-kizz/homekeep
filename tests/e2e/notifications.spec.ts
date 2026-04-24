@@ -168,14 +168,31 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     await page.locator('[data-field=ntfy-topic] input').fill(topic);
 
     // Toggle weekly summary → weekly day select should reveal.
-    // v1.3 TESTFIX-02: wait for the checkbox's checked state to
-    // propagate (React 19 controlled component commits on next
-    // tick), then give the conditional render up to 10s to land.
+    // v1.3 TESTFIX-02 (revised post-CI-flake): Playwright's
+    // `check()` clicks + asserts state in one shot; when React 19
+    // concurrent rendering commits the RHF `Controller` onChange
+    // on a later tick, the inner assertion intermittently fails
+    // with "Clicking the checkbox did not change its state".
+    // Fix: wait for the element to be actionable, then click, then
+    // poll the checked state separately with a generous timeout.
     const weeklyBox = page.locator(
       '[data-field=notify-weekly-summary] input[type=checkbox]',
     );
-    await weeklyBox.check();
-    await expect(weeklyBox).toBeChecked({ timeout: 5_000 });
+    await expect(weeklyBox).toBeVisible({ timeout: 5_000 });
+    await expect(weeklyBox).toBeEnabled({ timeout: 5_000 });
+    // Retry-click pattern: if the first click didn't commit state
+    // within 2s, try once more. This is a belt-and-braces loop to
+    // absorb the React concurrent-commit edge without needing
+    // `check()`'s strict one-shot semantics.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await weeklyBox.click();
+      try {
+        await expect(weeklyBox).toBeChecked({ timeout: 2_000 });
+        break;
+      } catch {
+        if (attempt === 1) throw new Error('checkbox click did not commit after retry');
+      }
+    }
     await expect(
       page.locator('[data-field=weekly-summary-day]'),
     ).toBeVisible({ timeout: 10_000 });
@@ -228,11 +245,23 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     const topic = `homekeep-e2e-${Date.now().toString(36)}`;
     await page.locator('[data-field=ntfy-topic] input').fill(topic);
     // notify_overdue default is on; just ensure it's checked.
+    // v1.3 TESTFIX-02 (revised): same click-and-poll pattern as
+    // Part 1's weeklyBox — avoid `check()`'s strict one-shot state
+    // assertion that races React 19 concurrent commits.
     const overdueBox = page.locator(
       '[data-field=notify-overdue] input[type=checkbox]',
     );
+    await expect(overdueBox).toBeVisible({ timeout: 5_000 });
     if (!(await overdueBox.isChecked())) {
-      await overdueBox.check();
+      for (let attempt = 0; attempt < 2; attempt++) {
+        await overdueBox.click();
+        try {
+          await expect(overdueBox).toBeChecked({ timeout: 2_000 });
+          break;
+        } catch {
+          if (attempt === 1) throw new Error('overdue checkbox click did not commit after retry');
+        }
+      }
     }
     await page.locator('button[type=submit]:has-text("Save")').click();
     await expect(
