@@ -738,10 +738,14 @@ These were noted as v1.1 in earlier planning but did NOT make it into the locked
 
 ### Documentation + Responsible Disclosure (SECDOC)
 
-- [ ] **SECDOC-01**: `SECURITY.md` at repo root with: supported versions, threat model summary, responsible-disclosure email + PGP key, scope + out-of-scope, response SLA (7 days acknowledgment, 90 days fix-or-disclose).
-- [ ] **SECDOC-02**: `docs/deployment-hardening.md` — 15-item operator checklist for public-facing install (domain, TLS, secret generation, firewall, admin UI block, log redaction, AGPL posture, 90-day rotation).
-- [ ] **SECDOC-03**: README + SPEC.md link to SECURITY.md; docs/deployment.md cross-references hardening checklist.
-- [ ] **SECDOC-04**: v1.2 changelog in SPEC.md documents all security improvements with CVE-style IDs where applicable.
+- [x] **SECDOC-01
+**: `SECURITY.md` at repo root with: supported versions, threat model summary, responsible-disclosure email + PGP key, scope + out-of-scope, response SLA (7 days acknowledgment, 90 days fix-or-disclose).
+- [x] **SECDOC-02
+**: `docs/deployment-hardening.md` — 15-item operator checklist for public-facing install (domain, TLS, secret generation, firewall, admin UI block, log redaction, AGPL posture, 90-day rotation).
+- [x] **SECDOC-03
+**: README + SPEC.md link to SECURITY.md; docs/deployment.md cross-references hardening checklist.
+- [x] **SECDOC-04
+**: v1.2 changelog in SPEC.md documents all security improvements with CVE-style IDs where applicable.
 
 **v1.2-security phase distribution:**
 
