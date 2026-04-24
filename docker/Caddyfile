@@ -19,10 +19,24 @@
 		-X-Powered-By
 	}
 
+	# Next.js API routes — explicit allow-list before the PB catch-all.
+	# /api/health (Phase 1 INFR-05), /api/csp-report (Phase 24 HDR-03),
+	# /api/admin/* (Phase 6 scheduler + future admin-auth actions),
+	# /api/demo/* (Phase 26 DEMO-02 session seeder).
 	handle /api/health {
 		reverse_proxy localhost:3001
 	}
+	handle /api/csp-report {
+		reverse_proxy localhost:3001
+	}
+	handle /api/admin/* {
+		reverse_proxy localhost:3001
+	}
+	handle /api/demo/* {
+		reverse_proxy localhost:3001
+	}
 
+	# Everything else under /api/* → PocketBase (collections, auth, etc.)
 	handle /api/* {
 		reverse_proxy localhost:8090 {
 			flush_interval -1
