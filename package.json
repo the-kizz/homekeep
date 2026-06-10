@@ -54,7 +54,7 @@
     "@types/react-dom": "19.2.3",
     "@types/serviceworker": "0.0.180",
     "@vitejs/plugin-react": "5.0.0",
-    "concurrently": "9.2.1",
+    "concurrently": "10.0.3",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.4",
     "jsdom": "29.0.2",
