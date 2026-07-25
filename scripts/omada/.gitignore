@@ -1,0 +1,9 @@
+# Never commit real config or VPN material from this folder.
+.env
+*.conf            # WireGuard client/server configs
+privatekey
+publickey
+presharedkey
+*.ca.pem
+oc200-ca.pem
+__pycache__/

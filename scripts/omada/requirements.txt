@@ -1,0 +1,5 @@
+# omada_status.py dependencies
+requests>=2.31,<3
+# Optional: auto-load a local .env file. The script works without it
+# (plain environment variables) but this makes `.env` convenient.
+python-dotenv>=1.0,<2
