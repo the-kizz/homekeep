@@ -473,6 +473,19 @@ describe('computeNextDue — OOFT branch (D-05, OOFT-05)', () => {
 // completion exists, return null (invisible to scheduler / coverage).
 // No-prior-completion case falls through to the wake-up branch.
 
+describe('computeNextDue — one-off precedence over smoothed', () => {
+  test('one-off with a leftover next_due_smoothed returns due_date', () => {
+    const task = makeTask({
+      frequency_days: null,
+      due_date: '2026-12-01T00:00:00Z',
+      next_due_smoothed: '2026-10-20T00:00:00Z',
+      schedule_mode: 'cycle',
+    });
+    const result = computeNextDue(task, null, new Date('2026-10-09T00:00:00Z'), undefined, 'UTC');
+    expect(result?.toISOString()).toBe('2026-12-01T00:00:00.000Z');
+  });
+});
+
 describe('computeNextDue — seasonal dormant (D-12, SEAS-02)', () => {
   test('out-of-window with prior completion → null (Oct-Mar wrap, now=July)', () => {
     const now = new Date('2026-07-15T12:00:00.000Z'); // July — dormant for Oct-Mar

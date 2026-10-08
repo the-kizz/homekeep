@@ -103,18 +103,17 @@ function elapsedUtcDays(to: Date, from: Date): number {
  *      override whose `snooze_until` post-dates the last completion wins.
  *      D-17: override beats dormant seasonal (user intent > inferred
  *      dormancy).
- *   4. (Phase 12 will insert the `next_due_smoothed` LOAD branch here — D-07
- *      forward-compatibility.)
- *   5. **seasonal-dormant branch** (Phase 11, D-12 + SEAS-02): task has
- *      an active window, now is outside it, and a completion exists →
- *      return null (invisible to scheduler / coverage / band views).
- *   6. **seasonal-wakeup branch** (Phase 11, D-12 + SEAS-03): task has an
- *      active window and (no completion OR last completion in a prior
- *      season) → return nextWindowOpenDate at home-tz midnight.
- *   7. **OOFT branch** (Phase 11, D-05 + OOFT-05): frequency_days === null
- *      → return due_date when no completion, null otherwise (completed
- *      OOFT is archived in the same batch; null fall-through is defensive
- *      against races).
+ *   4. **one-off branch**: frequency_days null/0 → due_date when no
+ *      completion, null otherwise. Runs before smoothing so a stale
+ *      next_due_smoothed can't override a one-off's real date.
+ *   5. **smoothed branch**: non-anchored task with next_due_smoothed,
+ *      unless a seasonal wake-up applies.
+ *   6. **seasonal-dormant branch**: task has an active window, now is
+ *      outside it, and the last completion was this season → null.
+ *   7. **seasonal-wakeup branch**: task is outside its window and has no
+ *      completion or one from a prior season → nextWindowOpenDate at
+ *      home-tz midnight. Inside the window the task is awake and falls
+ *      through to its cadence.
  *   8. cycle branch — base + frequency_days.
  *   9. anchored branch — step forward by whole cycles past `now`.
  *
@@ -233,6 +232,17 @@ export function computeNextDue(
       return snoozeUntil;
     }
     // else: stale override; fall through to cycle/anchored natural branch.
+  }
+
+  // ─── One-off branch ───────────────────────────────────────────────────
+  // A one-off (frequency_days null, or 0 as PB stores a cleared number)
+  // is due on its due_date until completed, then null (completion
+  // archives it; null is the race-safe answer). It runs before the
+  // smoothed and seasonal branches: a leftover next_due_smoothed from a
+  // task that used to recur must never hide the one-off's real date.
+  if (isOoft) {
+    if (lastCompletion) return null;
+    return task.due_date ? new Date(task.due_date) : null;
   }
 
   // ─── Phase 12 smoothed branch (D-02, LOAD-02, LOAD-06, LOAD-07) ───
@@ -356,16 +366,6 @@ export function computeNextDue(
     // else: same-season in-window → fall through to cycle/anchored.
   }
 
-  // ─── Phase 11 OOFT branch (D-05, OOFT-05) ───────────────────────────
-  // OOFT marker = frequency_days null (app-layer semantic) OR 0 (PB
-  // 0.37.1 storage-layer reality for a cleared NumberField — see
-  // isOoft guard at top of function). Return due_date if no completion,
-  // null otherwise (completed OOFT is archived by completeTaskAction's
-  // batch, but race-safety returns null).
-  if (isOoft) {
-    if (lastCompletion) return null;
-    return task.due_date ? new Date(task.due_date) : null;
-  }
   // After the OOFT short-circuit, TypeScript still sees frequency_days
   // as `number | null` across branches (flow analysis can't carry the
   // null-guard through the intervening seasonal branches). Bind a local
