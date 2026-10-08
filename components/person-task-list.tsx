@@ -255,7 +255,7 @@ export function PersonTaskList({
             shiftByTaskId={shiftByTaskId}
           />
           <TaskBand
-            label="This Week"
+            label="This week"
             tasks={thisWeekWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={(id) => setRescheduleTaskId(id)}

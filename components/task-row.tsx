@@ -24,10 +24,8 @@ import { ShiftBadge } from '@/components/shift-badge';
  * click; the parent owns the pending-id bookkeeping (03-03 wires it
  * to the real server action).
  *
- * Label copy (right-aligned tabular-nums for mixed-width digits):
- *   - overdue (daysDelta < 0):  "{N}d late"
- *   - today (|daysDelta| < 1):  "today"
- *   - future (daysDelta ≥ 1):   "in {N}d"
+ * Label copy (right-aligned tabular-nums for mixed-width digits) is
+ * plain English so it reads at a glance — see `dueLabel` below.
  *
  * Detail affordance (03-03 extension, VIEW-06 / v1.2.1 PATCH2-06):
  *   - Optional `onDetail` prop. When provided, the primary tap opens
@@ -54,6 +52,29 @@ import { ShiftBadge } from '@/components/shift-badge';
  *     early-completion guard still applies.
  *   - Absent prop → no button and the original single-button markup.
  */
+/**
+ * Plain-English due label. `daysDelta` is measured from local midnight
+ * today, so whole calendar days are ceil (late) / floor (ahead): a task
+ * due yesterday afternoon is -0.4 → "yesterday", one due tomorrow
+ * evening is 1.8 → "tomorrow". Rounding would push both a day out.
+ * Late counts cap at "30+" — past a month the exact number stops
+ * meaning anything and only widens the column.
+ */
+function dueLabel(
+  daysDelta: number,
+  variant?: 'overdue' | 'thisWeek' | 'horizon',
+): string {
+  if (variant === 'overdue') {
+    const late = Math.max(1, Math.ceil(-daysDelta));
+    if (late === 1) return 'yesterday';
+    if (late > 30) return '30+ days late';
+    return `${late} days late`;
+  }
+  if (daysDelta < 1) return 'today';
+  const ahead = Math.floor(daysDelta);
+  return ahead === 1 ? 'tomorrow' : `in ${ahead} days`;
+}
+
 export function TaskRow({
   task,
   onComplete,
@@ -97,12 +118,7 @@ export function TaskRow({
 }) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const label =
-    variant === 'overdue'
-      ? `${Math.max(1, Math.round(-daysDelta))}d late`
-      : daysDelta < 1
-        ? 'today'
-        : `in ${Math.round(daysDelta)}d`;
+  const label = dueLabel(daysDelta, variant);
 
   const clearLongPressTimer = () => {
     if (longPressTimer.current) {
@@ -175,7 +191,10 @@ export function TaskRow({
         {task.effective && (
           <AssigneeDisplay effective={task.effective} showLabel={false} />
         )}
-        <span className="text-xs text-muted-foreground tabular-nums">
+        <span
+          data-due-label
+          className="text-xs text-muted-foreground tabular-nums"
+        >
           {label}
         </span>
       </div>
