@@ -246,6 +246,7 @@ export function PersonTaskList({
             tasks={overdueWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={(id) => setRescheduleTaskId(id)}
+            onQuickComplete={(id) => handleTap(id)}
             primaryTap="complete"
             pendingTaskId={pendingTaskId}
             timezone={timezone}
@@ -258,6 +259,7 @@ export function PersonTaskList({
             tasks={thisWeekWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={(id) => setRescheduleTaskId(id)}
+            onQuickComplete={(id) => handleTap(id)}
             primaryTap="complete"
             pendingTaskId={pendingTaskId}
             timezone={timezone}

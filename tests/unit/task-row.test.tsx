@@ -166,4 +166,95 @@ describe('TaskRow', () => {
     fireEvent.contextMenu(screen.getByRole('button'));
     expect(onDetail).toHaveBeenCalledWith('t1');
   });
+  describe('one-tap complete button', () => {
+    it('renders no complete button when onQuickComplete is absent', () => {
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={() => {}}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Complete Wipe benches' }),
+      ).toBeNull();
+    });
+
+    it('renders a button with the accessible name "Complete <task name>"', () => {
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={() => {}}
+          onQuickComplete={() => {}}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      expect(
+        screen.getByRole('button', { name: 'Complete Wipe benches' }),
+      ).toBeTruthy();
+    });
+
+    it('calls onQuickComplete with the id and does not open the detail sheet', () => {
+      const onQuickComplete = vi.fn();
+      const onDetail = vi.fn();
+      const onComplete = vi.fn();
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={onComplete}
+          onDetail={onDetail}
+          onQuickComplete={onQuickComplete}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Complete Wipe benches' }),
+      );
+      expect(onQuickComplete).toHaveBeenCalledWith('t1');
+      expect(onDetail).not.toHaveBeenCalled();
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('clicking the row body still calls onDetail only', () => {
+      const onQuickComplete = vi.fn();
+      const onDetail = vi.fn();
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={onDetail}
+          onQuickComplete={onQuickComplete}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      fireEvent.click(screen.getByText('Wipe benches'));
+      expect(onDetail).toHaveBeenCalledWith('t1');
+      expect(onQuickComplete).not.toHaveBeenCalled();
+    });
+
+    it('is disabled and marked pressed while pending', () => {
+      const onQuickComplete = vi.fn();
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={() => {}}
+          onQuickComplete={onQuickComplete}
+          pending={true}
+          daysDelta={3}
+        />,
+      );
+      const btn = screen.getByRole('button', { name: 'Complete Wipe benches' });
+      expect(btn.hasAttribute('disabled')).toBe(true);
+      expect(btn.getAttribute('data-pending')).toBe('true');
+      fireEvent.click(btn);
+      expect(onQuickComplete).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -419,6 +419,7 @@ export function BandView({
             tasks={overdueWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={handleDetail}
+            onQuickComplete={(id) => handleTap(id)}
             pendingTaskId={pendingTaskId}
             timezone={timezone}
             variant="overdue"
@@ -441,6 +442,7 @@ export function BandView({
             tasks={thisWeekWithName}
             onComplete={(id) => handleTap(id)}
             onDetail={handleDetail}
+            onQuickComplete={(id) => handleTap(id)}
             pendingTaskId={pendingTaskId}
             timezone={timezone}
             variant="thisWeek"

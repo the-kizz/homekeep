@@ -38,6 +38,7 @@ export function TaskBand({
   tasks,
   onComplete,
   onDetail,
+  onQuickComplete,
   primaryTap,
   pendingTaskId,
   timezone,
@@ -51,6 +52,8 @@ export function TaskBand({
   onComplete: (taskId: string) => void;
   /** 03-03 extension: forwarded to TaskRow for right-click / long-press. */
   onDetail?: (taskId: string) => void;
+  /** Forwarded to TaskRow; when set, each row gets a one-tap check button. */
+  onQuickComplete?: (taskId: string) => void;
   /** v1.2.1 PATCH2-06: forwarded to TaskRow. Defaults to 'detail' when
    * onDetail is provided; PersonTaskList passes 'complete' so its
    * reschedule-on-long-press UX stays reachable via tap→complete. */
@@ -124,6 +127,7 @@ export function TaskBand({
                 }}
                 onComplete={onComplete}
                 onDetail={onDetail}
+                onQuickComplete={onQuickComplete}
                 primaryTap={primaryTap}
                 pending={pendingTaskId === t.id}
                 daysDelta={t.daysDelta}
@@ -211,6 +215,7 @@ export function TaskBand({
                       }}
                       onComplete={onComplete}
                       onDetail={onDetail}
+                      onQuickComplete={onQuickComplete}
                       primaryTap={primaryTap}
                       pending={pendingTaskId === t.id}
                       daysDelta={t.daysDelta}
