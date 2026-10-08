@@ -1,6 +1,5 @@
 import { formatDistanceToNow } from 'date-fns';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { startOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { AvatarCircle, initialsOf } from '@/components/avatar-circle';
 
 /**
@@ -31,9 +30,12 @@ export type HistoryEntry = {
 export function HistoryTimeline({
   entries,
   timezone,
+  now = new Date(),
 }: {
   entries: HistoryEntry[];
   timezone: string;
+  /** Reference instant for the Today / Yesterday headers; tests pin it. */
+  now?: Date;
 }) {
   if (entries.length === 0) {
     return (
@@ -60,21 +62,15 @@ export function HistoryTimeline({
     buckets.set(key, arr);
   }
 
-  // Today + Yesterday keys for header copy (Pitfall 2: derive via
-  // formatInTimeZone, never raw .getDay()).
-  const now = new Date();
-  const zonedNow = toZonedTime(now, timezone);
-  const todayKey = formatInTimeZone(
-    startOfDay(zonedNow),
-    timezone,
-    'yyyy-MM-dd',
-  );
-  const yesterdayDate = new Date(startOfDay(zonedNow).getTime() - 86400000);
-  const yesterdayKey = formatInTimeZone(
-    yesterdayDate,
-    timezone,
-    'yyyy-MM-dd',
-  );
+  // Today + Yesterday keys for header copy. Today's key comes straight
+  // from the home timezone; yesterday is one calendar day earlier,
+  // computed on a UTC date-only value so neither the server's own
+  // timezone nor a 23/25-hour DST day can shift it.
+  const todayKey = formatInTimeZone(now, timezone, 'yyyy-MM-dd');
+  const [ty, tm, td] = todayKey.split('-').map(Number);
+  const yesterdayKey = new Date(Date.UTC(ty, tm - 1, td - 1))
+    .toISOString()
+    .slice(0, 10);
 
   // Keys DESC (newest day first) — input is already DESC, so a deduped
   // Array.from(buckets.keys()) preserves that ordering.
