@@ -1,4 +1,9 @@
-import { test, expect, type Page } from '@playwright/test';
+import {
+  test,
+  expect,
+  type APIRequestContext,
+  type Page,
+} from '@playwright/test';
 import { SEED_LIBRARY } from '../../lib/seed-library';
 
 /**
@@ -8,8 +13,9 @@ import { SEED_LIBRARY } from '../../lib/seed-library';
  *     new user → signup → create home → redirected to /onboarding →
  *     skip 3 seeds + edit 1 seed (change freq to 14) + click
  *     "Add N tasks" → land on dashboard → N-3 tasks visible across
- *     bands → re-visit /onboarding → redirects back to dashboard
- *     (onboarded=true).
+ *     bands → Kitchen/Bathroom/Living areas/Yard areas exist and By Area
+ *     shows a Kitchen card → re-visit /onboarding → redirects back to
+ *     dashboard (onboarded=true).
  *
  *   Scenario 2: Skip all
  *     new user → signup → create home → /onboarding → "Skip all" →
@@ -23,6 +29,38 @@ import { SEED_LIBRARY } from '../../lib/seed-library';
  *   - Importing SEED_LIBRARY lets us hit real seed_ids rather than
  *     hard-coding strings (refactor-proof)
  */
+
+const PB_URL = 'http://127.0.0.1:8090';
+
+async function authPB(
+  request: APIRequestContext,
+  email: string,
+  pw: string,
+): Promise<string> {
+  const res = await request.post(
+    `${PB_URL}/api/collections/users/auth-with-password`,
+    { data: { identity: email, password: pw } },
+  );
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return body.token as string;
+}
+
+async function listAreaNames(
+  request: APIRequestContext,
+  token: string,
+  homeId: string,
+): Promise<string[]> {
+  const res = await request.get(
+    `${PB_URL}/api/collections/areas/records?perPage=100&filter=${encodeURIComponent(
+      `home_id = "${homeId}"`,
+    )}`,
+    { headers: { Authorization: token } },
+  );
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return ((body?.items ?? []) as Array<{ name: string }>).map((a) => a.name);
+}
 
 const stamp = () =>
   `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
@@ -64,6 +102,7 @@ async function createHomeExpectOnboarding(
 test.describe.serial('Phase 5 Onboarding (D-19) — Suite A', () => {
   test('Scenario 1: happy path — wizard → skip 3 + edit 1 + submit → dashboard → revisit redirects away', async ({
     page,
+    request,
   }) => {
     const pw = 'password1234';
     const email = `onboarding-a1-${stamp()}@test.local`;
@@ -123,8 +162,10 @@ test.describe.serial('Phase 5 Onboarding (D-19) — Suite A', () => {
     // Submit.
     await page.click('[data-submit-seeds]');
 
-    // Expect redirect to /h/[id] (NOT /onboarding).
-    await page.waitForURL(new RegExp(`/h/${homeId}$`), { timeout: 15_000 });
+    // Expect redirect to /h/[id]?welcome=1 (NOT /onboarding).
+    await page.waitForURL(new RegExp(`/h/${homeId}(\\?welcome=1)?$`), {
+      timeout: 15_000,
+    });
 
     // Dashboard renders with the BandView.
     await expect(page.locator('[data-band-view]')).toBeVisible();
@@ -136,6 +177,19 @@ test.describe.serial('Phase 5 Onboarding (D-19) — Suite A', () => {
     const visibleTaskRows = page.locator('[data-task-name]');
     const taskRowCount = await visibleTaskRows.count();
     expect(taskRowCount).toBeGreaterThan(0);
+
+    // Seeds landed in real areas: Whole Home plus the suggested rooms the
+    // wizard created on submit.
+    const token = await authPB(request, email, pw);
+    const areaNames = await listAreaNames(request, token, homeId);
+    expect(areaNames.length).toBeGreaterThanOrEqual(4);
+    expect(areaNames).toContain('Kitchen');
+
+    // By Area is useful straight away.
+    await page.goto(`/h/${homeId}/by-area`);
+    await expect(
+      page.locator('[data-area-card][data-area-name="Kitchen"]'),
+    ).toBeVisible();
 
     // Re-visit /onboarding directly → dashboard redirect fires because
     // onboarded=true now.

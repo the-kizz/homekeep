@@ -12,8 +12,9 @@ import { SEED_LIBRARY } from '@/lib/seed-library';
  *   2. Fetch home (including the `onboarded` flag).
  *   3. If home.onboarded === true → redirect to /h/[id] (short-circuit —
  *      already onboarded, no reason to re-run the wizard).
- *   4. Fetch areas (Whole Home always exists via Phase 2 hook) → pass to
- *      the OnboardingWizard client component along with SEED_LIBRARY.
+ *   4. Fetch areas (Whole Home always exists) → pass to the
+ *      OnboardingWizard client component along with SEED_LIBRARY and the
+ *      home timezone (which decides the seasonal hemisphere).
  *
  * The wizard owns the submit UX; this page is a thin server shell.
  *
@@ -60,7 +61,11 @@ export default async function OnboardingPage({
 
   return (
     <OnboardingWizard
-      home={{ id: homeId, name: home.name as string }}
+      home={{
+        id: homeId,
+        name: home.name as string,
+        timezone: (home.timezone as string) || 'UTC',
+      }}
       areas={areasShape}
       seeds={SEED_LIBRARY}
     />
