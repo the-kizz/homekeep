@@ -3,6 +3,8 @@ import {
   SEED_LIBRARY,
   type SeedTask,
   type SeedAreaSuggestion,
+  seasonWindow,
+  hemisphereFromTimezone,
 } from '@/lib/seed-library';
 
 /**
@@ -103,40 +105,69 @@ describe('SEED_LIBRARY', () => {
   });
 });
 
-describe('Phase 14 seasonal pairs (SEAS-09)', () => {
-  test('seed-mow-lawn-warm: freq=14, active_from=4, active_to=9', () => {
-    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-mow-lawn-warm');
-    expect(seed).toBeDefined();
-    expect(seed?.frequency_days).toBe(14);
-    expect(seed?.active_from_month).toBe(4);
-    expect(seed?.active_to_month).toBe(9);
+describe('seasonal seeds resolve by hemisphere', () => {
+  const seasonal = SEED_LIBRARY.filter((s) => s.season !== undefined);
+  const byId = (id: string) => SEED_LIBRARY.find((s) => s.id === id);
+
+  test('exactly 4 seeds carry a season tag', () => {
+    expect(seasonal).toHaveLength(4);
   });
 
-  test('seed-mow-lawn-cool: freq=30, active_from=10, active_to=3', () => {
-    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-mow-lawn-cool');
-    expect(seed).toBeDefined();
-    expect(seed?.frequency_days).toBe(30);
-    expect(seed?.active_from_month).toBe(10);
-    expect(seed?.active_to_month).toBe(3);
+  test('no seasonal seed hard-codes months', () => {
+    for (const s of seasonal) {
+      expect(s.active_from_month).toBeUndefined();
+      expect(s.active_to_month).toBeUndefined();
+    }
   });
 
-  test('seed-service-ac: freq=365, active_from=10, active_to=3', () => {
-    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-service-ac');
-    expect(seed).toBeDefined();
-    expect(seed?.frequency_days).toBe(365);
-    expect(seed?.active_from_month).toBe(10);
-    expect(seed?.active_to_month).toBe(3);
+  test('the two mow-lawn seeds have opposite seasons', () => {
+    expect(byId('seed-mow-lawn-warm')?.season).toBe('warm');
+    expect(byId('seed-mow-lawn-cool')?.season).toBe('cool');
   });
 
-  test('seed-service-heater: freq=365, active_from=4, active_to=9', () => {
-    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-service-heater');
-    expect(seed).toBeDefined();
-    expect(seed?.frequency_days).toBe(365);
-    expect(seed?.active_from_month).toBe(4);
-    expect(seed?.active_to_month).toBe(9);
+  test('air conditioner is warm, heater is cool', () => {
+    expect(byId('seed-service-ac')?.season).toBe('warm');
+    expect(byId('seed-service-heater')?.season).toBe('cool');
   });
 
-  test('SEED_LIBRARY has exactly 34 entries (30 existing + 4 new seasonal)', () => {
+  test('frequencies are unchanged (mow warm 14, mow cool 30, services 365)', () => {
+    expect(byId('seed-mow-lawn-warm')?.frequency_days).toBe(14);
+    expect(byId('seed-mow-lawn-cool')?.frequency_days).toBe(30);
+    expect(byId('seed-service-ac')?.frequency_days).toBe(365);
+    expect(byId('seed-service-heater')?.frequency_days).toBe(365);
+  });
+
+  test('SEED_LIBRARY has exactly 34 entries', () => {
     expect(SEED_LIBRARY.length).toBe(34);
+  });
+});
+
+describe('seasonWindow', () => {
+  test('north: warm = Apr–Sep, cool = Oct–Mar', () => {
+    expect(seasonWindow('warm', 'north')).toEqual({ active_from_month: 4, active_to_month: 9 });
+    expect(seasonWindow('cool', 'north')).toEqual({ active_from_month: 10, active_to_month: 3 });
+  });
+
+  test('south: warm = Oct–Mar, cool = Apr–Sep', () => {
+    expect(seasonWindow('warm', 'south')).toEqual({ active_from_month: 10, active_to_month: 3 });
+    expect(seasonWindow('cool', 'south')).toEqual({ active_from_month: 4, active_to_month: 9 });
+  });
+});
+
+describe('hemisphereFromTimezone', () => {
+  test.each([
+    ['Australia/Perth', 'south'],
+    ['Australia/Sydney', 'south'],
+    ['Pacific/Auckland', 'south'],
+    ['America/Sao_Paulo', 'south'],
+    ['America/Argentina/Buenos_Aires', 'south'],
+    ['Africa/Johannesburg', 'south'],
+    ['Europe/London', 'north'],
+    ['America/New_York', 'north'],
+    ['Asia/Tokyo', 'north'],
+    ['UTC', 'north'],
+    ['', 'north'],
+  ] as const)('%s → %s', (tz, expected) => {
+    expect(hemisphereFromTimezone(tz)).toBe(expected);
   });
 });
