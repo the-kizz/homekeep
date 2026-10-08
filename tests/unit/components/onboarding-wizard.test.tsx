@@ -87,13 +87,12 @@ describe('OnboardingWizard', () => {
     ]);
   });
 
-  test('invite nudge links to settings and does not block submit', () => {
+  test('offers no link away from the wizard, so edits cannot be lost', () => {
     const { container } = render(
       <OnboardingWizard home={HOME} areas={[WHOLE]} seeds={SEED_LIBRARY} />,
     );
-    const invite = container.querySelector('[data-invite-nudge]') as HTMLAnchorElement;
-    expect(invite.textContent).toBe('Invite someone');
-    expect(invite.getAttribute('href')).toBe(`/h/${HOME.id}/settings`);
+    expect(container.querySelector('[data-invite-nudge]')).toBeNull();
+    expect(container.querySelector('a[href$="/settings"]')).toBeNull();
     const submit = container.querySelector('[data-submit-seeds]') as HTMLButtonElement;
     expect(submit.disabled).toBe(false);
   });

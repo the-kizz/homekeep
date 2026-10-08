@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,7 @@ import type { SeedAreaInput } from '@/lib/schemas/seed';
  * in everything else from the library.
  *
  * E2E hooks: data-onboarding-wizard, data-selected-count, data-skip-all,
- * data-submit-seeds, data-invite-nudge, data-hemisphere-note
+ * data-submit-seeds, data-hemisphere-note
  */
 
 type WizardArea = { id: string; name: string; is_whole_home_system: boolean };
@@ -283,9 +282,8 @@ export function OnboardingWizard({
               : `${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'} selected`}
           </p>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm" data-invite-nudge>
-              <Link href={`/h/${home.id}/settings`}>Invite someone</Link>
-            </Button>
+            {/* No invite link here: leaving would discard every choice
+                above. The welcome card offers it after submit. */}
             <Button
               type="button"
               onClick={handleSubmit}
