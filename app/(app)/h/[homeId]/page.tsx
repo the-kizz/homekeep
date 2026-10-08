@@ -204,7 +204,7 @@ export default async function HomeDashboardPage({
 
   return (
     <>
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 pt-4 pb-6 text-sm text-muted-foreground">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 pt-4 pb-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
           {/* Mobile: tighter single-line title using serif. Desktop keeps
               same line but in the regular header density. */}

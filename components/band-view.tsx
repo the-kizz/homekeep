@@ -385,14 +385,26 @@ export function BandView({
 
   return (
     <div
-      className="mx-auto max-w-4xl space-y-6 p-6"
+      // Phone: one column in the familiar order (ring, overdue, most
+      // neglected, this week, horizon, sleeping). The section/aside are
+      // display:contents below lg, so their children are flex items here
+      // and the max-lg order rules interleave them. Desktop: tasks on the
+      // left, the at-a-glance summary pinned on the right. Pure CSS, so the
+      // server render and hydration are identical at every width.
+      className={
+        'mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:grid lg:grid-cols-12 lg:items-start ' +
+        'max-lg:[&_[data-band=overdue]]:order-1 max-lg:[&_[data-most-neglected-card]]:order-2 ' +
+        'max-lg:[&_[data-band=thisWeek]]:order-3 max-lg:[&_[data-band=horizon]]:order-4 ' +
+        'max-lg:[&_[data-dormant-section]]:order-5'
+      }
       data-band-view
       data-home-id={homeId}
     >
-      <header className="flex items-center justify-center">
-        <CoverageRing percentage={coveragePct} />
-      </header>
-
+      <section
+        data-dashboard-main
+        aria-label="Tasks"
+        className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-6"
+      >
       {!hasAnyTasks ? (
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
@@ -427,17 +439,6 @@ export function BandView({
             now={nowDate}
             shiftByTaskId={shiftByTaskId}
           />
-          {/* 06-03 GAME-05: MostNeglectedCard between Overdue and This
-              Week bands. Self-null when no overdue tasks. `pending` is
-              per-task precise so the card only disables while THIS
-              task is in flight — double-tap guard shared via handleTap. */}
-          <MostNeglectedCard
-            task={mostNeglected}
-            onComplete={(id) => handleTap(id)}
-            pending={
-              mostNeglected !== null && pendingTaskId === mostNeglected.id
-            }
-          />
           <TaskBand
             label="This week"
             tasks={thisWeekWithName}
@@ -449,12 +450,6 @@ export function BandView({
             timezone={timezone}
             variant="thisWeek"
             now={nowDate}
-            shiftByTaskId={shiftByTaskId}
-          />
-          <HorizonStrip
-            tasks={horizonWithName}
-            now={nowDate}
-            timezone={timezone}
             shiftByTaskId={shiftByTaskId}
           />
           {/* Phase 14 (SEAS-06): Sleeping section — rendered only when at
@@ -492,6 +487,39 @@ export function BandView({
           )}
         </>
       )}
+      </section>
+
+      <aside
+        data-dashboard-aside
+        aria-label="Overview"
+        className="contents lg:sticky lg:top-16 lg:col-span-5 lg:flex lg:flex-col lg:gap-6 lg:self-start"
+      >
+        <header className="flex items-center justify-center max-lg:order-first">
+          <CoverageRing percentage={coveragePct} />
+        </header>
+        {hasAnyTasks && (
+          <>
+            {/* MostNeglectedCard sits between Overdue and This Week on
+                phone (via the order rules above) and in the summary column
+                on desktop. Self-null when no overdue tasks. `pending` is
+                per-task precise so the card only disables while THIS
+                task is in flight — double-tap guard shared via handleTap. */}
+            <MostNeglectedCard
+              task={mostNeglected}
+              onComplete={(id) => handleTap(id)}
+              pending={
+                mostNeglected !== null && pendingTaskId === mostNeglected.id
+              }
+            />
+            <HorizonStrip
+              tasks={horizonWithName}
+              now={nowDate}
+              timezone={timezone}
+              shiftByTaskId={shiftByTaskId}
+            />
+          </>
+        )}
+      </aside>
 
       {celebration && (
         <AreaCelebration
