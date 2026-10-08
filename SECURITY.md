@@ -69,7 +69,7 @@ When you report, please include:
 
 - A concise description of the issue (what, where, impact)
 - Reproduction steps or proof-of-concept (even a rough one is fine)
-- The HomeKeep version / tag you observed (e.g. `:v1.2.0`, `:edge`, commit SHA)
+- The HomeKeep version / tag you observed (e.g. `:1.3.0`, `:edge`, commit SHA)
 - Your preferred contact for follow-up and whether you want credit in the
   changelog
 
