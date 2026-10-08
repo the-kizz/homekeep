@@ -1,6 +1,6 @@
 // @vitest-environment node
 /**
- * Onboarding seeds → real areas, against a live PocketBase on port 18108.
+ * Onboarding seeds → real areas, against a live PocketBase on port 18112.
  *
  * Checks the end-to-end contract the By Area view depends on: suggested
  * areas are created once (and reused on a second run), tasks point at them,
@@ -25,7 +25,7 @@ vi.mock('@/lib/pocketbase-server', () => ({
 
 const PB_BIN = './.pb/pocketbase';
 const DATA_DIR = './.pb/test-pb-data-seed-areas';
-const PORT = 18108;
+const PORT = 18112;
 const HTTP = `127.0.0.1:${PORT}`;
 
 let pbProcess: ChildProcess | undefined;
@@ -133,7 +133,7 @@ async function tasksByName() {
   return new Map(rows.map((t) => [t.name as string, t]));
 }
 
-describe('onboarding seeds create real areas (port 18108)', () => {
+describe('onboarding seeds create real areas (port 18112)', () => {
   test('first run: creates Kitchen, Bathroom, Yard; tasks use them; seasons are southern', async () => {
     const { batchCreateSeedTasks } = await import('@/lib/actions/seed');
     const result = await batchCreateSeedTasks({
