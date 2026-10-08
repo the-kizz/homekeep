@@ -289,6 +289,9 @@ This branch is unreleased. Since v1.3.0 it adds dark mode, a desktop layout,
 one-tap complete, area suggestions during onboarding, and scheduler and
 timezone fixes. The next release will be tagged by the maintainer.
 
+Upgrading from 1.3.0 may re-send one overdue notification per task on the
+first scheduler tick.
+
 ## Known limits
 
 - Password-reset emails only work if you configure SMTP.

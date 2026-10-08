@@ -17,10 +17,10 @@ import {
  */
 
 describe('ref_cycle builders', () => {
-  test('buildOverdueRefCycle formats as task:{id}:overdue:{iso}', () => {
+  test('buildOverdueRefCycle formats as task:{id}:overdue:{day}', () => {
     expect(
-      buildOverdueRefCycle('task-abc', '2026-04-20T00:00:00.000Z'),
-    ).toBe('task:task-abc:overdue:2026-04-20T00:00:00.000Z');
+      buildOverdueRefCycle('task-abc', '2026-04-20'),
+    ).toBe('task:task-abc:overdue:2026-04-20');
   });
 
   test('buildAssignedRefCycle formats as task:{id}:assigned:{iso}', () => {

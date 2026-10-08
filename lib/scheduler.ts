@@ -1,6 +1,6 @@
 import cron, { type ScheduledTask } from 'node-cron';
 import { startOfWeek } from 'date-fns';
-import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz';
 import type PocketBase from 'pocketbase';
 import { createAdminClient } from '@/lib/pocketbase-admin';
 import {
@@ -251,7 +251,7 @@ export async function processOverdueNotifications(
     // 10-02 Plan (D-06, D-08, SNZE-10): batch-fetch active overrides ONCE
     // per home before the per-task loop. Eliminates N+1 roundtrips and
     // lets `computeNextDue` return post-override next-due, which means
-    // `buildOverdueRefCycle` keys automatically on the snoozed ISO —
+    // `buildOverdueRefCycle` keys automatically on the snoozed day —
     // "free-by-construction" ref_cycle rotation for snoozed tasks.
     const overridesByTask = await getActiveOverridesForHome(pb, homeId);
 
@@ -267,7 +267,10 @@ export async function processOverdueNotifications(
       if (!nextDue) continue;
       if (nextDue.getTime() > now.getTime()) continue;
 
-      const refCycle = buildOverdueRefCycle(task.id, nextDue.toISOString());
+      const refCycle = buildOverdueRefCycle(
+        task.id,
+        formatInTimeZone(nextDue, timezone, 'yyyy-MM-dd'),
+      );
       const body = `Your ${homeName ? `${homeName} ` : ''}${task.name.toLowerCase()} is overdue — ready when you are.`;
 
       for (const member of eligible) {

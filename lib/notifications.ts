@@ -50,11 +50,17 @@ export type NotificationRecord = {
 
 // ─── ref_cycle builders (pure) ─────────────────────────────────────────
 
+/**
+ * Keyed on the due date as a home-timezone calendar day (yyyy-MM-dd), not
+ * the full instant: small shifts in how the due instant is computed (a
+ * smoothed vs natural date on the same day, DST, a code change) must not
+ * look like a new overdue cycle and re-send the push.
+ */
 export function buildOverdueRefCycle(
   taskId: string,
-  nextDueIso: string,
+  dueDay: string,
 ): string {
-  return `task:${taskId}:overdue:${nextDueIso}`;
+  return `task:${taskId}:overdue:${dueDay}`;
 }
 
 export function buildAssignedRefCycle(
