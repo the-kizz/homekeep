@@ -121,8 +121,11 @@ export async function completeTaskAction(
       // active_from_month / active_to_month in the projection, the
       // Task shape arrives with them undefined and the seasonal wake-
       // up branch silently never triggers for the rendered toast.
+      // preferred_days and next_due_smoothed feed placeNextDue: the first
+      // keeps the weekend/weekday preference, the second lets placement
+      // exclude the task's own current slot from the household load.
       fields:
-        'id,home_id,area_id,frequency_days,schedule_mode,anchor_date,archived,created,name,due_date,active_from_month,active_to_month',
+        'id,home_id,area_id,frequency_days,schedule_mode,anchor_date,archived,created,name,due_date,active_from_month,active_to_month,preferred_days,next_due_smoothed',
     });
 
     // 04-02 D-13: completeTaskAction is member-permitted. assertMembership
@@ -284,7 +287,7 @@ export async function completeTaskAction(
     //      line 210 is insufficient — placement needs the full home).
     //   3. computeHouseholdLoad(homeTasks, homeLatestByTask,
     //        overridesByTask, now, 120, home.timezone)
-    //   4. placeNextDue(task, lastCompletion, load, now,
+    //   4. placeNextDue(task, { completed_at: now }, load, now,
     //        { preferredDays: task.preferred_days, timezone:
     //          home.timezone })
     //   5. Append batch.collection('tasks').update(task.id,
@@ -337,12 +340,15 @@ export async function completeTaskAction(
           home.timezone as string,
         );
 
-        // lastCompletion above was computed at line 149-166 for this
-        // task — reuse it here. placeNextDue derives naturalIdeal =
-        // (lastCompletion?.completed_at ?? task.created) + frequency_days.
+        // The cycle restarts from THIS completion, not the one before it.
+        // placeNextDue derives naturalIdeal = completed_at + frequency_days,
+        // so passing the prior completion (fetched above for the early
+        // guard) would put the next due date in the past for any task
+        // completed late. The batch writes the completion with exactly
+        // this timestamp.
         const placedDate = placeNextDue(
           task as unknown as Task,
-          lastCompletion,
+          { completed_at: now.toISOString() },
           householdLoad,
           now,
           {

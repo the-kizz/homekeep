@@ -19,25 +19,13 @@ import { PB_URL, skipOnboardingIfPresent } from './helpers';
  * also null `tasks.next_due_smoothed` AND (defensively, Phase 15+)
  * `tasks.reschedule_marker` via a follow-up PATCH. See `seedCompletion`.
  *
- * For tests that care about the completion FLOW (guard fires/does-not-
- * fire, toast appears, completion record persisted) — NOT about post-
- * completion band transitions — prefer flow-assertion evidence:
+ * Evidence the specs assert on:
  *   (a) [data-testid="early-completion-dialog"] visibility (or count=0)
  *   (b) page.getByText(/Done: .* — next due/) with { timeout: 5000 }
  *   (c) PB REST completion-count delta via getCompletionCount()
- *
- * Band-transition semantics are already covered exhaustively in unit
- * tests: `tests/unit/band-classification.test.ts` (21+ cases) and
- * `tests/unit/early-completion-guard.test.ts` (8 cases). Duplicating
- * them in E2E is brittle under LOAD's ±tolerance + load-map scoring.
- *
- * Why Scenario 2 does NOT leave Overdue after completion (verified
- * against completions.ts:149-166 + :343-358 in Phase 20 research):
- * `placeNextDue` inside `completeTaskAction`'s batch uses the PRE-batch
- * `lastCompletion` fetch, NOT the just-queued fresh completion. For a
- * seed 10d ago + freq 7d, `naturalIdeal = -10d + 7d = -3d`, placed in
- * `{-4d, -3d, -2d}` window — all < localMidnight → task STAYS in
- * Overdue. Assert on flow evidence, not band transition.
+ *   (d) PB REST `next_due_smoothed` after the completion — completing a
+ *       task restarts its cycle from now, so the stored next due date
+ *       must be in the future and an Overdue task must leave Overdue.
  *
  * === Pre-existing notes ===
  *
@@ -47,15 +35,15 @@ import { PB_URL, skipOnboardingIfPresent } from './helpers';
  *   by the PATCH, the natural cycle branch resolves nextDue = -1d + 7d =
  *   +6d, placing it in This Week. Elapsed 1d < 0.25*7d = 1.75d → guard
  *   fires. Accepting ("Mark done anyway") records a fresh completion and
- *   the toast appears. Under LOAD the task remains in This Week (re-
- *   placement candidates {T+5d, T+6d, T+7d} — all within band).
+ *   the toast appears. The cycle restarts from now, so the stored next
+ *   due date is about a week out.
  *
  * Scenario 2 — stale task in Overdue, no guard fires
  *   Same scaffolding, but seed a completion dated TEN days ago. With
  *   `next_due_smoothed` cleared, natural cycle resolves nextDue = -10d
  *   + 7d = -3d → Overdue. Elapsed 10d > 1.75d threshold → guard does
- *   NOT fire. Toast appears immediately. Under LOAD the task STAYS in
- *   Overdue after completion (see "Why Scenario 2..." note above).
+ *   NOT fire. Toast appears immediately. The cycle restarts from now, so
+ *   the task leaves Overdue and its stored next due date is in the future.
  *
  * Flake mitigations (preserve — still relevant):
  *   - Unique email per scenario via Date.now() + random suffix.
@@ -218,8 +206,7 @@ async function seedCompletion(
 /**
  * Returns the count of completions for a given task via PB REST.
  * Uses `?perPage=1` + `body.totalItems` for constant-time count.
- * Phase 20 TEST-01: flow-assertion evidence that a completion was
- * actually persisted (replaces the brittle band-exit assertion).
+ * Evidence that a completion was actually persisted.
  */
 async function getCompletionCount(
   request: APIRequestContext,
@@ -233,6 +220,23 @@ async function getCompletionCount(
   expect(res.ok()).toBeTruthy();
   const body = await res.json();
   return (body?.totalItems ?? 0) as number;
+}
+
+/**
+ * Reads the task's stored `next_due_smoothed` via PB REST ('' when unset).
+ */
+async function getNextDueSmoothed(
+  request: APIRequestContext,
+  token: string,
+  taskId: string,
+): Promise<string> {
+  const res = await request.get(
+    `${PB_URL}/api/collections/tasks/records/${taskId}?fields=next_due_smoothed`,
+    { headers: { Authorization: token } },
+  );
+  expect(res.ok()).toBeTruthy();
+  const body = await res.json();
+  return (body?.next_due_smoothed ?? '') as string;
 }
 
 function extractHomeId(homeUrl: string): string {
@@ -293,20 +297,20 @@ test.describe('Phase 3 Core Loop (D-21)', () => {
       page.getByText(/Done: .* — next due/),
     ).toBeVisible({ timeout: 5000 });
 
-    // Phase 20 TEST-01 (D-03): Under LOAD, the task STAYS in thisWeek after
-    // completion — placeNextDue computes candidates in {T+5d, T+6d, T+7d}
-    // (all within band). Assert on flow evidence, not band exit.
-    // Band-transition semantics are already covered by
-    // tests/unit/band-classification.test.ts (21+ cases).
-
     // Completion record persisted: count went 1 (seeded) → 2 (fresh).
     const afterCount = await getCompletionCount(request, token, taskId);
     expect(afterCount).toBe(2);
 
+    // The cycle restarted from this completion: 7 days ± 1 day of
+    // smoothing tolerance from now.
+    const nextDueIso = await getNextDueSmoothed(request, token, taskId);
+    expect(nextDueIso).not.toBe('');
+    expect(new Date(nextDueIso).getTime()).toBeGreaterThan(
+      Date.now() + 5 * 86400000,
+    );
+
     // Reload forces a fresh Server Component render (not router-cache replay)
-    // and confirms the BandView still renders without errors after the
-    // completion. Task is still somewhere on the page (thisWeek under LOAD,
-    // per D-03), but we don't assert a specific band — that's unit-tested.
+    // and confirms the BandView still renders without errors.
     await page.goto(homeUrl);
     await expect(page.locator('[data-band-view]')).toBeVisible();
     await expect(
@@ -358,32 +362,25 @@ test.describe('Phase 3 Core Loop (D-21)', () => {
       page.getByText(/Done: .* — next due/),
     ).toBeVisible({ timeout: 5000 });
 
-    // Phase 20 TEST-01 (D-04 CORRECTED by Phase 20 research): Under LOAD,
-    // `placeNextDue` inside completeTaskAction reads the PRE-batch
-    // lastCompletion (-10d), not the fresh one. naturalIdeal = -10d + 7d
-    // = -3d; candidates {-4d, -3d, -2d} all < localMidnight → task
-    // STAYS in overdue. Do NOT assert "leaves overdue". See
-    // completions.ts:149-166 + :343-358 for the evidence trail.
-    //
-    // Task REMAINS in overdue under LOAD placement — placeNextDue sees
-    // pre-batch lastCompletion (-10d) → naturalIdeal=-3d → overdue.
-    // Verifying completion via PB REST instead of band transition.
-    //
-    // Assert on flow evidence instead. Band-transition semantics are
-    // already covered in tests/unit/band-classification.test.ts.
-
     // Completion record persisted: count went 1 (seeded) → 2 (fresh).
     const afterCount = await getCompletionCount(request, token, taskId);
     expect(afterCount).toBe(2);
 
-    // Reload forces a fresh Server Component render (not router-cache
-    // replay) and confirms the BandView still renders without errors.
-    // Task is still somewhere on the page (overdue under LOAD per the
-    // corrected semantics above).
+    // Completing restarts the cycle from now, not from the completion
+    // ten days ago: the stored next due date must be in the future.
+    const nextDueIso = await getNextDueSmoothed(request, token, taskId);
+    expect(nextDueIso).not.toBe('');
+    expect(new Date(nextDueIso).getTime()).toBeGreaterThan(Date.now());
+
+    // After a fresh Server Component render the task is no longer
+    // Overdue, but it is still on the dashboard.
     await page.goto(homeUrl);
     await expect(page.locator('[data-band-view]')).toBeVisible();
     await expect(
-      page.locator('[data-task-name="Clean filter"]'),
+      page.locator('[data-band="overdue"] [data-task-name="Clean filter"]'),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-task-name="Clean filter"]').first(),
     ).toBeVisible();
   });
 });
