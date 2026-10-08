@@ -8,7 +8,7 @@ import type PocketBase from 'pocketbase';
  *   1. **Deterministic ref_cycle string builders** (pure, side-effect free).
  *      Every scheduler-originated send derives its dedupe key from the
  *      event's intrinsic identity:
- *        - overdue:           `task:{taskId}:overdue:{nextDueIso}`
+ *        - overdue:           `task:{taskId}:overdue:{dueDay}` (yyyy-MM-dd in home tz)
  *        - assigned:          `task:{taskId}:assigned:{assignedAtIso}`
  *        - weekly summary:    `user:{userId}:weekly:{weekStartIso}`
  *        - partner-completed: `completion:{completionId}:partner`

@@ -7,7 +7,8 @@
  * This is the scheduler's idempotency store. Every ntfy send goes
  * through `recordNotification()` (lib/notifications.ts) which inserts a
  * row keyed by `ref_cycle` — a deterministic string derived from the
- * thing being notified (e.g. `task:{taskId}:overdue:{nextDueIso}`,
+ * thing being notified (e.g. `task:{taskId}:overdue:{dueDay}` with the
+ * due date as a yyyy-MM-dd day in the home timezone,
  * `user:{userId}:weekly:{weekStartIso}`). Before sending, the scheduler
  * calls `hasNotified()` to pre-check; if the row already exists, skip.
  *
