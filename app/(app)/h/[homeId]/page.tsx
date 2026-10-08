@@ -5,6 +5,7 @@ import {
   type CompletionRecord,
 } from '@/lib/completions';
 import { BandView, type TaskWithName } from '@/components/band-view';
+import { WelcomeCard } from '@/components/welcome-card';
 import { AvatarStack } from '@/components/avatar-stack';
 import { HouseholdStreakBadge } from '@/components/household-streak-badge';
 import { computeHouseholdStreak } from '@/lib/household-streak';
@@ -222,6 +223,7 @@ export default async function HomeDashboardPage({
           title={`${members.length} member${members.length === 1 ? '' : 's'} — view members`}
         />
       </div>
+      <WelcomeCard homeId={homeId} />
       <BandView
         tasks={mappedTasks}
         completions={completions}
