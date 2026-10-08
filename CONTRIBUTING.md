@@ -5,7 +5,12 @@ First — thanks. This is a small weekend-ish project, but it's open and public 
 ## Before opening a PR
 
 1. **Open an issue first** if it's more than a typo fix. It's faster to agree on the approach than to redo a big change.
-2. **Read `.planning/PROJECT.md`** — it has the guiding principles (calm over urgent, shared not competitive, forgiveness built in). Features that push against those principles will probably not land.
+2. **Respect the principles.** Features that push against these will probably not land:
+   - Calm over urgent.
+   - Shared, not competitive.
+   - Forgiveness built in.
+   - Self-hosted first.
+   - One container.
 3. **Run the test suite.** `npm test && npm run test:e2e` should stay green.
 4. **Keep commits atomic.** One logical change per commit. Follow the existing conventional-commit style (`feat(scope):`, `fix(scope):`, `docs(scope):`, `test(scope):`).
 
@@ -19,6 +24,10 @@ npm run dev
 ```
 
 The dev stack boots both Next.js and a local PocketBase binary side-by-side. First run downloads the PB binary to `./.pb/`.
+
+### Running the tests
+
+`TZ` is pinned to UTC by the vitest config, so results do not depend on your host timezone. Integration tests spawn a real PocketBase on fixed ports in the 18090–18110 range; keep those free and don't run two suites at once. If you haven't run `npm run dev` yet, run `node scripts/dev-pb.js` once to download the PocketBase binary to `./.pb/` (stop it with Ctrl-C once it is serving).
 
 ## Scope
 

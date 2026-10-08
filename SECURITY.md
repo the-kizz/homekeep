@@ -12,10 +12,8 @@ release only. Older minors do not receive fixes — upgrade to stay covered.
 
 | Version | Supported          |
 |---------|--------------------|
-| 1.2.x   | :white_check_mark: |
-| 1.1.x   | :x: (superseded)   |
-| 1.0.x   | :x: (superseded)   |
-| < 1.0   | :x:                |
+| 1.3.x   | :white_check_mark: |
+| ≤ 1.2.x | :x: (superseded)   |
 
 Floating tags (`:latest`, `:rc`, `:edge`, `:1`) track the appropriate stable,
 release-candidate, or HEAD build. Pin to an exact semver for reproducible
@@ -32,7 +30,8 @@ PocketBase admin UI are not reachable from the public internet on the
 baseline compose chain — the reverse proxy blocks `/_/*`, `/api/_superusers`,
 and `/api/collections/_superusers/*` with a 404. Build artefacts ship with
 cryptographic provenance: cosign keyless signatures, SPDX SBOMs, and SLSA-3
-provenance attestations on every tagged release (see `.github/workflows/`).
+provenance attestations on tagged releases from v1.2.0 (v1.3.0 was published
+without a signature; see the README) — see `.github/workflows/`.
 
 **What HomeKeep does not protect.** This is a single-household app, not a
 multi-tenant SaaS. There is no MFA, no audit log, no account-lockout after
@@ -58,17 +57,15 @@ users, 2h / 24h cleanup cron).
 
 ## Reporting a vulnerability
 
-Please email: **security@homekeep.example** *(placeholder — maintainer will
-replace with a real contact address before the first public v1.2 tag)*.
-
-PGP key fingerprint: **TBD** *(placeholder — a real key will be published at
-`/.well-known/security.txt` and attached to the next annotated release tag)*.
+Please report privately via **GitHub private vulnerability reporting**:
+<https://github.com/the-kizz/homekeep/security/advisories/new>. The report
+stays visible only to you and the maintainers until a fix is published.
 
 Do **not** open a public GitHub issue for security-sensitive reports. If in
-doubt about whether an issue is security-sensitive, email first; we can
-always move it to a public issue later.
+doubt about whether an issue is security-sensitive, report it privately
+first; we can always move it to a public issue later.
 
-When you email, please include:
+When you report, please include:
 
 - A concise description of the issue (what, where, impact)
 - Reproduction steps or proof-of-concept (even a rough one is fine)
@@ -165,4 +162,4 @@ domain are deferred to v1.3.
 
 ---
 
-*Last updated: 2026-04-24 (Phase 28, SPEC v0.5).*
+*Last updated: 2026-10-09.*
