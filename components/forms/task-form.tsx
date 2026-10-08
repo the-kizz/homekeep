@@ -21,12 +21,12 @@ import { cn } from '@/lib/utils';
 /**
  * Task create/edit form.
  *
- * The first screen holds only what every task needs: Name, Area,
- * Frequency (quick chips plus a free days input — or the "Do by" date
- * for a one-off) and Who. Everything else — task type, schedule mode
- * and anchor date, last done, active months, notes — sits behind a
- * single "More options" collapsible, which edit mode opens when the
- * task already uses any of it.
+ * The first screen holds only what every task needs: Name, Area, a
+ * Recurring / One-off switch, Frequency (quick chips plus a free days
+ * input — or the "Do by" date for a one-off) and Who. Everything else —
+ * schedule mode and anchor date, last done, active months, notes — sits
+ * behind a single "More options" collapsible, which edit mode opens when
+ * the task already uses any of it.
  *
  * On submit the form's action fires createTask or updateTask bound to
  * the task id. Server validates again via safeParse; client-onBlur errors
@@ -238,7 +238,6 @@ export function TaskForm({
   // Edit mode opens "More options" when the task already uses something
   // tucked away there, so the user sees why it behaves the way it does.
   const hasNonDefaultExtras =
-    initialTaskType === 'one-off' ||
     task?.schedule_mode === 'anchored' ||
     task?.active_from_month != null ||
     (typeof task?.notes === 'string' && task.notes.trim().length > 0);
@@ -251,6 +250,29 @@ export function TaskForm({
   // A server error on a collapsed field would otherwise be invisible.
   const moreHasError = !!(anchorError || notesError || activeMonthsError);
   const moreIsOpen = moreOpen || moreHasError;
+
+  function chooseRecurring() {
+    if (taskType === 'recurring') return;
+    setTaskType('recurring');
+    // Restore a usable frequency rather than an empty input.
+    const restored =
+      task && !isOoftTask({ frequency_days: task.frequency_days })
+        ? (task.frequency_days ?? 7)
+        : 7;
+    setValue('frequency_days', restored, { shouldValidate: true });
+    // Avoid a phantom "due date required" after flipping back.
+    setValue('due_date', null, { shouldValidate: false });
+  }
+
+  function chooseOneOff() {
+    if (taskType === 'one-off') return;
+    setTaskType('one-off');
+    // A one-off on an anchored schedule is rejected by the schema.
+    setValue('schedule_mode', 'cycle', { shouldValidate: true });
+    setValue('frequency_days', null as unknown as number, {
+      shouldValidate: true,
+    });
+  }
 
   return (
     <form action={formAction} className="space-y-4" noValidate>
@@ -293,8 +315,36 @@ export function TaskForm({
         )}
       </div>
 
-      {/* Frequency for recurring tasks; a one-off swaps it for its
-          "Do by" date in the same spot so "when" always lives here. */}
+      {/* Recurring or one-off is the first "when" decision, so it sits
+          right above Frequency; One-off swaps Frequency for its "Do by"
+          date in the same spot. */}
+      <div
+        role="group"
+        aria-label="Task type"
+        data-task-type-toggle
+        className="inline-flex rounded-md border border-input p-0.5"
+      >
+        {(
+          [
+            { value: 'recurring', label: 'Recurring', choose: chooseRecurring },
+            { value: 'one-off', label: 'One-off', choose: chooseOneOff },
+          ] as const
+        ).map((opt) => (
+          <Button
+            key={opt.value}
+            type="button"
+            size="sm"
+            variant={taskType === opt.value ? 'default' : 'ghost'}
+            aria-pressed={taskType === opt.value}
+            data-task-type={opt.value}
+            onClick={opt.choose}
+            className="min-w-24"
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+
       {taskType === 'recurring' ? (
         <div className="space-y-1.5">
           <Label htmlFor="task-freq">Frequency</Label>
@@ -414,57 +464,6 @@ export function TaskForm({
           data-more-options
           className="space-y-4 rounded-md border border-border/60 bg-muted/30 p-3"
         >
-          {/* Switching to One-off forces schedule_mode back to cycle:
-              a one-off on an anchored schedule is rejected by the
-              schema. */}
-          <div className="space-y-1.5" data-task-type-toggle>
-            <Label>Task type</Label>
-            <div
-              className="flex gap-4"
-              role="radiogroup"
-              aria-label="Task type"
-            >
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="task_type_ui"
-                  value="recurring"
-                  checked={taskType === 'recurring'}
-                  onChange={() => {
-                    setTaskType('recurring');
-                    // Restore a usable frequency rather than an empty input.
-                    const restored =
-                      task && !isOoftTask({ frequency_days: task.frequency_days })
-                        ? (task.frequency_days ?? 7)
-                        : 7;
-                    setValue('frequency_days', restored, {
-                      shouldValidate: true,
-                    });
-                    // Avoid a phantom "due date required" after flipping back.
-                    setValue('due_date', null, { shouldValidate: false });
-                  }}
-                />
-                <span>Recurring</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="task_type_ui"
-                  value="one-off"
-                  checked={taskType === 'one-off'}
-                  onChange={() => {
-                    setTaskType('one-off');
-                    setValue('schedule_mode', 'cycle', { shouldValidate: true });
-                    setValue('frequency_days', null as unknown as number, {
-                      shouldValidate: true,
-                    });
-                  }}
-                />
-                <span>One-off</span>
-              </label>
-            </div>
-          </div>
-
           {taskType === 'recurring' && (
             <>
               <div className="space-y-1.5">

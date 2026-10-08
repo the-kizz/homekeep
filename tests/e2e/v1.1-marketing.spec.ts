@@ -505,10 +505,8 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
     await page.goto(`${homeUrl}/tasks/new`);
     await expect(page.locator('#task-name')).toBeVisible();
     await page.fill('#task-name', 'Book boiler service');
-    // The task-type radios sit under the collapsed "More options" section
-    await page.getByRole('button', { name: /more options/i }).click();
-    // Flip radio to one-off
-    await page.locator('input[name="task_type_ui"][value="one-off"]').check();
+    // Flip the Recurring / One-off switch above Frequency
+    await page.getByRole('button', { name: 'One-off', exact: true }).click();
     await page.waitForTimeout(250);
     // Set a do-by date
     await page.fill('#task-due-date', isoDate(inDays(21)));
