@@ -130,6 +130,7 @@ export function HorizonStrip({
             Nothing on the horizon yet — looking clear!
           </p>
         ) : (
+          <>
           <div className="grid grid-cols-6 gap-1 sm:grid-cols-12">
             {months.map((m) => {
               const count = (buckets.get(m.key) ?? []).length;
@@ -179,6 +180,30 @@ export function HorizonStrip({
               );
             })}
           </div>
+          {/* The tint and the ⚖️ badge are otherwise unexplained; one
+              quiet line keeps the strip readable without a help page. */}
+          <p
+            data-horizon-legend
+            className="mt-3 flex flex-wrap items-center gap-x-1.5 text-xs text-muted-foreground"
+          >
+            <span aria-hidden="true" className="inline-flex gap-0.5">
+              <span className="size-2.5 rounded-sm border bg-primary/10" />
+              <span className="size-2.5 rounded-sm border bg-primary/30" />
+              <span className="size-2.5 rounded-sm border bg-primary/50" />
+            </span>
+            {/* Whitespace between flex items is not drawn (gap spaces
+                them) but keeps the sentence intact for screen readers. */}
+            {/* On the dark theme the tint reads lighter, not darker, so
+                the word follows the theme; the swatch carries it either way. */}
+            <span>
+              <span className="dark:hidden">Darker</span>
+              <span className="hidden dark:inline">Brighter</span> months are
+              busier
+            </span>{' '}
+            <span aria-hidden="true">·</span>{' '}
+            <span>⚖️ moved to balance the month</span>
+          </p>
+          </>
         )}
       </CardContent>
 
