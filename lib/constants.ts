@@ -37,3 +37,18 @@ export const HOMEKEEP_LICENSE = 'AGPL-3.0-or-later';
 export function getBuildIdPublic(): string {
   return process.env.HK_BUILD_STEALTH === 'true' ? 'hk-hidden' : HOMEKEEP_BUILD;
 }
+
+/**
+ * Base URL the Next.js server uses to reach PocketBase. Server-only: never
+ * import this from a client component (the browser talks to PB through the
+ * page origin, see lib/pocketbase-browser.ts).
+ *
+ * The default is loopback because the published image runs Next.js and
+ * PocketBase in one container. Set PB_URL only when PocketBase runs
+ * elsewhere (a sidecar container, or a dev PB on another port). A trailing
+ * slash is trimmed so `${PB_URL}/api/...` stays well-formed.
+ */
+export const PB_URL = (process.env.PB_URL || 'http://127.0.0.1:8090').replace(
+  /\/+$/,
+  '',
+);

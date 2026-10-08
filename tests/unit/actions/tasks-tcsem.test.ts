@@ -4,6 +4,7 @@ import {
   test,
   expect,
   vi,
+  beforeAll,
   beforeEach,
   afterEach,
 } from 'vitest';
@@ -34,6 +35,7 @@ import {
 // ─── Module-level mock refs (hoisted-safe via lazy closures) ─────────────
 const mockAssertMembership = vi.fn().mockResolvedValue(undefined);
 const mockCreate = vi.fn();
+const mockUpdate = vi.fn();
 const mockGetOne = vi.fn();
 const mockGetFullList = vi.fn();
 const mockPlaceNextDue = vi.fn();
@@ -54,6 +56,7 @@ vi.mock('@/lib/pocketbase-server', () => ({
       getOne: (...args: unknown[]) => mockGetOne(_name, ...args),
       getFullList: (...args: unknown[]) => mockGetFullList(_name, ...args),
       create: (...args: unknown[]) => mockCreate(_name, ...args),
+      update: (...args: unknown[]) => mockUpdate(_name, ...args),
       // Phase 25 RATE-01 added assertTasksQuota → calls getList. Stub
       // it with an empty totalItems so the quota check always passes
       // in these existing TCSEM tests (they exercise a single task
@@ -104,6 +107,13 @@ vi.mock('next/navigation', () => ({
     throw err;
   },
 }));
+
+// The first import of the action module pulls in the whole scheduling
+// graph; on a busy host that alone can exceed the 5 s per-test timeout, so
+// warm it once with its own budget.
+beforeAll(async () => {
+  await import('@/lib/actions/tasks');
+}, 60_000);
 
 // Dynamic import AFTER mocks registered.
 async function loadCreateTask() {
@@ -336,5 +346,93 @@ describe('createTask TCSEM (Phase 13 Plan 13-01 Task 2)', () => {
       }
     }
     expect(redirected).toBe(true);
+  });
+});
+
+describe('updateTask clears stale smoothing on schedule change', () => {
+  const HOME = 'home-1234567890x';
+  const TASK = 'task-1234567890x';
+
+  // What PB returns for the task before the edit. PB serialises an empty
+  // NumberField as 0 and an empty DateField as '', so the defaults mimic that.
+  let existing: Record<string, unknown>;
+
+  beforeEach(() => {
+    mockAssertMembership.mockReset().mockResolvedValue(undefined);
+    mockUpdate.mockReset().mockResolvedValue({ id: TASK });
+    mockRevalidatePath.mockReset();
+    existing = {
+      id: TASK,
+      home_id: HOME,
+      assigned_to_id: '',
+      name: 'Wipe benches',
+      frequency_days: 7,
+      schedule_mode: 'cycle',
+      active_from_month: 0,
+      active_to_month: 0,
+      due_date: '',
+      next_due_smoothed: '2026-05-01T00:00:00.000Z',
+    };
+    mockGetOne.mockReset().mockImplementation(
+      async (collection: string, id: string) => {
+        if (collection === 'areas') return { id, home_id: HOME };
+        if (collection === 'tasks') return existing;
+        return { id };
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  async function runUpdate(overrides: Record<string, string>) {
+    const { updateTask } = await import('@/lib/actions/tasks');
+    const fd = baseFormData({ frequency_days: '7', ...overrides });
+    const res = await updateTask(TASK, { ok: false }, fd);
+    expect(res).toEqual({ ok: true });
+    const call = mockUpdate.mock.calls.find(([c]) => c === 'tasks');
+    expect(call).toBeDefined();
+    return call![2] as Record<string, unknown>;
+  }
+
+  test('frequency 7 → 90 clears next_due_smoothed and reschedule_marker', async () => {
+    const body = await runUpdate({ frequency_days: '90' });
+    expect(body.next_due_smoothed).toBe('');
+    expect(body.reschedule_marker).toBe('');
+  });
+
+  test('name-only change leaves next_due_smoothed and reschedule_marker untouched', async () => {
+    const body = await runUpdate({ name: 'Wipe kitchen benches' });
+    expect(body).not.toHaveProperty('next_due_smoothed');
+    expect(body).not.toHaveProperty('reschedule_marker');
+  });
+
+  test('cycle → one-off clears both', async () => {
+    const body = await runUpdate({
+      frequency_days: '',
+      due_date: '2026-06-01',
+    });
+    expect(body.frequency_days).toBe('');
+    expect(body.next_due_smoothed).toBe('');
+    expect(body.reschedule_marker).toBe('');
+  });
+
+  test('editing the active months clears both', async () => {
+    const body = await runUpdate({
+      active_from_month: '4',
+      active_to_month: '9',
+    });
+    expect(body.next_due_smoothed).toBe('');
+    expect(body.reschedule_marker).toBe('');
+  });
+
+  test('cycle → anchored clears both', async () => {
+    const body = await runUpdate({
+      schedule_mode: 'anchored',
+      anchor_date: '2026-05-10',
+    });
+    expect(body.next_due_smoothed).toBe('');
+    expect(body.reschedule_marker).toBe('');
   });
 });
