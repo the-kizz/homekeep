@@ -145,7 +145,7 @@ describe('TaskRow', () => {
     });
 
     it('never exceeds 13 characters', () => {
-      for (let d = -500; d <= 0; d++) {
+      for (const d of [-1, -9, -10, -29.5, -30, -31, -99, -1000]) {
         expect(labelFor(d, 'overdue')!.length).toBeLessThanOrEqual(13);
       }
     });
@@ -299,5 +299,42 @@ describe('TaskBand empty copy', () => {
   it('says "Nothing due this week." when showEmpty is set', () => {
     band('thisWeek', true);
     expect(screen.getByText('Nothing due this week.')).toBeTruthy();
+  });
+});
+
+describe('TaskBand day-grouped rows', () => {
+  it('keep the assignee chip when grouped by day', () => {
+    const now = new Date('2026-10-09T00:00:00Z');
+    const tasks = Array.from({ length: 6 }, (_, i) => ({
+      id: `t${i}`,
+      name: `Task ${i}`,
+      created: '2026-01-01T00:00:00Z',
+      archived: false,
+      frequency_days: 7,
+      schedule_mode: 'cycle' as const,
+      anchor_date: null,
+      nextDue: new Date(now.getTime() + (i + 1) * 3600000),
+      daysDelta: 0.1,
+      effective: {
+        kind: 'task' as const,
+        user: { id: 'u1', name: 'Alice', role: 'owner' as const },
+      },
+    }));
+    const { container } = render(
+      <TaskBand
+        label="This week"
+        tasks={tasks as never}
+        onComplete={() => {}}
+        pendingTaskId={null}
+        timezone="UTC"
+        variant="thisWeek"
+        now={now}
+      />,
+    );
+    expect(container.querySelectorAll('[data-day-group]').length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll('button[data-task-id][data-assignee-kind="task"]')
+        .length,
+    ).toBe(6);
   });
 });

@@ -239,6 +239,11 @@ export function TaskBand({
                         // so a non-null positive integer is guaranteed
                         // at this cast site.
                         frequency_days: t.frequency_days as number,
+                        effective: (
+                          t as ClassifiedTask & {
+                            effective?: import('@/lib/assignment').EffectiveAssignee;
+                          }
+                        ).effective,
                       }}
                       onComplete={onComplete}
                       onDetail={onDetail}
