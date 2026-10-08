@@ -79,7 +79,7 @@ export default async function HomeSettingsPage({
   const homeName = (home.name as string) ?? 'Home';
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <main className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-2xl">
       <Button asChild variant="ghost" size="sm">
         <Link href={`/h/${homeId}`}>← Back to {homeName}</Link>
       </Button>

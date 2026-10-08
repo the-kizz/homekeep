@@ -58,7 +58,7 @@ export default async function NotificationSettingsPage({
       : { href: `/h/${homeId}/person`, label: '← Back to you' };
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <main className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-2xl">
       <Button asChild variant="ghost" size="sm">
         <Link href={back.href}>{back.label}</Link>
       </Button>

@@ -96,7 +96,7 @@ export default async function TaskDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
+    <div className="mx-auto max-w-6xl space-y-4 p-6 *:max-w-2xl">
       <Button asChild variant="ghost" size="sm">
         <Link href={`/h/${homeId}/areas/${task.area_id as string}`}>
           ← Back to area

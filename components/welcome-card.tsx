@@ -87,7 +87,7 @@ function WelcomeCardInner({ homeId }: { homeId: string }) {
       role="region"
       aria-label="Welcome"
       data-welcome-card
-      className="mx-auto mb-2 max-w-4xl px-6"
+      className="mx-auto mb-2 max-w-6xl px-6"
     >
       <div className="rounded-xl border border-primary/20 bg-primary/10 p-4 sm:p-5">
         <p className="font-display text-lg text-foreground/90">

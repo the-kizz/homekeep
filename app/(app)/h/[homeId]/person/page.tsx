@@ -221,7 +221,7 @@ export default async function PersonPage({
 
   return (
     <div
-      className="mx-auto max-w-4xl space-y-6 p-6"
+      className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-4xl"
       data-person-view
       data-home-id={homeId}
       data-user-id={authId}

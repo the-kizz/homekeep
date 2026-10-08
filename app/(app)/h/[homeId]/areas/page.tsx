@@ -50,7 +50,7 @@ export default async function AreasPage({
   }));
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-2xl">
       <header className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">Areas</h1>
