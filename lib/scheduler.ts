@@ -73,8 +73,21 @@ let started = false;
 let hourlyTask: ScheduledTask | null = null;
 // True while a tick is in flight. A slow tick (many homes, slow ntfy)
 // must not overlap the next one or a manual admin trigger: both would read
-// the same "not yet notified" state and could double-send.
-let ticking = false;
+// the same "not yet notified" state and could double-send. Kept on
+// globalThis because Next loads this module separately for
+// instrumentation (cron) and for the admin route, and a module-level
+// flag would not be shared between those copies.
+const tickState = globalThis as typeof globalThis & {
+  __hkSchedulerTicking?: boolean;
+};
+
+function isTicking(): boolean {
+  return tickState.__hkSchedulerTicking === true;
+}
+
+function setTicking(value: boolean): void {
+  tickState.__hkSchedulerTicking = value;
+}
 
 // Every field computeNextDue reads. A narrower projection silently drops
 // smoothing, seasonal windows and one-off dates, so the scheduler would
@@ -144,11 +157,11 @@ export async function runOnce(
 ): Promise<RunOnceResult> {
   // Checked and set synchronously, before any await, so two calls in the
   // same turn cannot both get through.
-  if (ticking) {
+  if (isTicking()) {
     console.info('[scheduler] tick skipped — previous tick still running');
     return { skipped: true };
   }
-  ticking = true;
+  setTicking(true);
   try {
     const kind = opts.kind ?? 'both';
     let overdueSent = 0;
@@ -161,7 +174,7 @@ export async function runOnce(
     }
     return { overdueSent, weeklySent };
   } finally {
-    ticking = false;
+    setTicking(false);
   }
 }
 
