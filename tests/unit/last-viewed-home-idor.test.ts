@@ -27,12 +27,12 @@ import PocketBase, { ClientResponseError } from 'pocketbase';
  *   3. User clears last_viewed_home_id (empty string) -> success (hook
  *      permits clears unconditionally).
  *
- * Port 18100 — next free after 18099 (last v1.1 integration port).
+ * Port 18110 — moved off 18100, which load-smoothing-integration also uses.
  */
 
 const PB_BIN = './.pb/pocketbase';
 const DATA_DIR = './.pb/test-pb-data-last-viewed-idor';
-const HTTP = '127.0.0.1:18100';
+const HTTP = '127.0.0.1:18110';
 
 let pbProcess: ChildProcess | undefined;
 let pbAdmin: PocketBase;
@@ -139,7 +139,7 @@ afterAll(() => {
   rmSync(DATA_DIR, { recursive: true, force: true });
 });
 
-describe('SEC-05 last_viewed_home_id IDOR hook (port 18100)', () => {
+describe('SEC-05 last_viewed_home_id IDOR hook (port 18110)', () => {
   test('Scenario 1 — setting to a non-member home is REJECTED by the hook', async () => {
     let err: unknown;
     try {

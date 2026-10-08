@@ -2,6 +2,11 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 
+// Scheduling math is asserted as UTC instants. The Docker image sets no TZ, so
+// production runs in UTC too; the code itself must still be host-tz safe, so an
+// explicit TZ in the environment is respected to let that be exercised.
+process.env.TZ ||= 'UTC';
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
