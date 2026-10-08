@@ -5,7 +5,7 @@ import {
   type Page,
 } from '@playwright/test';
 import PocketBase from 'pocketbase';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * v1.1 marketing screenshot capture. Not an assertion suite — produces
@@ -24,7 +24,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * docs/screenshots/archive/v1.0/ via a bash step outside this spec.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 const SHOT_DIR = 'docs/screenshots/v1.1';
 const TOP_DIR = 'docs/screenshots';
 

@@ -5,6 +5,7 @@ import {
   type Page,
 } from '@playwright/test';
 import { SEED_LIBRARY } from '../../lib/seed-library';
+import { PB_URL } from './helpers';
 
 /**
  * 05-03 D-19 Phase 5 onboarding E2E — Suite A.
@@ -30,7 +31,6 @@ import { SEED_LIBRARY } from '../../lib/seed-library';
  *     hard-coding strings (refactor-proof)
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 
 async function authPB(
   request: APIRequestContext,

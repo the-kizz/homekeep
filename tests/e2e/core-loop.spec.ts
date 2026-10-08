@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * Phase 3 core-loop E2E — stabilized under Phase 12 LOAD + Phase 13 TCSEM.
@@ -67,7 +67,6 @@ import { skipOnboardingIfPresent } from './helpers';
  *     Server Component render, not a router-cache replay.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 
 async function signup(page: Page, email: string, pw: string, name = 'Core Loop Test') {
   await page.goto('/signup');

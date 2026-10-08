@@ -5,7 +5,7 @@ import {
   type Page,
 } from '@playwright/test';
 import PocketBase from 'pocketbase';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * Phase 16 visual UAT screenshot capture (NOT a pass/fail assertion suite).
@@ -39,7 +39,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * blockers, not Phase 16 feature failures.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 const SHOT_DIR =
   '.planning/phases/16-horizon-density-visualization/screenshots';
 

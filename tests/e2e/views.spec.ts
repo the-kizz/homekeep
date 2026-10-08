@@ -4,7 +4,7 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * 05-02 D-19 Phase 5 views E2E — three suites (B/C/D) covering the
@@ -39,7 +39,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * authentication protocol rationale).
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 
 const stamp = () =>
   `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;

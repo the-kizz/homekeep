@@ -4,7 +4,7 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * 06-03 Phase 6 Wave 3 Suite E — Notifications & Gamification E2E.
@@ -25,7 +25,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * All three live in one describe.serial block with shared helpers.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 
 // 06-03 Task 3: Same value is also injected via playwright.config.ts
 // webServer env (ADMIN_SCHEDULER_TOKEN). Keep in sync.

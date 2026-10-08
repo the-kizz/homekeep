@@ -15,8 +15,8 @@
 
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { PB_URL } from './helpers';
 
-const PB_URL = 'http://127.0.0.1:8090';
 const PB_BIN = './.pb/pocketbase';
 const PB_DIR = './.pb/pb_data';
 
