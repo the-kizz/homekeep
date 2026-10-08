@@ -185,8 +185,12 @@ export function TaskForm({
       // seeds from the task record if present.
       active_from_month: task?.active_from_month ?? null,
       active_to_month: task?.active_to_month ?? null,
-      // Phase 15 (OOFT-04, D-03): seed due_date for edit-mode OOFT rows.
-      due_date: task?.due_date ?? null,
+      // PB returns datetimes ("2026-11-01 00:00:00.000Z"); the date input
+      // only accepts yyyy-MM-dd, so trim like anchor_date above.
+      due_date:
+        typeof task?.due_date === 'string' && task.due_date.length > 0
+          ? task.due_date.slice(0, 10)
+          : null,
     },
   });
 

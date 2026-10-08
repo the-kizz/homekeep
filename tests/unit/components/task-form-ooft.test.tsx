@@ -235,3 +235,59 @@ describe('TaskForm progressive disclosure', () => {
     ).toBe(false);
   });
 });
+
+describe('TaskForm edit mode seeds existing schedule fields', () => {
+  test('a one-off shows its due date in "Do by" with More options open', () => {
+    const { container } = render(
+      <TaskForm
+        mode="edit"
+        homeId="home-1"
+        areas={AREAS}
+        task={{
+          id: 't-ooft',
+          home_id: 'home-1',
+          area_id: 'area-1',
+          name: 'Replace smoke alarm',
+          // PB returns 0 for a cleared number and a full datetime string.
+          frequency_days: 0,
+          schedule_mode: 'cycle',
+          anchor_date: null,
+          due_date: '2026-11-01 00:00:00.000Z',
+        }}
+      />,
+    );
+    const doBy = screen.getByLabelText(/^do by/i) as HTMLInputElement;
+    expect(doBy.value).toBe('2026-11-01');
+    expect(
+      container.querySelector('[data-more-options]')!.hasAttribute('hidden'),
+    ).toBe(false);
+  });
+
+  test('a seasonal task shows its active months with More options open', () => {
+    const { container } = render(
+      <TaskForm
+        mode="edit"
+        homeId="home-1"
+        areas={AREAS}
+        task={{
+          id: 't-seasonal',
+          home_id: 'home-1',
+          area_id: 'area-1',
+          name: 'Clean pool filter',
+          frequency_days: 14,
+          schedule_mode: 'cycle',
+          anchor_date: null,
+          active_from_month: 10,
+          active_to_month: 3,
+        }}
+      />,
+    );
+    const from = screen.getByLabelText(/^from month$/i) as HTMLSelectElement;
+    const to = screen.getByLabelText(/^to month$/i) as HTMLSelectElement;
+    expect(from.value).toBe('10');
+    expect(to.value).toBe('3');
+    expect(
+      container.querySelector('[data-more-options]')!.hasAttribute('hidden'),
+    ).toBe(false);
+  });
+});
