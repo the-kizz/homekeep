@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { PB_URL } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -9,7 +10,7 @@ export async function GET() {
   let pbCode: number | null = null;
 
   try {
-    const res = await fetch('http://127.0.0.1:8090/api/health', {
+    const res = await fetch(`${PB_URL}/api/health`, {
       signal: AbortSignal.timeout(3000),
       cache: 'no-store',
     });

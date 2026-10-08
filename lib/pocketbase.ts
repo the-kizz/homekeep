@@ -14,12 +14,13 @@
  * See D-03 and RESEARCH §Pattern: SSR Cookie Bridge.
  */
 import PocketBase from 'pocketbase';
+import { PB_URL } from '@/lib/constants';
 
 export function createClient(): PocketBase {
   if (typeof window === 'undefined') {
-    // Server-side: inside the container, PocketBase is on loopback.
-    // In dev, scripts/dev-pb.js also binds to 127.0.0.1:8090 so this works uniformly.
-    return new PocketBase('http://127.0.0.1:8090');
+    // Server-side: loopback by default (same container in production,
+    // scripts/dev-pb.js in dev); PB_URL overrides it.
+    return new PocketBase(PB_URL);
   }
   // Browser: same origin. Caddy proxies /api/* and /_/* to PocketBase in production.
   // Per D-03, no build-time URL env is used — the SDK always matches the page origin.

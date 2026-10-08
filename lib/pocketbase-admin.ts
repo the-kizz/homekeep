@@ -1,4 +1,5 @@
 import PocketBase from 'pocketbase';
+import { PB_URL } from '@/lib/constants';
 
 /**
  * PB client authenticated as a superuser, used by server actions that
@@ -40,7 +41,7 @@ export async function createAdminClient(): Promise<PocketBase> {
     throw new Error('PB_ADMIN_EMAIL / PB_ADMIN_PASSWORD not configured');
   }
 
-  const pb = new PocketBase('http://127.0.0.1:8090');
+  const pb = new PocketBase(PB_URL);
   // PB 0.23+ renamed `pb.admins.authWithPassword` → `_superusers`
   // collection auth. This project uses PB 0.37.x, so the new form
   // is mandatory.
