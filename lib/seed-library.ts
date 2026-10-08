@@ -28,12 +28,33 @@
  * committing; these are the defaults.
  */
 
+import type { AreaColor, AreaIcon } from '@/lib/area-palette';
+
 export type SeedAreaSuggestion =
   | 'kitchen'
   | 'bathroom'
   | 'living'
   | 'yard'
   | 'whole_home';
+
+/**
+ * What each suggested area becomes when onboarding has to create it. Icon
+ * and colour come from the fixed area palette so these areas pass the same
+ * validation as user-created ones (a kitchen gets `utensils-crossed` because
+ * `cooking-pot` is not in the palette). `whole_home` maps to the system area
+ * every home already has, so it is never created.
+ */
+export const SUGGESTED_AREA_DEFAULTS: Readonly<
+  Record<
+    Exclude<SeedAreaSuggestion, 'whole_home'>,
+    { name: string; icon: AreaIcon; color: AreaColor }
+  >
+> = {
+  kitchen: { name: 'Kitchen', icon: 'utensils-crossed', color: '#C87E5C' },
+  bathroom: { name: 'Bathroom', icon: 'bath', color: '#A67C52' },
+  living: { name: 'Living areas', icon: 'sofa', color: '#B88A6A' },
+  yard: { name: 'Yard', icon: 'trees', color: '#9B6B3E' },
+};
 
 export type Hemisphere = 'north' | 'south';
 export type SeedSeason = 'warm' | 'cool';
