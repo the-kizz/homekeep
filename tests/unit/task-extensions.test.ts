@@ -141,6 +141,22 @@ describe('nextWindowOpenDate', () => {
     // nowMonth=11 >= from=10 → next year.
     expect(result.toISOString()).toBe('2027-10-01T00:00:00.000Z');
   });
+
+  // The result must depend only on the timezone argument, never on the
+  // host's local zone (run this file under a non-UTC TZ to exercise it).
+  test('anchors to home-tz midnight regardless of host tz — Perth', () => {
+    const now = new Date('2026-04-15T12:00:00Z');
+    expect(nextWindowOpenDate(now, 10, 3, 'Australia/Perth').toISOString()).toBe(
+      '2026-09-30T16:00:00.000Z',
+    );
+  });
+
+  test('anchors to home-tz midnight regardless of host tz — New York', () => {
+    const now = new Date('2026-02-01T00:00:00Z');
+    expect(nextWindowOpenDate(now, 4, 9, 'America/New_York').toISOString()).toBe(
+      '2026-04-01T04:00:00.000Z',
+    );
+  });
 });
 
 describe('taskSchema — Phase 11 zod refinements (OOFT-03, SEAS-01, T-11-01)', () => {

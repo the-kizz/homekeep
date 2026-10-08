@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // HomeKeep (c) 2026 — github.com/the-kizz/homekeep
-import { addDays, differenceInDays } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import type { Override } from '@/lib/schedule-overrides';
 
@@ -18,9 +17,9 @@ import type { Override } from '@/lib/schedule-overrides';
  * PocketBase is UTC ISO strings. Rendering in the home's IANA timezone is a
  * *separate concern* handled by components/next-due-display.tsx via
  * date-fns-tz.formatInTimeZone — NEVER do date math in a non-UTC zone.
- * date-fns' addDays / differenceInDays operate on the UTC epoch and are
- * DST-safe by construction (RESEARCH §Pattern: Next-Due Computation
- * timezone handling note line 1217).
+ * Day steps are whole 24h UTC days (addUtcDays / elapsedUtcDays below), not
+ * date-fns' addDays, which steps host-local calendar days and so drifts by an
+ * hour across a DST change on any non-UTC host.
  *
  * Phase 11 timezone posture exception: the seasonal branches extract a
  * calendar month in home timezone (via `toZonedTime`) because "Is task
@@ -80,6 +79,17 @@ export function isOoftTask(
   task: Pick<Task, 'frequency_days'>,
 ): boolean {
   return task.frequency_days === null || task.frequency_days === 0;
+}
+
+const DAY_MS = 86_400_000;
+
+function addUtcDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * DAY_MS);
+}
+
+/** Whole UTC days from `from` to `to` (floored; callers pass to >= from). */
+function elapsedUtcDays(to: Date, from: Date): number {
+  return Math.floor((to.getTime() - from.getTime()) / DAY_MS);
 }
 
 /**
@@ -284,7 +294,7 @@ export function computeNextDue(
   // hasWindow = task is seasonal. Precompute the "prior-season" state
   // once — both the dormant and wake-up branches need it:
   //   - prior-season + dormant-month  → wake-up (return next from-open)
-  //   - prior-season + in-window-now  → wake-up (return next from-open)
+  //   - prior-season + in-window-now  → awake: fall through to cycle branch
   //   - same-season + dormant-month   → dormant (return null)
   //   - same-season + in-window-now   → fall through to cycle branch
   //
@@ -328,19 +338,14 @@ export function computeNextDue(
       return null;
     }
 
-    // Seasonal-wakeup (SEAS-03): prior-season (or first-cycle) →
-    // anchor to start-of-window in home tz, regardless of whether
-    // now is currently in-window (the caller still wants a concrete
-    // wake-up date to render in Phase 14/15 UI).
+    // Seasonal-wakeup (SEAS-03): prior-season (or first-cycle) and
+    // currently dormant → anchor to start-of-window in home tz.
     //
-    // Phase 19 PATCH-02: guard against fresh task (null lastCompletion)
-    // whose current month is ALREADY in-window — a fresh in-window
-    // task is "already awake"; there is no wake-up date to render,
-    // fall through to natural cadence. The old unconditional fire
-    // forced fresh in-window seasonal tasks to display the NEXT year's
-    // from-boundary (e.g. Nov fresh in Oct-Mar window → 2027-10-01)
-    // which surfaced as the "Case B" visual UAT bug per audit.
-    if (lastInPriorSeason && !(inWindowNow && !lastCompletion)) {
+    // A task whose current month is inside its window is already awake;
+    // wake-up dates only apply while dormant. Otherwise an in-season task
+    // last done in an earlier season would jump to next year's window
+    // opening instead of showing as due now.
+    if (lastInPriorSeason && !inWindowNow) {
       return nextWindowOpenDate(
         now,
         fromM!,
@@ -371,7 +376,7 @@ export function computeNextDue(
   if (task.schedule_mode === 'cycle') {
     const baseIso = lastCompletion?.completed_at ?? task.created;
     const base = new Date(baseIso);
-    return addDays(base, freq);
+    return addUtcDays(base, freq);
   }
 
   // anchored
@@ -384,9 +389,9 @@ export function computeNextDue(
   // Otherwise find the next cycle boundary strictly after `now`.
   // floor(elapsed/freq) + 1 guarantees we step past `now` even when
   // elapsed is an exact multiple of freq.
-  const elapsedDays = differenceInDays(now, base);
+  const elapsedDays = elapsedUtcDays(now, base);
   const cycles = Math.floor(elapsedDays / freq) + 1;
-  return addDays(base, cycles * freq);
+  return addUtcDays(base, cycles * freq);
 }
 
 // ─── Phase 11 pure helpers (D-18, D-19, D-20) ───────────────────────────
@@ -521,11 +526,12 @@ export function nextWindowOpenDate(
   const nowYear = zonedNow.getFullYear();
   const nowMonth = zonedNow.getMonth() + 1; // 1..12
   const targetYear = nowMonth < from ? nowYear : nowYear + 1;
-  // Build 00:00 of (targetYear, from, 1) in home tz → UTC instant.
-  const localMidnight = new Date(
-    Date.UTC(targetYear, from - 1, 1, 0, 0, 0, 0),
-  );
-  return fromZonedTime(localMidnight, timezone);
+  // Midnight on the 1st of `from` month in the home's timezone, as a UTC
+  // instant. A wall-clock string is used because fromZonedTime reads a
+  // Date's host-local fields, which would shift the result by the host
+  // offset on any non-UTC machine.
+  const wall = `${targetYear}-${String(from).padStart(2, '0')}-01T00:00:00`;
+  return fromZonedTime(wall, timezone);
 }
 
 /**

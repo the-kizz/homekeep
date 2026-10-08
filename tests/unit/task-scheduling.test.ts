@@ -1,5 +1,4 @@
 import { describe, test, expect } from 'vitest';
-import { addDays } from 'date-fns';
 import {
   computeNextDue,
   normalizeMonth,
@@ -27,6 +26,10 @@ import type { Override } from '@/lib/schedule-overrides';
  * new describe block at the bottom covers the override branch
  * (D-06 + D-10, SNZE-05).
  */
+
+// Whole 24h UTC days — matches computeNextDue's step and, unlike date-fns'
+// addDays, does not depend on the host timezone's DST transitions.
+const addDays = (d: Date, n: number): Date => new Date(d.getTime() + n * 86_400_000);
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -615,6 +618,40 @@ describe('computeNextDue — seasonal wake-up (D-12, SEAS-03)', () => {
 // D-16 branch order: archived → freq-validation (null-safe) → override →
 // seasonal-dormant → seasonal-wakeup → OOFT → cycle → anchored.
 // D-17: override wins over dormancy — user intent beats inferred dormancy.
+
+describe('seasonal wake-up — in-window with prior-season completion', () => {
+  // Oct–Mar window, completed in an earlier season, now back inside it.
+  // A task already inside its window is awake: it must follow its natural
+  // cadence rather than jump to next year's window opening.
+  const seasonal = makeTask({
+    frequency_days: 14,
+    active_from_month: 10,
+    active_to_month: 3,
+  });
+  const done = (iso: string) => ({ completed_at: iso });
+
+  test('in-window, completed ~a season ago → natural cadence, not next year', () => {
+    const now = new Date('2026-11-10T00:00:00Z');
+    const result = computeNextDue(seasonal, done('2025-11-15T00:00:00Z'), now, undefined, 'UTC');
+    expect(result).not.toBeNull();
+    expect(result!.getUTCFullYear()).not.toBe(2027);
+    expect(result!.getUTCFullYear() === 2025 || result! <= now).toBe(true);
+  });
+
+  test('in-window, completion over a year ago (prior season) → natural cadence, not next year', () => {
+    const now = new Date('2026-11-10T00:00:00Z');
+    const result = computeNextDue(seasonal, done('2025-10-20T00:00:00Z'), now, undefined, 'UTC');
+    expect(result).not.toBeNull();
+    expect(result!.getUTCFullYear()).not.toBe(2027);
+    expect(result!.toISOString()).toBe('2025-11-03T00:00:00.000Z');
+  });
+
+  test('out-of-window with prior-season completion → next window open (unchanged)', () => {
+    const now = new Date('2026-07-10T00:00:00Z');
+    const result = computeNextDue(seasonal, done('2025-03-01T00:00:00Z'), now, undefined, 'UTC');
+    expect(result?.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+  });
+});
 
 describe('computeNextDue — branch composition (D-16, D-17)', () => {
   test('override on dormant seasonal task → override wins (D-17)', () => {
