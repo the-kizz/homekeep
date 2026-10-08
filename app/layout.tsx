@@ -4,6 +4,7 @@ import { Geist, Lora } from 'next/font/google';
 import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/sonner';
 import { DemoBanner } from '@/components/demo-banner';
+import { ThemeProvider } from '@/components/theme-provider';
 import { HOMEKEEP_BUILD, getBuildIdPublic } from '@/lib/constants';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -57,7 +58,13 @@ void HOMEKEEP_BUILD;
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const publicBuildId = getBuildIdPublic();
   return (
-    <html lang="en" className={cn('font-sans', geist.variable, lora.variable)}>
+    <html
+      lang="en"
+      className={cn('font-sans', geist.variable, lora.variable)}
+      // next-themes sets the `dark` class before hydration; React would
+      // otherwise warn that the server-rendered className differs.
+      suppressHydrationWarning
+    >
       <head>
         {/* Provenance marker — intentional, survives minification. Do not remove. */}
         <meta name="generator" content={`HomeKeep v1 (${publicBuildId})`} />
@@ -71,8 +78,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
          * shipped to the client.
          */}
         <DemoBanner />
-        {children}
-        <Toaster />
+        <ThemeProvider>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
