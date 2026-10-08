@@ -344,12 +344,23 @@ test.describe.serial('Phase 5 Views (D-19) — Suite C: person', () => {
     const streakCard = page.locator('[data-streak-count]');
     await expect(streakCard).toHaveAttribute('data-streak-count', '1');
 
-    // 06-03: placeholder replaced by real form — assert the new anchor.
-    const prefs = page.locator('[data-notification-prefs-form]');
-    await expect(prefs).toBeVisible();
+    // Notification preferences live on their own settings page; the
+    // Person page links to it.
     await expect(
       page.locator('[data-notification-prefs-placeholder]'),
     ).toHaveCount(0);
+    const prefsLink = page.getByRole('link', {
+      name: 'Notification settings →',
+    });
+    await expect(prefsLink).toBeVisible();
+    await expect(prefsLink).toHaveAttribute(
+      'href',
+      `/h/${homeId}/settings/notifications`,
+    );
+
+    await page.goto(`/h/${homeId}/settings/notifications`);
+    const prefs = page.locator('[data-notification-prefs-form]');
+    await expect(prefs).toBeVisible();
 
     // Topic + at least one toggle visible.
     await expect(prefs.locator('[data-field=ntfy-topic] input')).toBeVisible();
