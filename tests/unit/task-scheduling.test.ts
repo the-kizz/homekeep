@@ -3,6 +3,7 @@ import {
   computeNextDue,
   normalizeMonth,
   type Task,
+  startOfCurrentWindow,
 } from '@/lib/task-scheduling';
 import {
   computeHouseholdLoad,
@@ -632,6 +633,26 @@ describe('computeNextDue — seasonal wake-up (D-12, SEAS-03)', () => {
 // seasonal-dormant → seasonal-wakeup → OOFT → cycle → anchored.
 // D-17: override wins over dormancy — user intent beats inferred dormancy.
 
+describe('startOfCurrentWindow', () => {
+  test('wrap window: Oct–Mar on 2027-02-10 opened 2026-10-01', () => {
+    expect(
+      startOfCurrentWindow(new Date('2027-02-10T00:00:00Z'), 10, 'UTC').toISOString(),
+    ).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('same-year window: Oct on 2026-10-05 opened 2026-10-01', () => {
+    expect(
+      startOfCurrentWindow(new Date('2026-10-05T00:00:00Z'), 10, 'UTC').toISOString(),
+    ).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('home-timezone midnight', () => {
+    expect(
+      startOfCurrentWindow(new Date('2026-10-05T00:00:00Z'), 10, 'Australia/Perth').toISOString(),
+    ).toBe('2026-09-30T16:00:00.000Z');
+  });
+});
+
 describe('seasonal wake-up — in-window with prior-season completion', () => {
   // Oct–Mar window, completed in an earlier season, now back inside it.
   // A task already inside its window is awake: it must follow its natural
@@ -651,12 +672,39 @@ describe('seasonal wake-up — in-window with prior-season completion', () => {
     expect(result!.getUTCFullYear() === 2025 || result! <= now).toBe(true);
   });
 
-  test('in-window, completion over a year ago (prior season) → natural cadence, not next year', () => {
+  test('in-window, completion over a year ago (prior season) → due at this season\'s opening', () => {
     const now = new Date('2026-11-10T00:00:00Z');
     const result = computeNextDue(seasonal, done('2025-10-20T00:00:00Z'), now, undefined, 'UTC');
-    expect(result).not.toBeNull();
-    expect(result!.getUTCFullYear()).not.toBe(2027);
-    expect(result!.toISOString()).toBe('2025-11-03T00:00:00.000Z');
+    expect(result!.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('window reopens after last season\'s completion → due at the opening, not months overdue', () => {
+    const now = new Date('2026-10-05T00:00:00Z');
+    const result = computeNextDue(seasonal, done('2026-03-25T00:00:00Z'), now, undefined, 'UTC');
+    expect(result!.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('stale smoothed date from last season is ignored when the window reopens', () => {
+    const task = { ...seasonal, next_due_smoothed: '2026-04-08T00:00:00.000Z' };
+    const now = new Date('2026-10-05T00:00:00Z');
+    const result = computeNextDue(task, done('2026-03-25T00:00:00Z'), now, undefined, 'UTC');
+    expect(result!.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('cadence later than the opening wins (done late in the previous season)', () => {
+    const now = new Date('2026-10-05T00:00:00Z');
+    const result = computeNextDue(seasonal, done('2026-09-25T00:00:00Z'), now, undefined, 'UTC');
+    // Sep is outside Oct–Mar, so this completion predates the season; its
+    // cadence date (Oct 9) is after the opening and is kept.
+    expect(result!.toISOString()).toBe('2026-10-09T00:00:00.000Z');
+  });
+
+  test('dormant months ignore a smoothed date placed after the window closed', () => {
+    const task = { ...seasonal, next_due_smoothed: '2026-04-08T00:00:00.000Z' };
+    const now = new Date('2026-09-20T00:00:00Z');
+    const result = computeNextDue(task, done('2026-03-25T00:00:00Z'), now, undefined, 'UTC');
+    // Same-season dormant: sleeping until October, never "overdue since April".
+    expect(result).toBeNull();
   });
 
   test('out-of-window with prior-season completion → next window open (unchanged)', () => {
