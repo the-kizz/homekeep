@@ -2,6 +2,7 @@
 
 import { useRef } from 'react';
 import clsx from 'clsx';
+import { CircleCheck } from 'lucide-react';
 import type { EffectiveAssignee } from '@/lib/assignment';
 import { AssigneeDisplay } from '@/components/assignee-display';
 import { ShiftBadge } from '@/components/shift-badge';
@@ -23,10 +24,8 @@ import { ShiftBadge } from '@/components/shift-badge';
  * click; the parent owns the pending-id bookkeeping (03-03 wires it
  * to the real server action).
  *
- * Label copy (right-aligned tabular-nums for mixed-width digits):
- *   - overdue (daysDelta < 0):  "{N}d late"
- *   - today (|daysDelta| < 1):  "today"
- *   - future (daysDelta ≥ 1):   "in {N}d"
+ * Label copy (right-aligned tabular-nums for mixed-width digits) is
+ * plain English so it reads at a glance — see `dueLabel` below.
  *
  * Detail affordance (03-03 extension, VIEW-06 / v1.2.1 PATCH2-06):
  *   - Optional `onDetail` prop. When provided, the primary tap opens
@@ -43,11 +42,44 @@ import { ShiftBadge } from '@/components/shift-badge';
  *   - When `onDetail` is omitted entirely, tap always invokes
  *     `onComplete` — legacy call sites that never rendered a detail
  *     affordance are unaffected.
+ *
+ * One-tap complete (`onQuickComplete`):
+ *   - Opening the sheet just to press Complete is the most common path,
+ *     so rows can carry a round check button at the right edge. It is a
+ *     sibling of the row button (nested buttons are invalid HTML), so a
+ *     tap on it never reaches the row's detail handler. The parent routes
+ *     it through the same completion path as the sheet, so the
+ *     early-completion guard still applies.
+ *   - Absent prop → no button and the original single-button markup.
  */
+/**
+ * Plain-English due label. `daysDelta` is measured from local midnight
+ * today, so whole calendar days are ceil (late) / floor (ahead): a task
+ * due yesterday afternoon is -0.4 → "yesterday", one due tomorrow
+ * evening is 1.8 → "tomorrow". Rounding would push both a day out.
+ * Late counts cap at "30+" — past a month the exact number stops
+ * meaning anything and only widens the column.
+ */
+function dueLabel(
+  daysDelta: number,
+  variant?: 'overdue' | 'thisWeek' | 'horizon',
+): string {
+  if (variant === 'overdue') {
+    const late = Math.max(1, Math.ceil(-daysDelta));
+    if (late === 1) return 'yesterday';
+    if (late > 30) return '30+ days late';
+    return `${late} days late`;
+  }
+  if (daysDelta < 1) return 'today';
+  const ahead = Math.floor(daysDelta);
+  return ahead === 1 ? 'tomorrow' : `in ${ahead} days`;
+}
+
 export function TaskRow({
   task,
   onComplete,
   onDetail,
+  onQuickComplete,
   primaryTap,
   pending,
   daysDelta,
@@ -63,6 +95,8 @@ export function TaskRow({
   };
   onComplete: (taskId: string) => void;
   onDetail?: (taskId: string) => void;
+  /** Renders the round check button; called with the task id. */
+  onQuickComplete?: (taskId: string) => void;
   /**
    * v1.2.1 PATCH2-06: primary tap semantic. Defaults to 'detail' when
    * `onDetail` is provided (opens the detail sheet; completion lives
@@ -84,12 +118,7 @@ export function TaskRow({
 }) {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const label =
-    variant === 'overdue'
-      ? `${Math.max(1, Math.round(-daysDelta))}d late`
-      : daysDelta < 1
-        ? 'today'
-        : `in ${Math.round(daysDelta)}d`;
+  const label = dueLabel(daysDelta, variant);
 
   const clearLongPressTimer = () => {
     if (longPressTimer.current) {
@@ -118,7 +147,7 @@ export function TaskRow({
       ? () => onDetail(task.id)
       : () => onComplete(task.id);
 
-  return (
+  const row = (
     <button
       type="button"
       disabled={pending}
@@ -136,6 +165,7 @@ export function TaskRow({
       className={clsx(
         'flex w-full min-h-[44px] items-center justify-between gap-2 rounded border p-3 text-left transition-colors',
         variant === 'overdue' && 'border-l-4 border-l-primary',
+        onQuickComplete && 'pr-14',
         pending
           ? 'pointer-events-none opacity-60'
           : 'hover:bg-muted active:scale-[0.99]',
@@ -161,10 +191,46 @@ export function TaskRow({
         {task.effective && (
           <AssigneeDisplay effective={task.effective} showLabel={false} />
         )}
-        <span className="text-xs text-muted-foreground tabular-nums">
+        <span
+          data-due-label
+          className="text-xs text-muted-foreground tabular-nums"
+        >
           {label}
         </span>
       </div>
     </button>
+  );
+
+  if (!onQuickComplete) return row;
+
+  return (
+    <div className="relative">
+      {row}
+      <button
+        type="button"
+        aria-label={`Complete ${task.name}`}
+        disabled={pending}
+        data-pending={pending ? 'true' : undefined}
+        onClick={(e) => {
+          e.stopPropagation();
+          onQuickComplete(task.id);
+        }}
+        className={clsx(
+          'absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full transition-colors',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          pending
+            ? 'text-primary'
+            : 'text-muted-foreground/60 hover:text-primary focus-visible:text-primary',
+        )}
+      >
+        <CircleCheck
+          aria-hidden="true"
+          className={clsx(
+            'size-6',
+            pending && 'fill-primary stroke-primary-foreground',
+          )}
+        />
+      </button>
+    </div>
   );
 }

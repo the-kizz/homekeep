@@ -163,7 +163,7 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     const homeUrl = await createHome(page, 'Notif P1 Home');
     const homeId = extractHomeId(homeUrl);
 
-    await page.goto(`/h/${homeId}/person`);
+    await page.goto(`/h/${homeId}/settings/notifications`);
     // Real form visible; placeholder GONE.
     await expect(
       page.locator('[data-notification-prefs-form]'),
@@ -269,7 +269,7 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     expect(noAuth.status()).toBe(401);
 
     // Configure prefs: topic + notify_overdue=true (default on).
-    await page.goto(`/h/${homeId}/person`);
+    await page.goto(`/h/${homeId}/settings/notifications`);
     // Phase 39 hydration gate (same as Part 1).
     await expect(
       page.locator(

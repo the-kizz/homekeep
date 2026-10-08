@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { TaskRow } from '@/components/task-row';
+import { TaskBand } from '@/components/task-band';
 
 const baseTask = { id: 't1', name: 'Wipe benches', frequency_days: 7 };
 
@@ -101,43 +102,53 @@ describe('TaskRow', () => {
     expect(container.querySelector('button.border-l-4')).toBeTruthy();
   });
 
-  it('renders "{N}d late" label for overdue variant', () => {
-    render(
-      <TaskRow
-        task={baseTask}
-        onComplete={() => {}}
-        pending={false}
-        daysDelta={-3}
-        variant="overdue"
-      />,
-    );
-    expect(screen.getByText(/3d late/)).toBeDefined();
-  });
+  describe('due label copy', () => {
+    const labelFor = (daysDelta: number, variant?: 'overdue' | 'thisWeek' | 'horizon') => {
+      const { container, unmount } = render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          pending={false}
+          daysDelta={daysDelta}
+          variant={variant}
+        />,
+      );
+      const text = container.querySelector('[data-due-label]')?.textContent;
+      unmount();
+      return text;
+    };
 
-  it('renders "in Nd" label for future-due tasks', () => {
-    render(
-      <TaskRow
-        task={baseTask}
-        onComplete={() => {}}
-        pending={false}
-        daysDelta={4}
-        variant="thisWeek"
-      />,
-    );
-    expect(screen.getByText(/in 4d/)).toBeDefined();
-  });
+    it.each([
+      [-1, 'yesterday'],
+      [-0.4, 'yesterday'],
+      [-1.5, '2 days late'],
+      [-2, '2 days late'],
+      [-3, '3 days late'],
+      [-13, '13 days late'],
+      [-30, '30 days late'],
+      [-31, '30+ days late'],
+      [-400, '30+ days late'],
+    ])('overdue %d → "%s"', (delta, expected) => {
+      expect(labelFor(delta, 'overdue')).toBe(expected);
+    });
 
-  it('renders "today" label when daysDelta is between 0 and 1', () => {
-    render(
-      <TaskRow
-        task={baseTask}
-        onComplete={() => {}}
-        pending={false}
-        daysDelta={0.2}
-        variant="thisWeek"
-      />,
-    );
-    expect(screen.getByText(/today/i)).toBeDefined();
+    it.each([
+      [0, 'today'],
+      [0.2, 'today'],
+      [1, 'tomorrow'],
+      [1.8, 'tomorrow'],
+      [4, 'in 4 days'],
+      [6.6, 'in 6 days'],
+      [120, 'in 120 days'],
+    ])('upcoming %d → "%s"', (delta, expected) => {
+      expect(labelFor(delta, 'thisWeek')).toBe(expected);
+    });
+
+    it('never exceeds 13 characters', () => {
+      for (const d of [-1, -9, -10, -29.5, -30, -31, -99, -1000]) {
+        expect(labelFor(d, 'overdue')!.length).toBeLessThanOrEqual(13);
+      }
+    });
   });
 
   it('renders singular "day" when frequency_days=1', () => {
@@ -165,5 +176,165 @@ describe('TaskRow', () => {
     );
     fireEvent.contextMenu(screen.getByRole('button'));
     expect(onDetail).toHaveBeenCalledWith('t1');
+  });
+  describe('one-tap complete button', () => {
+    it('renders no complete button when onQuickComplete is absent', () => {
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={() => {}}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Complete Wipe benches' }),
+      ).toBeNull();
+    });
+
+    it('renders a button with the accessible name "Complete <task name>"', () => {
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={() => {}}
+          onQuickComplete={() => {}}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      expect(
+        screen.getByRole('button', { name: 'Complete Wipe benches' }),
+      ).toBeTruthy();
+    });
+
+    it('calls onQuickComplete with the id and does not open the detail sheet', () => {
+      const onQuickComplete = vi.fn();
+      const onDetail = vi.fn();
+      const onComplete = vi.fn();
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={onComplete}
+          onDetail={onDetail}
+          onQuickComplete={onQuickComplete}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Complete Wipe benches' }),
+      );
+      expect(onQuickComplete).toHaveBeenCalledWith('t1');
+      expect(onDetail).not.toHaveBeenCalled();
+      expect(onComplete).not.toHaveBeenCalled();
+    });
+
+    it('clicking the row body still calls onDetail only', () => {
+      const onQuickComplete = vi.fn();
+      const onDetail = vi.fn();
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={onDetail}
+          onQuickComplete={onQuickComplete}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      fireEvent.click(screen.getByText('Wipe benches'));
+      expect(onDetail).toHaveBeenCalledWith('t1');
+      expect(onQuickComplete).not.toHaveBeenCalled();
+    });
+
+    it('is disabled and marked pressed while pending', () => {
+      const onQuickComplete = vi.fn();
+      render(
+        <TaskRow
+          task={baseTask}
+          onComplete={() => {}}
+          onDetail={() => {}}
+          onQuickComplete={onQuickComplete}
+          pending={true}
+          daysDelta={3}
+        />,
+      );
+      const btn = screen.getByRole('button', { name: 'Complete Wipe benches' });
+      expect(btn.hasAttribute('disabled')).toBe(true);
+      expect(btn.getAttribute('data-pending')).toBe('true');
+      fireEvent.click(btn);
+      expect(onQuickComplete).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('TaskBand empty copy', () => {
+  const now = new Date('2026-10-09T00:00:00Z');
+  const band = (variant: 'overdue' | 'thisWeek', showEmpty?: boolean) =>
+    render(
+      <TaskBand
+        label={variant === 'overdue' ? 'Overdue' : 'This week'}
+        tasks={[]}
+        onComplete={() => {}}
+        pendingTaskId={null}
+        timezone="UTC"
+        variant={variant}
+        now={now}
+        showEmpty={showEmpty}
+      />,
+    );
+
+  it('renders nothing for an empty band by default', () => {
+    const { container } = band('overdue');
+    expect(container.innerHTML).toBe('');
+  });
+
+  it('says "Nothing overdue. Nice." when showEmpty is set', () => {
+    band('overdue', true);
+    expect(screen.getByText('Nothing overdue. Nice.')).toBeTruthy();
+  });
+
+  it('says "Nothing due this week." when showEmpty is set', () => {
+    band('thisWeek', true);
+    expect(screen.getByText('Nothing due this week.')).toBeTruthy();
+  });
+});
+
+describe('TaskBand day-grouped rows', () => {
+  it('keep the assignee chip when grouped by day', () => {
+    const now = new Date('2026-10-09T00:00:00Z');
+    const tasks = Array.from({ length: 6 }, (_, i) => ({
+      id: `t${i}`,
+      name: `Task ${i}`,
+      created: '2026-01-01T00:00:00Z',
+      archived: false,
+      frequency_days: 7,
+      schedule_mode: 'cycle' as const,
+      anchor_date: null,
+      nextDue: new Date(now.getTime() + (i + 1) * 3600000),
+      daysDelta: 0.1,
+      effective: {
+        kind: 'task' as const,
+        user: { id: 'u1', name: 'Alice', role: 'owner' as const },
+      },
+    }));
+    const { container } = render(
+      <TaskBand
+        label="This week"
+        tasks={tasks as never}
+        onComplete={() => {}}
+        pendingTaskId={null}
+        timezone="UTC"
+        variant="thisWeek"
+        now={now}
+      />,
+    );
+    expect(container.querySelectorAll('[data-day-group]').length).toBeGreaterThan(0);
+    expect(
+      container.querySelectorAll('button[data-task-id][data-assignee-kind="task"]')
+        .length,
+    ).toBe(6);
   });
 });
