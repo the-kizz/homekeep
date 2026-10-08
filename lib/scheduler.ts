@@ -28,8 +28,8 @@ import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
  * In-process scheduler (06-02 Task 1, D-04, D-05, D-08, D-09).
  *
  * Boots from `instrumentation.ts` on Next.js server start when
- * `process.env.DISABLE_SCHEDULER !== 'true'`. Runs two hourly crons, both
- * wall-clocked at `0 * * * *` UTC:
+ * `process.env.DISABLE_SCHEDULER !== 'true'`. One hourly cron at
+ * `0 * * * *` UTC calls runOnce(), which runs both passes in turn:
  *
  *   - processOverdueNotifications: iterates every home + non-archived
  *     task, detects tasks past their `nextDue`, and sends one ntfy per
@@ -70,8 +70,28 @@ import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
 // ─── module-level state ────────────────────────────────────────────────
 
 let started = false;
-let overdueTask: ScheduledTask | null = null;
-let weeklyTask: ScheduledTask | null = null;
+let hourlyTask: ScheduledTask | null = null;
+// True while a tick is in flight. A slow tick (many homes, slow ntfy)
+// must not overlap the next one or a manual admin trigger: both would read
+// the same "not yet notified" state and could double-send.
+let ticking = false;
+
+// Every field computeNextDue reads. A narrower projection silently drops
+// smoothing, seasonal windows and one-off dates, so the scheduler would
+// notify on different dates than the dashboard shows.
+const TASK_SCHEDULING_FIELDS =
+  'id,home_id,area_id,name,frequency_days,schedule_mode,anchor_date,created,archived,due_date,preferred_days,active_from_month,active_to_month,next_due_smoothed,reschedule_marker';
+
+/** The home's IANA timezone, or UTC when it is empty or not a valid zone. */
+function homeTimezone(home: Record<string, unknown>): string {
+  const tz = (home.timezone as string) || 'UTC';
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz });
+    return tz;
+  } catch {
+    return 'UTC';
+  }
+}
 
 // ─── public API ────────────────────────────────────────────────────────
 
@@ -83,25 +103,15 @@ export function start(): void {
     throw new Error('[scheduler] invalid cron pattern: 0 * * * *');
   }
 
-  overdueTask = cron.schedule(
+  // A single cron (rather than one per pass) so the tick guard in runOnce
+  // never makes one pass skip the other at the shared minute.
+  hourlyTask = cron.schedule(
     '0 * * * *',
     async () => {
       try {
-        await processOverdueNotifications();
+        await runOnce();
       } catch (e) {
-        console.error('[scheduler] overdue tick failed', e);
-      }
-    },
-    { timezone: 'UTC' },
-  );
-
-  weeklyTask = cron.schedule(
-    '0 * * * *',
-    async () => {
-      try {
-        await processWeeklySummaries();
-      } catch (e) {
-        console.error('[scheduler] weekly tick failed', e);
+        console.error('[scheduler] tick failed', e);
       }
     },
     { timezone: 'UTC' },
@@ -117,33 +127,42 @@ export function start(): void {
 
 export function stop(): void {
   try {
-    overdueTask?.stop();
+    hourlyTask?.stop();
   } catch {
     /* best-effort teardown */
   }
-  try {
-    weeklyTask?.stop();
-  } catch {
-    /* best-effort teardown */
-  }
-  overdueTask = null;
-  weeklyTask = null;
+  hourlyTask = null;
   started = false;
 }
 
+export type RunOnceResult =
+  | { skipped: true }
+  | { skipped?: false; overdueSent: number; weeklySent: number };
+
 export async function runOnce(
   opts: { kind?: 'overdue' | 'weekly' | 'both' } = {},
-): Promise<{ overdueSent: number; weeklySent: number }> {
-  const kind = opts.kind ?? 'both';
-  let overdueSent = 0;
-  let weeklySent = 0;
-  if (kind === 'overdue' || kind === 'both') {
-    overdueSent = await processOverdueNotifications();
+): Promise<RunOnceResult> {
+  // Checked and set synchronously, before any await, so two calls in the
+  // same turn cannot both get through.
+  if (ticking) {
+    console.info('[scheduler] tick skipped — previous tick still running');
+    return { skipped: true };
   }
-  if (kind === 'weekly' || kind === 'both') {
-    weeklySent = await processWeeklySummaries();
+  ticking = true;
+  try {
+    const kind = opts.kind ?? 'both';
+    let overdueSent = 0;
+    let weeklySent = 0;
+    if (kind === 'overdue' || kind === 'both') {
+      overdueSent = await processOverdueNotifications();
+    }
+    if (kind === 'weekly' || kind === 'both') {
+      weeklySent = await processWeeklySummaries();
+    }
+    return { overdueSent, weeklySent };
+  } finally {
+    ticking = false;
   }
-  return { overdueSent, weeklySent };
 }
 
 // ─── overdue pass ──────────────────────────────────────────────────────
@@ -199,6 +218,7 @@ export async function processOverdueNotifications(
   for (const home of homes) {
     const homeId = home.id as string;
     const homeName = (home.name as string) ?? '';
+    const timezone = homeTimezone(home);
 
     const members = await fetchHomeMembers(pb, homeId);
     const eligible = members.filter(
@@ -208,8 +228,7 @@ export async function processOverdueNotifications(
 
     const tasks = (await pb.collection('tasks').getFullList({
       filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
-      fields:
-        'id,home_id,name,frequency_days,schedule_mode,anchor_date,created,archived',
+      fields: TASK_SCHEDULING_FIELDS,
     })) as unknown as Array<Task & { name: string }>;
     if (tasks.length === 0) continue;
 
@@ -230,6 +249,7 @@ export async function processOverdueNotifications(
         last,
         now,
         overridesByTask.get(task.id),
+        timezone,
       );
       if (!nextDue) continue;
       if (nextDue.getTime() > now.getTime()) continue;
@@ -283,7 +303,7 @@ export async function processWeeklySummaries(
   for (const home of homes) {
     const homeId = home.id as string;
     const homeName = (home.name as string) ?? '';
-    const timezone = (home.timezone as string) ?? 'UTC';
+    const timezone = homeTimezone(home);
 
     // Per-home local time: must be 09:00 local, on the member's configured day.
     let zonedNow: Date;
@@ -311,8 +331,7 @@ export async function processWeeklySummaries(
 
     const tasks = (await pb.collection('tasks').getFullList({
       filter: pb.filter('home_id = {:hid} && archived = false', { hid: homeId }),
-      fields:
-        'id,home_id,area_id,name,frequency_days,schedule_mode,anchor_date,created,archived',
+      fields: TASK_SCHEDULING_FIELDS,
     })) as unknown as TaskWithAreaName[];
 
     const areas = (await pb.collection('areas').getFullList({

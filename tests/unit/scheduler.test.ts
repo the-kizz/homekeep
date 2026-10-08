@@ -435,3 +435,16 @@ describe.sequential('scheduler overdue notifications', () => {
     expect(refCycle).not.toContain(naturalNextDueIso);
   }, 60_000);
 });
+
+describe('runOnce tick guard', () => {
+  test('a second call while a tick is in flight is skipped', async () => {
+    const { runOnce } = await import('@/lib/scheduler');
+    const first = runOnce();
+    const second = await runOnce();
+    expect(second).toEqual({ skipped: true });
+    const firstResult = await first;
+    expect(firstResult).toHaveProperty('overdueSent');
+    // The guard resets once the tick finishes.
+    expect(await runOnce()).not.toEqual({ skipped: true });
+  }, 60_000);
+});
