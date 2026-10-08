@@ -707,6 +707,20 @@ describe('seasonal wake-up — in-window with prior-season completion', () => {
     expect(result).toBeNull();
   });
 
+  test('never completed, created before the window → due at the opening', () => {
+    const task = { ...seasonal, created: '2026-04-10T00:00:00.000Z' };
+    const now = new Date('2026-10-05T00:00:00Z');
+    const result = computeNextDue(task, null, now, undefined, 'UTC');
+    expect(result!.toISOString()).toBe('2026-10-01T00:00:00.000Z');
+  });
+
+  test('never completed, created inside the window → cadence from creation', () => {
+    const task = { ...seasonal, created: '2026-10-03T00:00:00.000Z' };
+    const now = new Date('2026-10-05T00:00:00Z');
+    const result = computeNextDue(task, null, now, undefined, 'UTC');
+    expect(result!.toISOString()).toBe('2026-10-17T00:00:00.000Z');
+  });
+
   test('out-of-window with prior-season completion → next window open (unchanged)', () => {
     const now = new Date('2026-07-10T00:00:00Z');
     const result = computeNextDue(seasonal, done('2025-03-01T00:00:00Z'), now, undefined, 'UTC');

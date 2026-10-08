@@ -298,9 +298,9 @@ export function computeNextDue(
   // ─── Seasonal branches ───────────────────────────────────────────────
   //   - same-season + dormant month  → dormant (null)
   //   - prior-season + dormant month → wake-up (next window opening)
-  //   - prior-season + in window     → due from the later of its cadence
-  //     and this season's opening, so a task waking up reads "due now"
-  //     rather than months overdue
+  //   - prior-season (or never done) + in window → due from the later of
+  //     its cadence and this season's opening, so a task waking up reads
+  //     "due now" rather than months overdue
   //   - same-season + in window      → falls through to its cadence
   if (hasWindow) {
     if (!inWindowNow && !lastInPriorSeason) return null;
@@ -309,10 +309,12 @@ export function computeNextDue(
       return nextWindowOpenDate(now, fromM!, toM!, timezone ?? 'UTC');
     }
 
-    if (lastInPriorSeason && lastCompletion && task.schedule_mode === 'cycle') {
+    // A never-completed task counts from its creation: one created in the
+    // off-season must not read as months overdue when its window opens.
+    if (lastInPriorSeason && task.schedule_mode === 'cycle') {
       const windowStart = startOfCurrentWindow(now, fromM!, timezone ?? 'UTC');
       const cadence = addUtcDays(
-        new Date(lastCompletion.completed_at),
+        new Date(lastCompletion?.completed_at ?? task.created),
         task.frequency_days as number,
       );
       return cadence > windowStart ? cadence : windowStart;
