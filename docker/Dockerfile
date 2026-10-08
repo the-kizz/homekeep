@@ -105,8 +105,12 @@ COPY pocketbase/pb_hooks /app/pb_hooks
 # Runtime configs
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/s6-rc.d /etc/s6-overlay/s6-rc.d
+# Boot-time ownership repair for bind-mounted /app/data (s6 oneshot
+# `fix-perms`, which pocketbase depends on). The build-time chown below only
+# covers the anonymous volume; a host bind mount keeps the host's owner.
+COPY --chmod=0755 docker/fix-perms.sh /etc/s6-overlay/scripts/fix-perms.sh
 
-# Data dir (Pitfall #9: chown to node UID 1000)
+# Data dir owned by node (uid 1000), which PocketBase and Next.js run as.
 RUN mkdir -p /app/data/pb_data \
     && chown -R node:node /app/data
 
