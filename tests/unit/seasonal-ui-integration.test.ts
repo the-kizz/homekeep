@@ -197,7 +197,7 @@ describe('Phase 14 integration — seasonal UI (port 18102)', () => {
           seed_id: 'seed-service-ac',
           name: 'Service AC (S1)',
           frequency_days: 365,
-          area_id: home2AreaId,
+          area: { kind: 'existing', id: home2AreaId },
         },
       ],
     });

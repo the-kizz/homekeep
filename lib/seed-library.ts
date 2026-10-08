@@ -2,8 +2,9 @@
  * Seed task library — static manifest for first-run onboarding wizard
  * (05-01 Task 2, D-12, ONBD-04).
  *
- * PURE DATA module: no functions, no I/O. The onboarding wizard in 05-03
- * maps these entries to draft tasks, bucketing by `suggested_area`, and
+ * Static data plus two pure helpers (no I/O): `seasonWindow` and
+ * `hemisphereFromTimezone` turn a seed's warm/cool season tag into concrete
+ * months for a given home. The onboarding wizard maps these entries to draft tasks, bucketing by `suggested_area`, and
  * batch-creates them via a server action when the user clicks "Add N
  * tasks". All seeds default to `schedule_mode: 'cycle'` at task-create
  * time (cycle is the common case per SPEC §8.5 + D-12 — anchored is for
@@ -27,12 +28,36 @@
  * committing; these are the defaults.
  */
 
+import type { AreaColor, AreaIcon } from '@/lib/area-palette';
+
 export type SeedAreaSuggestion =
   | 'kitchen'
   | 'bathroom'
   | 'living'
   | 'yard'
   | 'whole_home';
+
+/**
+ * What each suggested area becomes when onboarding has to create it. Icon
+ * and colour come from the fixed area palette so these areas pass the same
+ * validation as user-created ones (a kitchen gets `utensils-crossed` because
+ * `cooking-pot` is not in the palette). `whole_home` maps to the system area
+ * every home already has, so it is never created.
+ */
+export const SUGGESTED_AREA_DEFAULTS: Readonly<
+  Record<
+    Exclude<SeedAreaSuggestion, 'whole_home'>,
+    { name: string; icon: AreaIcon; color: AreaColor }
+  >
+> = {
+  kitchen: { name: 'Kitchen', icon: 'utensils-crossed', color: '#C87E5C' },
+  bathroom: { name: 'Bathroom', icon: 'bath', color: '#A67C52' },
+  living: { name: 'Living areas', icon: 'sofa', color: '#B88A6A' },
+  yard: { name: 'Yard', icon: 'trees', color: '#9B6B3E' },
+};
+
+export type Hemisphere = 'north' | 'south';
+export type SeedSeason = 'warm' | 'cool';
 
 export type SeedTask = {
   id: string;
@@ -41,14 +66,48 @@ export type SeedTask = {
   suggested_area: SeedAreaSuggestion;
   icon: string;
   description: string;
-  // Phase 14 (SEAS-09, D-11, D-12): optional seasonal window.
-  // Both set = seasonal; both omitted = year-round (backward-compat
-  // for the 30 existing entries). Values are 1..12 month indices.
-  // Northern-hemisphere convention per D-12 (warm = Apr-Sep,
-  // cool = Oct-Mar). Hemisphere-aware labels deferred to v1.2.
+  // Seasonal seeds carry a warm/cool tag rather than fixed months, because
+  // "warm" is April–September in the north and October–March in the south.
+  // The months are resolved per home at seed time via `seasonWindow`.
+  season?: SeedSeason;
+  // Explicit month overrides for a non-seasonal seed (none today). Both set
+  // = seasonal; both omitted = year-round. Values are 1..12.
   active_from_month?: number;
   active_to_month?: number;
 };
+
+/** Warm = Apr–Sep north / Oct–Mar south. Cool is the complement. */
+export function seasonWindow(
+  season: SeedSeason,
+  hemisphere: Hemisphere,
+): { active_from_month: number; active_to_month: number } {
+  const aprToSep = { active_from_month: 4, active_to_month: 9 };
+  const octToMar = { active_from_month: 10, active_to_month: 3 };
+  const warmIsAprToSep = hemisphere === 'north';
+  if (season === 'warm') return warmIsAprToSep ? aprToSep : octToMar;
+  return warmIsAprToSep ? octToMar : aprToSep;
+}
+
+const SOUTHERN_ZONES: ReadonlyArray<RegExp> = [
+  /^Australia\//,
+  /^Antarctica\//,
+  /^Pacific\/(Auckland|Chatham|Fiji|Tongatapu|Apia|Noumea|Efate|Port_Moresby)$/,
+  /^Africa\/(Johannesburg|Maputo|Harare|Windhoek|Lusaka|Gaborone|Maseru|Mbabane|Blantyre|Lubumbashi)$/,
+  /^America\/(Sao_Paulo|Buenos_Aires|Argentina\/.+|Santiago|Punta_Arenas|Montevideo|Asuncion|La_Paz|Lima)$/,
+  /^Indian\/(Mauritius|Reunion|Antananarivo)$/,
+  /^Atlantic\/Stanley$/,
+  /^NZ(-CHAT)?$/,
+];
+
+/**
+ * Southern hemisphere if the IANA zone is in Australia, NZ, the southern
+ * Pacific, southern Africa or South America; otherwise north. Coarse on
+ * purpose: zones straddling the equator default to north, which is the
+ * safer guess for "warm season" chores.
+ */
+export function hemisphereFromTimezone(tz: string): Hemisphere {
+  return SOUTHERN_ZONES.some((re) => re.test(tz)) ? 'south' : 'north';
+}
 
 export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
   // ─── Kitchen (7) ──────────────────────────────────────────────────────
@@ -301,10 +360,10 @@ export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
     description: 'Wash accessible outside window glass.',
   },
 
-  // ─── Seasonal pairs (4) — Phase 14 SEAS-09 ────────────────────────
-  // Hemisphere convention: Northern (warm = Apr-Sep). v1.2 will invert
-  // labels by home.timezone region; for v1.1 the labels may feel
-  // inverted for Southern-hemisphere users (noted as D-12 deferred).
+  // ─── Seasonal pairs (4) ───────────────────────────────────────────
+  // Months are resolved per home from its timezone's hemisphere; see
+  // seasonWindow. Aircon is serviced through the warm season, the heater
+  // through the cool one.
   {
     id: 'seed-mow-lawn-warm',
     name: 'Mow lawn (warm season)',
@@ -312,8 +371,7 @@ export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
     suggested_area: 'yard',
     icon: 'sprout',
     description: 'Mow front and back lawns through the warm growing season.',
-    active_from_month: 4,
-    active_to_month: 9,
+    season: 'warm',
   },
   {
     id: 'seed-mow-lawn-cool',
@@ -322,8 +380,7 @@ export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
     suggested_area: 'yard',
     icon: 'sprout',
     description: 'Occasional mow through the cool season — grass grows slower.',
-    active_from_month: 10,
-    active_to_month: 3,
+    season: 'cool',
   },
   {
     id: 'seed-service-ac',
@@ -332,8 +389,7 @@ export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
     suggested_area: 'whole_home',
     icon: 'wind',
     description: 'Pre-summer service of the cooling system.',
-    active_from_month: 10,
-    active_to_month: 3,
+    season: 'warm',
   },
   {
     id: 'seed-service-heater',
@@ -342,7 +398,6 @@ export const SEED_LIBRARY: ReadonlyArray<SeedTask> = [
     suggested_area: 'whole_home',
     icon: 'flame',
     description: 'Pre-winter service of the heating system.',
-    active_from_month: 4,
-    active_to_month: 9,
+    season: 'cool',
   },
 ];

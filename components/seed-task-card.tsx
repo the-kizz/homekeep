@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { SeedTask } from '@/lib/seed-library';
+import type { SeedAreaInput } from '@/lib/schemas/seed';
 
 /**
  * SeedTaskCard — per-seed row in the onboarding wizard (05-03 Task 2).
@@ -21,28 +22,45 @@ import type { SeedTask } from '@/lib/seed-library';
  *   2. Collapsed + action='skip' — muted/strikethrough with [Add] button
  *      to restore.
  *   3. Edit mode (action='add' + expanded) — inline form with
- *      name text input, freq number input, native area-id select.
- *      [Save] collapses; [Cancel] reverts to original seed defaults.
+ *      name text input, freq number input, native area select.
+ *      [Save] collapses; [Cancel] discards the draft.
+ *
+ * The area select lists the home's existing areas plus any suggested area
+ * that doesn't exist yet ("Kitchen (will be created)"); the server creates
+ * those on submit.
  *
  * E2E hooks (Suite A):
- *   data-seed-id, data-seed-action, data-seed-area-id, data-frequency-days
+ *   data-seed-id, data-seed-action, data-seed-area (encoded choice),
+ *   data-seed-area-id (existing area id, '' for a to-be-created area),
+ *   data-frequency-days
  */
 
-type Selection = {
+export type SeedSelectionState = {
   action: 'add' | 'skip';
   name: string;
   frequency_days: number;
-  area_id: string;
+  area: SeedAreaInput;
 };
+
+export type SeedAreaOption = { area: SeedAreaInput; label: string };
+
+type Selection = SeedSelectionState;
+
+/** Stable string form of an area choice, used as the <select> value. */
+export function encodeSeedArea(area: SeedAreaInput): string {
+  return area.kind === 'existing'
+    ? `existing:${area.id}`
+    : `suggested:${area.key}`;
+}
 
 export function SeedTaskCard({
   seed,
-  areas,
+  areaOptions,
   selection,
   onChange,
 }: {
   seed: SeedTask;
-  areas: Array<{ id: string; name: string; is_whole_home_system: boolean }>;
+  areaOptions: SeedAreaOption[];
   selection: Selection;
   onChange: (patch: Partial<Selection>) => void;
 }) {
@@ -57,8 +75,12 @@ export function SeedTaskCard({
   >;
   const Icon = LucideMap[pascalIcon] ?? LucideIcons.Home;
 
-  const area = areas.find((a) => a.id === selection.area_id);
-  const areaName = area?.name ?? 'Whole Home';
+  const areaKey = encodeSeedArea(selection.area);
+  const areaOption = areaOptions.find((o) => encodeSeedArea(o.area) === areaKey);
+  const areaName =
+    selection.area.kind === 'suggested'
+      ? (areaOption?.label.replace(/ \(will be created\)$/, ' (new)') ?? 'a new area')
+      : (areaOption?.label ?? 'Whole Home');
 
   const isSkipped = selection.action === 'skip';
 
@@ -71,7 +93,7 @@ export function SeedTaskCard({
     onChange({
       name: draft.name,
       frequency_days: draft.frequency_days,
-      area_id: draft.area_id,
+      area: draft.area,
       action: 'add',
     });
     setExpanded(false);
@@ -87,7 +109,10 @@ export function SeedTaskCard({
     <div
       data-seed-id={seed.id}
       data-seed-action={selection.action}
-      data-seed-area-id={selection.area_id}
+      data-seed-area={areaKey}
+      data-seed-area-id={
+        selection.area.kind === 'existing' ? selection.area.id : ''
+      }
       data-frequency-days={selection.frequency_days}
       className={cn(
         'rounded-md border bg-background p-3 transition-opacity',
@@ -211,19 +236,25 @@ export function SeedTaskCard({
               </Label>
               <select
                 id={`seed-area-${seed.id}`}
-                name="area_id"
+                name="area"
                 data-seed-area-select
-                value={draft.area_id}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, area_id: e.target.value }))
-                }
+                value={encodeSeedArea(draft.area)}
+                onChange={(e) => {
+                  const picked = areaOptions.find(
+                    (o) => encodeSeedArea(o.area) === e.target.value,
+                  );
+                  if (picked) setDraft((d) => ({ ...d, area: picked.area }));
+                }}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
               >
-                {areas.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}
-                  </option>
-                ))}
+                {areaOptions.map((o) => {
+                  const value = encodeSeedArea(o.area);
+                  return (
+                    <option key={value} value={value}>
+                      {o.label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
           </div>

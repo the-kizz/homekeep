@@ -4,44 +4,32 @@ import {
   test,
   expect,
   vi,
+  beforeAll,
   beforeEach,
   afterEach,
 } from 'vitest';
 import { SEED_LIBRARY } from '@/lib/seed-library';
+import { AREA_COLORS, AREA_ICONS } from '@/lib/area-palette';
 
 /**
- * Phase 13 Plan 13-01 Task 3 — batchCreateSeedTasks TCSEM unit tests.
+ * batchCreateSeedTasks unit tests (PB + ancillary modules mocked).
  *
- * Mocks PB + ancillary modules. Asserts:
- *   (1) Empty selections → schema rejects (min 1); no batch sent.
- *   (2) Single seed freq=30 → batch has 2 ops (1 tasks.create with
- *       next_due_smoothed populated + 1 homes.update onboarded=true).
- *   (3) 5 same-freq seeds → batch has 6 ops; next_due_smoothed
- *       values distribute — Set.size of YYYY-MM-DD dates ≥ 4
- *       (cohort distribution invariant, TCSEM-05).
- *   (4) 10 mixed-freq seeds (5×freq=7, 5×freq=365) → batch has 11
- *       ops (10 tasks.create + 1 homes.update); each tasks.create
- *       has a non-empty next_due_smoothed ISO string.
- *   (5) Third-seed placement throws → console.warn called; third
- *       seed lands with next_due_smoothed=''; other 4 seeds still
- *       get valid smoothed dates; batch still sends atomically
- *       (D-06 per-seed best-effort).
- *   (6) Synthetic-completion audit — zero matches for the forbidden
- *       token trio (seed-staggered kickoff / acronym / underscore
- *       variant) in production code dirs (lib/ components/ pocketbase/
- *       app/). Tokens are constructed via string-concat in the test
- *       body to keep THIS file free of literal matches so future
- *       audits scoped to tests/ also come up clean.
+ * Covers: schema rejection, batch shape (N creates + 1 homes.update),
+ * cohort distribution through the load map, per-seed placement fallback,
+ * the first-due stagger, library defaults for omitted overrides, seasonal
+ * months by hemisphere, task/area quotas, and suggested-area resolution
+ * (create once, reuse by name, fall back to Whole Home over quota).
  *
- * batchOps table records every batch.collection(name).method(args)
- * call for assertion. mockBatch is module-level; vi.mock factory
- * closes over it via the pb.createBatch() stub.
+ * batchOps records every batch.collection(name).method(args) call;
+ * areaCreates records direct (non-batch) areas.create calls.
  */
 
 // ─── Module-level mock refs ──────────────────────────────────────────────
 const mockAssertMembership = vi.fn().mockResolvedValue(undefined);
 const mockGetFullList = vi.fn();
 const mockGetOne = vi.fn();
+const mockGetList = vi.fn();
+const mockCreate = vi.fn();
 const mockRevalidatePath = vi.fn();
 const mockPlaceNextDue = vi.fn();
 const mockComputeFirstIdealDate = vi.fn();
@@ -75,6 +63,8 @@ vi.mock('@/lib/pocketbase-server', () => ({
     collection: (name: string) => ({
       getOne: (...args: unknown[]) => mockGetOne(name, ...args),
       getFullList: (...args: unknown[]) => mockGetFullList(name, ...args),
+      getList: (...args: unknown[]) => mockGetList(name, ...args),
+      create: (...args: unknown[]) => mockCreate(name, ...args),
     }),
   }),
 }));
@@ -114,31 +104,64 @@ async function loadBatchCreateSeedTasks() {
 }
 
 const HOME_ID = 'home1234567890x'; // 15 chars
-const AREA_ID = 'area1234567890x'; // 15 chars
+const AREA_ID = 'area1234567890x'; // 15 chars — the Whole Home area
+const WHOLE_HOME = {
+  id: AREA_ID,
+  name: 'Whole Home',
+  is_whole_home_system: true,
+  sort_order: 0,
+};
+
+type Area =
+  | { kind: 'existing'; id: string }
+  | {
+      kind: 'suggested';
+      key: 'kitchen' | 'bathroom' | 'living' | 'yard' | 'whole_home';
+    };
 
 function makeSelection(
   overrides: Partial<{
     seed_id: string;
     name: string;
     frequency_days: number;
-    area_id: string;
+    area: Area;
   }> = {},
 ) {
   return {
     seed_id: SEED_LIBRARY[0].id, // real library id
     name: 'Test seed',
     frequency_days: 30,
-    area_id: AREA_ID,
+    area: { kind: 'existing', id: AREA_ID } as Area,
     ...overrides,
   };
 }
 
-describe('batchCreateSeedTasks TCSEM (Phase 13 Plan 13-01 Task 3)', () => {
+let homeTimezone = 'UTC';
+let homeAreas: Array<Record<string, unknown>> = [];
+let existingTaskCount = 0;
+let areaCreates: Array<Record<string, unknown>> = [];
+
+function taskCreates() {
+  return batchOps
+    .filter((o) => o.collection === 'tasks' && o.method === 'create')
+    .map((o) => o.args[0] as Record<string, unknown>);
+}
+
+describe('batchCreateSeedTasks', () => {
+  // The first dynamic import transforms the action's whole module graph;
+  // do it once up front with a generous timeout so a busy host doesn't
+  // time out whichever test happens to run first.
+  beforeAll(async () => {
+    await loadBatchCreateSeedTasks();
+  }, 60_000);
+
   beforeEach(() => {
     batchOps = [];
     mockAssertMembership.mockReset().mockResolvedValue(undefined);
     mockGetFullList.mockReset();
     mockGetOne.mockReset();
+    mockGetList.mockReset();
+    mockCreate.mockReset();
     mockRevalidatePath.mockReset();
     mockPlaceNextDue.mockReset();
     mockComputeFirstIdealDate.mockReset();
@@ -149,13 +172,49 @@ describe('batchCreateSeedTasks TCSEM (Phase 13 Plan 13-01 Task 3)', () => {
     //   - areas.getFullList → one area matching AREA_ID
     //   - tasks.getFullList → empty (fresh home)
     //   - homes.getOne → timezone=UTC
+    homeTimezone = 'UTC';
+    homeAreas = [WHOLE_HOME];
+    existingTaskCount = 0;
+    areaCreates = [];
+    delete process.env.MAX_TASKS_PER_HOME;
+    delete process.env.MAX_AREAS_PER_HOME;
+
     mockGetFullList.mockImplementation(async (name: string) => {
-      if (name === 'areas') return [{ id: AREA_ID }];
-      if (name === 'tasks') return [];
+      if (name === 'areas') return homeAreas;
+      if (name === 'tasks') {
+        return Array.from({ length: existingTaskCount }, (_, i) => ({
+          id: `task${String(i).padStart(11, '0')}`,
+          created: new Date().toISOString(),
+          archived: false,
+          frequency_days: 7,
+          schedule_mode: 'cycle',
+          anchor_date: null,
+        }));
+      }
       return [];
     });
+    mockGetList.mockImplementation(async (name: string) => {
+      if (name === 'tasks') return { totalItems: existingTaskCount, items: [] };
+      if (name === 'areas') {
+        return {
+          totalItems: homeAreas.filter((a) => !a.is_whole_home_system).length,
+          items: [],
+        };
+      }
+      return { totalItems: 0, items: [] };
+    });
+    mockCreate.mockImplementation(
+      async (name: string, body: Record<string, unknown>) => {
+        if (name !== 'areas') throw new Error(`unexpected create on ${name}`);
+        const id = `newarea${String(areaCreates.length).padStart(8, '0')}`;
+        const row = { id, ...body };
+        areaCreates.push(row);
+        homeAreas = [...homeAreas, row];
+        return row;
+      },
+    );
     mockGetOne.mockImplementation(async (name: string, id: string) => {
-      if (name === 'homes') return { id, timezone: 'UTC' };
+      if (name === 'homes') return { id, timezone: homeTimezone };
       return { id };
     });
 
@@ -221,7 +280,10 @@ describe('batchCreateSeedTasks TCSEM (Phase 13 Plan 13-01 Task 3)', () => {
     });
 
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.count).toEqual(1);
+    if (result.ok) {
+      expect(result.count).toEqual(1);
+      expect(result.areasCreated).toEqual(0);
+    }
 
     expect(mockBatchSend).toHaveBeenCalledTimes(1);
     expect(batchOps).toHaveLength(2);
@@ -365,29 +427,197 @@ describe('batchCreateSeedTasks TCSEM (Phase 13 Plan 13-01 Task 3)', () => {
     }
   });
 
-  test('SEAS-09: batchCreateSeedTasks threads active_from_month + active_to_month from SEED_LIBRARY into the tasks.create body', async () => {
+  test('seasonal months follow the home hemisphere (UTC → north: aircon Apr–Sep)', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [makeSelection({ seed_id: 'seed-service-ac', frequency_days: 365 })],
+    });
+    expect(result.ok).toBe(true);
+    const [body] = taskCreates();
+    expect(body.active_from_month).toBe(4);
+    expect(body.active_to_month).toBe(9);
+  });
+
+  test('seasonal months follow the home hemisphere (Australia/Perth → south)', async () => {
+    homeTimezone = 'Australia/Perth';
     const fn = await loadBatchCreateSeedTasks();
     const result = await fn({
       home_id: HOME_ID,
       selections: [
-        makeSelection({
-          seed_id: 'seed-service-ac',
-          name: 'Service AC',
-          frequency_days: 365,
-        }),
+        makeSelection({ seed_id: 'seed-service-ac' }),
+        makeSelection({ seed_id: 'seed-service-heater' }),
+        makeSelection({ seed_id: 'seed-wipe-benches' }),
       ],
     });
     expect(result.ok).toBe(true);
+    const [ac, heater, benches] = taskCreates();
+    expect([ac.active_from_month, ac.active_to_month]).toEqual([10, 3]);
+    expect([heater.active_from_month, heater.active_to_month]).toEqual([4, 9]);
+    expect([benches.active_from_month, benches.active_to_month]).toEqual(['', '']);
+  });
 
-    const createOp = batchOps.find(
-      (o) => o.collection === 'tasks' && o.method === 'create',
+  test('client-supplied seasonal months are ignored', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    await fn({
+      home_id: HOME_ID,
+      selections: [
+        {
+          ...makeSelection({ seed_id: 'seed-wipe-benches' }),
+          active_from_month: 1,
+          active_to_month: 2,
+        } as ReturnType<typeof makeSelection>,
+      ],
+    });
+    const [body] = taskCreates();
+    expect(body.active_from_month).toBe('');
+    expect(body.active_to_month).toBe('');
+  });
+
+  test('omitted name / frequency_days fall back to the library defaults', async () => {
+    const seed = SEED_LIBRARY.find((s) => s.id === 'seed-clean-oven')!;
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [
+        { seed_id: seed.id, area: { kind: 'suggested', key: 'whole_home' } },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    const [body] = taskCreates();
+    expect(body.name).toBe(seed.name);
+    expect(body.frequency_days).toBe(seed.frequency_days);
+    expect(body.area_id).toBe(AREA_ID);
+  });
+
+  test('name override over 100 chars → formError, nothing written', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [makeSelection({ name: 'x'.repeat(101) })],
+    });
+    expect(result.ok).toBe(false);
+    expect(mockBatchSend).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test('unknown seed id → formError', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [makeSelection({ seed_id: 'seed-not-real' })],
+    });
+    expect(result).toEqual({ ok: false, formError: 'Unknown seed' });
+  });
+
+  test('existing area id from another home → formError', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [makeSelection({ area: { kind: 'existing', id: 'otherhomearea12' } })],
+    });
+    expect(result).toEqual({ ok: false, formError: 'Invalid area selected' });
+    expect(mockBatchSend).not.toHaveBeenCalled();
+  });
+
+  test('495 existing tasks + 10 selections → task-limit formError, nothing written', async () => {
+    existingTaskCount = 495;
+    const fn = await loadBatchCreateSeedTasks();
+    const selections = Array.from({ length: 10 }, (_, i) =>
+      makeSelection({ seed_id: SEED_LIBRARY[i].id, area: { kind: 'suggested', key: 'kitchen' } }),
     );
-    expect(createOp).toBeDefined();
-    const body = createOp!.args[0] as Record<string, unknown>;
-    // seed-service-ac carries active_from_month=10, active_to_month=3 in
-    // SEED_LIBRARY; threaded verbatim into the create body.
-    expect(body.active_from_month).toBe(10);
-    expect(body.active_to_month).toBe(3);
+    const result = await fn({ home_id: HOME_ID, selections });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.formError).toMatch(/task limit/);
+    expect(mockBatchSend).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test('home already at the task limit → task-limit formError', async () => {
+    existingTaskCount = 500;
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({ home_id: HOME_ID, selections: [makeSelection()] });
+    expect(result).toEqual({
+      ok: false,
+      formError: 'This home has reached its task limit',
+    });
+  });
+
+  test('suggested areas are created once each, from the palette, after the current max sort_order', async () => {
+    homeAreas = [WHOLE_HOME, { id: 'garageareaxxxxx', name: 'Garage', is_whole_home_system: false, sort_order: 4 }];
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [
+        makeSelection({ seed_id: 'seed-wipe-benches', area: { kind: 'suggested', key: 'kitchen' } }),
+        makeSelection({ seed_id: 'seed-clean-sink', area: { kind: 'suggested', key: 'kitchen' } }),
+        makeSelection({ seed_id: 'seed-clean-toilet', area: { kind: 'suggested', key: 'bathroom' } }),
+        makeSelection({ seed_id: 'seed-test-rcd', area: { kind: 'suggested', key: 'whole_home' } }),
+      ],
+    });
+    expect(result).toEqual({ ok: true, count: 4, areasCreated: 2 });
+    expect(areaCreates.map((a) => a.name)).toEqual(['Kitchen', 'Bathroom']);
+    expect(areaCreates.map((a) => a.sort_order)).toEqual([5, 6]);
+    for (const a of areaCreates) {
+      expect(a.scope).toBe('location');
+      expect(a.is_whole_home_system).toBe(false);
+      expect(AREA_ICONS as readonly string[]).toContain(a.icon);
+      expect(AREA_COLORS as readonly string[]).toContain(a.color);
+    }
+    const [benches, sink, toilet, rcd] = taskCreates();
+    expect(benches.area_id).toBe(areaCreates[0].id);
+    expect(sink.area_id).toBe(areaCreates[0].id);
+    expect(toilet.area_id).toBe(areaCreates[1].id);
+    expect(rcd.area_id).toBe(AREA_ID);
+  });
+
+  test('a same-named existing area is reused (case-insensitive)', async () => {
+    homeAreas = [WHOLE_HOME, { id: 'mykitchenareaxx', name: 'kitchen ', is_whole_home_system: false, sort_order: 1 }];
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [makeSelection({ area: { kind: 'suggested', key: 'kitchen' } })],
+    });
+    expect(result).toEqual({ ok: true, count: 1, areasCreated: 0 });
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(taskCreates()[0].area_id).toBe('mykitchenareaxx');
+  });
+
+  test('over the area quota → seeds land on Whole Home and areasCreated stays honest', async () => {
+    process.env.MAX_AREAS_PER_HOME = '1';
+    const fn = await loadBatchCreateSeedTasks();
+    const result = await fn({
+      home_id: HOME_ID,
+      selections: [
+        makeSelection({ seed_id: 'seed-wipe-benches', area: { kind: 'suggested', key: 'kitchen' } }),
+        makeSelection({ seed_id: 'seed-clean-toilet', area: { kind: 'suggested', key: 'bathroom' } }),
+      ],
+    });
+    expect(result).toEqual({ ok: true, count: 2, areasCreated: 1 });
+    const [benches, toilet] = taskCreates();
+    expect(benches.area_id).toBe(areaCreates[0].id);
+    expect(toilet.area_id).toBe(AREA_ID);
+  });
+
+  test('first-due stagger: seed i is anchored (i % 4) quarter-cycles back; f ≤ 3 keeps the natural default', async () => {
+    const fn = await loadBatchCreateSeedTasks();
+    const selections = [
+      ...Array.from({ length: 5 }, (_, i) =>
+        makeSelection({ seed_id: SEED_LIBRARY[i].id, frequency_days: 40 }),
+      ),
+      makeSelection({ seed_id: SEED_LIBRARY[5].id, frequency_days: 3 }),
+    ];
+    const before = Date.now();
+    await fn({ home_id: HOME_ID, selections });
+
+    const anchors = mockPlaceNextDue.mock.calls.map((c) =>
+      new Date((c[1] as { completed_at: string }).completed_at).getTime(),
+    );
+    const daysBack = anchors.map((t) => Math.round((before - t) / 86400000) + 0);
+    expect(daysBack.slice(0, 5)).toEqual([0, 10, 20, 30, 0]);
+    // f=3: computeFirstIdealDate (mocked: now + 1 day) minus 3 days.
+    expect(daysBack[5]).toBe(2);
+    expect(mockComputeFirstIdealDate).toHaveBeenCalledTimes(1);
   });
 
   test('Test 6: SDST audit — no matches for the forbidden tokens in production code dirs', async () => {
