@@ -18,6 +18,12 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./tests/setup.ts'],
+    // The first import of a server action or a large component transforms
+    // its whole module graph, which can take well over 5 s on a busy host.
+    // Generous budgets here replace per-file warm-up hooks; integration
+    // suites that boot PocketBase in beforeAll need the larger hook budget.
+    testTimeout: 20_000,
+    hookTimeout: 60_000,
     include: ['tests/unit/**/*.test.ts', 'tests/unit/**/*.test.tsx'],
     exclude: ['tests/e2e/**', 'node_modules/**', '.next/**'],
   },

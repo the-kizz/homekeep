@@ -4,7 +4,6 @@ import {
   test,
   expect,
   vi,
-  beforeAll,
   beforeEach,
   afterEach,
 } from 'vitest';
@@ -148,13 +147,6 @@ function taskCreates() {
 }
 
 describe('batchCreateSeedTasks', () => {
-  // The first dynamic import transforms the action's whole module graph;
-  // do it once up front with a generous timeout so a busy host doesn't
-  // time out whichever test happens to run first.
-  beforeAll(async () => {
-    await loadBatchCreateSeedTasks();
-  }, 60_000);
-
   beforeEach(() => {
     batchOps = [];
     mockAssertMembership.mockReset().mockResolvedValue(undefined);

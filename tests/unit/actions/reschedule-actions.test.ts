@@ -4,7 +4,6 @@ import {
   test,
   expect,
   vi,
-  beforeAll,
   beforeEach,
   afterEach,
 } from 'vitest';
@@ -107,12 +106,6 @@ vi.mock('@/lib/schedule-overrides', () => ({
 vi.mock('next/cache', () => ({
   revalidatePath: (...args: unknown[]) => mockRevalidatePath(...args),
 }));
-
-// Warm the module graph once with its own budget so a busy host does not
-// trip the 5 s per-test timeout on the first case.
-beforeAll(async () => {
-  await import('@/lib/actions/reschedule');
-}, 60_000);
 
 // Dynamic import AFTER mocks registered.
 async function loadActions() {

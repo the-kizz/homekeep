@@ -4,7 +4,6 @@ import {
   test,
   expect,
   vi,
-  beforeAll,
   beforeEach,
   afterEach,
 } from 'vitest';
@@ -107,13 +106,6 @@ vi.mock('next/navigation', () => ({
     throw err;
   },
 }));
-
-// The first import of the action module pulls in the whole scheduling
-// graph; on a busy host that alone can exceed the 5 s per-test timeout, so
-// warm it once with its own budget.
-beforeAll(async () => {
-  await import('@/lib/actions/tasks');
-}, 60_000);
 
 // Dynamic import AFTER mocks registered.
 async function loadCreateTask() {
