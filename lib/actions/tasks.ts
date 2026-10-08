@@ -394,8 +394,8 @@ export async function updateTask(
   const rawAssigned = String(formData.get('assigned_to_id') ?? '').trim();
   // Phase 13 Plan 13-02: accept last_done on updateTask's raw parse so
   // forms that include the field don't trip the schema — but DO NOT
-  // consume it. D-07 scope is task CREATION only; updateTask leaves
-  // next_due_smoothed untouched (edit-time re-placement is Phase 15+).
+  // consume it. last_done only seeds placement at task creation; on edit
+  // the smoothed date is cleared (schedule change) or left alone.
   const rawLastDone = String(formData.get('last_done') ?? '').trim();
   // Phase 14 (SEAS-07, T-14-01): active-months passthrough with the
   // same /^\d+$/ regex guard as createTask. UNLIKE last_done these ARE
@@ -473,12 +473,35 @@ export async function updateTask(
   // mirrors the createTaskAction cross-verify at line 168.
   let previousAssignedToId: string | null = null;
   let previousHomeId: string | null = null;
+  // A smoothed date and reschedule marker were placed for the OLD schedule.
+  // If the schedule changes they would keep the task pinned to a date that
+  // no longer matches its frequency, mode or season, so we clear them. We
+  // deliberately do not recompute here: with both cleared, computeNextDue
+  // falls back to the natural schedule and the next completion re-places
+  // the smoothed date against the household load.
+  let scheduleChanged = false;
   try {
-    const prev = await pb
-      .collection('tasks')
-      .getOne(taskId, { fields: 'id,home_id,assigned_to_id,name' });
+    const prev = await pb.collection('tasks').getOne(taskId, {
+      fields:
+        'id,home_id,assigned_to_id,name,frequency_days,schedule_mode,active_from_month,active_to_month,due_date,next_due_smoothed',
+    });
     previousAssignedToId = (prev.assigned_to_id as string) || null;
     previousHomeId = (prev.home_id as string) || null;
+    // PB serialises an empty NumberField as 0; normalise both sides so
+    // "unset" compares equal regardless of null vs 0.
+    const num = (v: unknown): number | null => {
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    const prevFreq = num(prev.frequency_days);
+    const nextFreq = num(parsed.data.frequency_days);
+    scheduleChanged =
+      // Also covers the switch to/from one-off (null on one side).
+      prevFreq !== nextFreq ||
+      ((prev.schedule_mode as string) || 'cycle') !==
+        parsed.data.schedule_mode ||
+      num(prev.active_from_month) !== num(parsed.data.active_from_month) ||
+      num(prev.active_to_month) !== num(parsed.data.active_to_month);
   } catch {
     /* update will surface the error below */
   }
@@ -534,6 +557,9 @@ export async function updateTask(
       // Phase 15 (OOFT-04, D-03): due_date passthrough. '' = clear
       // (recurring tasks have no due_date).
       due_date: parsed.data.due_date ?? '',
+      ...(scheduleChanged
+        ? { next_due_smoothed: '', reschedule_marker: '' }
+        : {}),
       // SECURITY: never accept `archived` from formData on update either.
       // Archive is a separate explicit action.
     });
