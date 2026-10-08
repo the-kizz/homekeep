@@ -5,8 +5,10 @@
 # `-v ./data:/app/data` keeps the host directory's owner, so if that is any
 # other uid PocketBase cannot create /app/data/pb_data and the app runs
 # "degraded" forever with only a log line to explain why. Repair ownership
-# when we can; when we cannot, stop the container with a clear remedy
-# instead of running half-broken.
+# when we can. If chown is refused (root-squashed NFS/SMB) but node can
+# still write, carry on with a warning: such mounts worked before this
+# check existed. Only when node truly cannot write, stop the container
+# with a clear remedy instead of running half-broken.
 set -u
 
 DATA=/app/data
@@ -22,9 +24,15 @@ fail() {
   exit 1
 }
 
+# A real write, not `test -w`: on network filesystems the permission bits
+# the client sees need not match what the server will allow.
+can_write_dir() {
+  s6-setuidgid node sh -c 'f="$1/.hk-write-test.$$" && touch "$f" && rm -f "$f"' sh "$1" 2>/dev/null
+}
+
 node_can_write() {
-  s6-setuidgid node test -w "$DATA" \
-    && { [ ! -e "$DATA/pb_data" ] || s6-setuidgid node test -w "$DATA/pb_data"; }
+  can_write_dir "$DATA" \
+    && { [ ! -e "$DATA/pb_data" ] || can_write_dir "$DATA/pb_data"; }
 }
 
 mkdir -p "$DATA" 2>/dev/null || true
@@ -37,6 +45,9 @@ if [ -n "$(find "$DATA" ! -user "$NODE_UID" -print -quit 2>/dev/null)" ] || ! no
     node_can_write || fail "$DATA is not writable and the container is not running as root, so it cannot repair ownership."
   elif chown -R "$NODE_UID:$NODE_GID" "$DATA" 2>/dev/null; then
     echo "[fix-perms] chowned $DATA to node (uid $NODE_UID)"
+  elif node_can_write; then
+    echo "[fix-perms] WARN: could not chown $DATA, but node (uid $NODE_UID) can write to it; continuing." >&2
+    echo "[fix-perms] WARN: files owned by other users inside it may still cause trouble later." >&2
   else
     fail "could not chown $DATA (read-only mount, or a filesystem that refuses chown such as some NFS/SMB shares)."
   fi
