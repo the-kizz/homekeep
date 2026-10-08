@@ -283,19 +283,11 @@ PocketBase runs as a local binary under `./.pb/pocketbase` via `scripts/dev-pb.j
 
 ## Project status
 
-v1.0.0-rc1. All 7 planned phases shipped:
+Latest release: **v1.3.0** (2026-04-24).
 
-| Phase | What it delivered |
-|---|---|
-| 1 | Docker + Next + PocketBase + Caddy + s6 + multi-arch CI |
-| 2 | Signup, homes, areas, tasks, computed next-due |
-| 3 | Three-band dashboard + one-tap complete + early-completion guard + coverage ring |
-| 4 | Invite links + members + cascading assignment |
-| 5 | By Area / Person / History views + onboarding wizard |
-| 6 | ntfy notifications + scheduler + streaks + celebrations |
-| 7 | PWA manifest + service worker + HTTP banner + Caddy/Tailscale compose overlays |
-
-Decimal phases (2.1, 3.1, …) are deploy checkpoints — build the image and stand it up on the VPS between features so you can actually look at the thing.
+This branch is unreleased. Since v1.3.0 it adds dark mode, a desktop layout,
+one-tap complete, area suggestions during onboarding, and scheduler and
+timezone fixes. The next release will be tagged by the maintainer.
 
 ## Known limits
 
