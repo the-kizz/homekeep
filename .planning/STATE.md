@@ -16,6 +16,16 @@ progress:
 
 # Project State
 
+## Review note (2026-10-09)
+
+The Hetzner VPS and its session are gone; this checkout on kizserv is a fresh clone of `dd8de8e`.
+A full read-only review (build/test status, code, security claims, UI screenshots, UX, monetisation)
+is at `.planning/REVIEW-2026-10-09.md` with screenshots in `.planning/review-screens/`.
+Headline items: demo DNS `homekeep.demo.the-kizz.com` points at an IP now owned by a stranger (delete
+the A record); `:latest`/1.3.0 image is NOT cosign-signed; vitest is green only under `TZ=UTC`;
+scheduler ignores smoothed/seasonal dates; onboarding puts every seed in Whole Home; v1.4 Phases 40/41
+are moot. Treat that review's §7 checklist as the next-work list instead of the v1.4 roadmap.
+
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-04-22)
