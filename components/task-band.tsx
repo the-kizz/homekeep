@@ -93,12 +93,12 @@ export function TaskBand({
     if (!showEmpty || !emptyCopy) return null;
     return (
       <Card data-band={variant} data-band-empty>
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="font-display text-lg font-medium text-foreground/85">
             {label}
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <p className="text-sm text-muted-foreground">{emptyCopy}</p>
         </CardContent>
       </Card>
@@ -112,12 +112,12 @@ export function TaskBand({
       <Card
         data-band={variant ?? label.toLowerCase().replace(/\s+/g, '-')}
       >
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="font-display text-lg font-medium text-foreground/85">
             {label}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 px-4 sm:px-6">
           {tasks.map((t) => {
             // Phase 16 Plan 01 (D-06 / LVIZ-03): thread ShiftBadge
             // info only when this task is actually displaced. Parent
@@ -137,15 +137,7 @@ export function TaskBand({
                 task={{
                   id: t.id,
                   name: (t as ClassifiedTask & { name: string }).name,
-                  // Phase 11 (WR-03): frequency_days widened to
-                  // `number | null` for OOFT (Plan 11-02). Callers
-                  // (BandView) pre-filter OOFT tasks (null or 0 freq)
-                  // out of the classified lists before rendering this
-                  // band — see filterOutOoft in band-view.tsx. So
-                  // tasks reaching this cast are guaranteed recurring
-                  // (non-null positive integer). OOFT UI is Phase 15
-                  // scope per 11-CONTEXT.md deferred decisions.
-                  frequency_days: t.frequency_days as number,
+                  frequency_days: t.frequency_days,
                   effective: (
                     t as ClassifiedTask & {
                       effective?: import('@/lib/assignment').EffectiveAssignee;
@@ -194,12 +186,12 @@ export function TaskBand({
 
   return (
     <Card data-band={variant ?? label.toLowerCase().replace(/\s+/g, '-')}>
-      <CardHeader>
+      <CardHeader className="px-4 sm:px-6">
         <CardTitle className="font-display text-lg font-medium text-foreground/85">
           {label}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-4 sm:px-6">
         {orderedKeys.map((key) => {
           const bucket = buckets.get(key)!;
           const anchor = bucket[0].nextDue;
@@ -234,11 +226,7 @@ export function TaskBand({
                       task={{
                         id: t.id,
                         name: (t as ClassifiedTask & { name: string }).name,
-                        // Phase 11 (WR-03): see TaskRow projection
-                        // comment above — callers pre-filter OOFT tasks
-                        // so a non-null positive integer is guaranteed
-                        // at this cast site.
-                        frequency_days: t.frequency_days as number,
+                        frequency_days: t.frequency_days,
                         effective: (
                           t as ClassifiedTask & {
                             effective?: import('@/lib/assignment').EffectiveAssignee;

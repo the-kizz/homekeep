@@ -6,6 +6,7 @@ import { CircleCheck } from 'lucide-react';
 import type { EffectiveAssignee } from '@/lib/assignment';
 import { AssigneeDisplay } from '@/components/assignee-display';
 import { ShiftBadge } from '@/components/shift-badge';
+import { isOoftTask } from '@/lib/task-scheduling';
 
 /**
  * TaskRow (03-02 Plan, D-16, SPEC §19 "information, not alarm").
@@ -51,6 +52,11 @@ import { ShiftBadge } from '@/components/shift-badge';
  *     it through the same completion path as the sheet, so the
  *     early-completion guard still applies.
  *   - Absent prop → no button and the original single-button markup.
+ *
+ * Phone width: the name gets the room. The assignee chip only appears for
+ * a real assignee (task or area default); "Anyone" shows nothing, since
+ * its absence already says it. A long name wraps to a second line rather
+ * than being cut off.
  */
 /**
  * Plain-English due label. `daysDelta` is measured from local midnight
@@ -89,7 +95,8 @@ export function TaskRow({
   task: {
     id: string;
     name: string;
-    frequency_days: number;
+    /** null (or 0, as PocketBase stores a cleared number) = one-off. */
+    frequency_days: number | null;
     /** 04-03 D-10 + TASK-04: resolved cascade from the Server Component. */
     effective?: EffectiveAssignee;
   };
@@ -165,14 +172,14 @@ export function TaskRow({
       className={clsx(
         'flex w-full min-h-[44px] items-center justify-between gap-2 rounded border p-3 text-left transition-colors',
         variant === 'overdue' && 'border-l-4 border-l-primary',
-        onQuickComplete && 'pr-14',
+        onQuickComplete && 'pr-12',
         pending
           ? 'pointer-events-none opacity-60'
           : 'hover:bg-muted active:scale-[0.99]',
       )}
     >
       <div className="flex flex-col min-w-0">
-        <span className="font-medium truncate">
+        <span className="font-medium line-clamp-2 break-words">
           {task.name}
           {shiftInfo && (
             <ShiftBadge
@@ -183,12 +190,13 @@ export function TaskRow({
           )}
         </span>
         <span className="text-xs text-muted-foreground">
-          Every {task.frequency_days}{' '}
-          {task.frequency_days === 1 ? 'day' : 'days'}
+          {isOoftTask(task)
+            ? 'One-off'
+            : `Every ${task.frequency_days} ${task.frequency_days === 1 ? 'day' : 'days'}`}
         </span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {task.effective && (
+        {task.effective && task.effective.kind !== 'anyone' && (
           <AssigneeDisplay effective={task.effective} showLabel={false} />
         )}
         <span
@@ -220,7 +228,7 @@ export function TaskRow({
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           pending
             ? 'text-primary'
-            : 'text-muted-foreground/60 hover:text-primary focus-visible:text-primary',
+            : 'text-muted-foreground hover:text-primary focus-visible:text-primary',
         )}
       >
         <CircleCheck

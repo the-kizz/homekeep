@@ -270,6 +270,79 @@ describe('TaskRow', () => {
   });
 });
 
+describe('TaskRow assignee chip', () => {
+  const chipCount = (container: HTMLElement) =>
+    container.querySelectorAll('span[data-assignee-kind]').length;
+
+  it('shows nothing for "Anyone" so the name keeps the room', () => {
+    const { container } = render(
+      <TaskRow
+        task={{ ...baseTask, effective: { kind: 'anyone' } }}
+        onComplete={() => {}}
+        onQuickComplete={() => {}}
+        pending={false}
+        daysDelta={3}
+      />,
+    );
+    expect(chipCount(container)).toBe(0);
+    expect(screen.queryByText('Anyone')).toBeNull();
+    // The row still records the cascade result for E2E / styling hooks.
+    expect(
+      container.querySelector('button[data-task-id]')?.getAttribute('data-assignee-kind'),
+    ).toBe('anyone');
+  });
+
+  it('shows the chip for a task assignee and an area default', () => {
+    const user = { id: 'u1', name: 'Alice', role: 'owner' as const };
+    for (const kind of ['task', 'area'] as const) {
+      const { container, unmount } = render(
+        <TaskRow
+          task={{ ...baseTask, effective: { kind, user } }}
+          onComplete={() => {}}
+          pending={false}
+          daysDelta={3}
+        />,
+      );
+      expect(chipCount(container)).toBe(1);
+      unmount();
+    }
+  });
+
+  it('lets a long name wrap instead of truncating it', () => {
+    render(
+      <TaskRow
+        task={{ ...baseTask, name: 'Wipe kitchen benches' }}
+        onComplete={() => {}}
+        onQuickComplete={() => {}}
+        pending={false}
+        daysDelta={3}
+      />,
+    );
+    const name = screen.getByText('Wipe kitchen benches');
+    expect(name.className).toContain('line-clamp-2');
+    expect(name.className).not.toContain('truncate');
+  });
+});
+
+describe('TaskRow one-off', () => {
+  it('reads "One-off" instead of a frequency', () => {
+    for (const frequency_days of [null, 0]) {
+      const { unmount } = render(
+        <TaskRow
+          task={{ ...baseTask, frequency_days }}
+          onComplete={() => {}}
+          pending={false}
+          daysDelta={-1}
+          variant="overdue"
+        />,
+      );
+      expect(screen.getByText('One-off')).toBeTruthy();
+      expect(screen.queryByText(/Every/)).toBeNull();
+      unmount();
+    }
+  });
+});
+
 describe('TaskBand empty copy', () => {
   const now = new Date('2026-10-09T00:00:00Z');
   const band = (variant: 'overdue' | 'thisWeek', showEmpty?: boolean) =>
