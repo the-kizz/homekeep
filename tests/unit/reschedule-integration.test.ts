@@ -10,8 +10,8 @@
  * of Phase 15:
  *
  *   Scenario 1 (OOFT-04 + SNZE-01 + SNZE-03 + Phase 11 archive): full
- *     OOFT lifecycle — create → snooze → complete → archive + override
- *     consumed atomically in Phase 10+11 batch.
+ *     OOFT lifecycle — create → snooze (moves due_date, no override
+ *     row) → complete → archive.
  *   Scenario 2 (SNZE-07): from-now-on on cycle task writes
  *     next_due_smoothed + reschedule_marker; anchor_date untouched.
  *   Scenario 3 (SNZE-07): from-now-on on anchored task writes
@@ -198,17 +198,18 @@ describe('Phase 15 integration — reschedule + OOFT (port 18103)', () => {
       snooze_until: snoozeIso,
     });
     if (!snoozeRes.ok) throw new Error('snooze failed: ' + snoozeRes.formError);
-    expect(snoozeRes.override.id).toBeTruthy();
+    // A one-off has a single occurrence, so snoozing moves its due_date
+    // instead of writing a schedule_overrides row; the empty id says so.
+    expect(snoozeRes.override.id).toBe('');
 
-    // 1c: Verify override row lives in PB, active (consumed_at = null).
+    // 1c: due_date moved to the chosen date, marker stamped, no override row.
+    const snoozed = await pbAlice.collection('tasks').getOne(ooftTask.id);
+    expect(String(snoozed.due_date).slice(0, 10)).toBe(snoozeIso.slice(0, 10));
+    expect(snoozed.reschedule_marker).toBeTruthy();
     const { getActiveOverride } = await import('@/lib/schedule-overrides');
-    const activeOv = await getActiveOverride(pbAlice, ooftTask.id);
-    expect(activeOv?.id).toBe(snoozeRes.override.id);
-    expect(activeOv?.consumed_at).toBeFalsy();
+    expect(await getActiveOverride(pbAlice, ooftTask.id)).toBeNull();
 
-    // 1d: Complete the OOFT task — Phase 10 + Phase 11 batch must
-    // (a) create a completions row, (b) set override.consumed_at, (c)
-    // archive the OOFT task — all atomically.
+    // 1d: Completing a one-off records the completion and archives it.
     const { completeTaskAction } = await import('@/lib/actions/completions');
     const completeRes = await completeTaskAction(ooftTask.id, { force: true });
     expect('ok' in completeRes && completeRes.ok === true).toBe(true);
@@ -217,7 +218,7 @@ describe('Phase 15 integration — reschedule + OOFT (port 18103)', () => {
     const reRead = await pbAlice.collection('tasks').getOne(ooftTask.id);
     expect(reRead.archived).toBe(true);
 
-    // 1f: Verify override was consumed atomically.
+    // 1f: Still no active override after completion.
     const postOv = await getActiveOverride(pbAlice, ooftTask.id);
     expect(postOv).toBeNull();
   }, 30_000);
