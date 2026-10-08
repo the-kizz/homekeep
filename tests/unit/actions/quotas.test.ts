@@ -12,7 +12,7 @@ import PocketBase from 'pocketbase';
  * Per-create quotas ride on `lib/quotas.ts` and reject the N+1th
  * create with a friendly `formError` string containing "Quota exceeded".
  *
- * Port 18106 — next free after 18105 (rebalance-integration, Phase 17).
+ * Port 18113 — unique among the integration suites (see CONTRIBUTING.md).
  *
  * Scenarios:
  *   1. Alice creates 5 homes → 6th rejected with quota error.
@@ -24,7 +24,7 @@ import PocketBase from 'pocketbase';
 
 const PB_BIN = './.pb/pocketbase';
 const DATA_DIR = './.pb/test-pb-data-quotas-actions';
-const HTTP = '127.0.0.1:18106';
+const HTTP = '127.0.0.1:18113';
 
 let pbProcess: ChildProcess | undefined;
 let adminClient: PocketBase;
@@ -129,7 +129,7 @@ afterAll(() => {
   delete process.env.MAX_TASKS_PER_HOME;
 });
 
-describe('RATE-01 server-action quotas (port 18106)', () => {
+describe('RATE-01 server-action quotas (port 18113)', () => {
   let aliceId: string;
   let aliceFirstHomeId: string;
 

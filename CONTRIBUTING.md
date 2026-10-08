@@ -27,7 +27,7 @@ The dev stack boots both Next.js and a local PocketBase binary side-by-side. Fir
 
 ### Running the tests
 
-`TZ` is pinned to UTC by the vitest config, so results do not depend on your host timezone. Integration tests spawn a real PocketBase on fixed ports in the 18090–18110 range; keep those free and don't run two suites at once. If you haven't run `npm run dev` yet, run `node scripts/dev-pb.js` once to download the PocketBase binary to `./.pb/` (stop it with Ctrl-C once it is serving).
+`TZ` is pinned to UTC by the vitest config, so results do not depend on your host timezone. Integration tests spawn a real PocketBase on fixed ports in the 18090–18113 range (one port per suite, 18109 unused); keep those free and don't run two suites at once. If you haven't run `npm run dev` yet, run `node scripts/dev-pb.js` once to download the PocketBase binary to `./.pb/` (stop it with Ctrl-C once it is serving).
 
 ## Scope
 
