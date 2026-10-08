@@ -23,7 +23,7 @@ import { skipOnboardingIfPresent } from './helpers';
  * fire, toast appears, completion record persisted) — NOT about post-
  * completion band transitions — prefer flow-assertion evidence:
  *   (a) [data-testid="early-completion-dialog"] visibility (or count=0)
- *   (b) page.getByText(/Done — next due/) with { timeout: 5000 }
+ *   (b) page.getByText(/Done: .* — next due/) with { timeout: 5000 }
  *   (c) PB REST completion-count delta via getCompletionCount()
  *
  * Band-transition semantics are already covered exhaustively in unit
@@ -272,7 +272,7 @@ test.describe('Phase 3 Core Loop (D-21)', () => {
     await expect(taskInThisWeek).toBeVisible();
 
     // Coverage ring renders.
-    await expect(page.locator('[role="img"][aria-label^="Coverage"]')).toBeVisible();
+    await expect(page.locator('[role="img"][aria-label^="Coverage"]:visible')).toBeVisible();
 
     // v1.2.1 PATCH2-06: tap opens the detail sheet; complete lives
     // behind the sheet's Complete button. v1.2.1 PATCH2-07: the guard
@@ -291,7 +291,7 @@ test.describe('Phase 3 Core Loop (D-21)', () => {
 
     // Sonner success toast appears.
     await expect(
-      page.getByText(/Done — next due/),
+      page.getByText(/Done: .* — next due/),
     ).toBeVisible({ timeout: 5000 });
 
     // Phase 20 TEST-01 (D-03): Under LOAD, the task STAYS in thisWeek after
@@ -356,7 +356,7 @@ test.describe('Phase 3 Core Loop (D-21)', () => {
 
     // Toast fires.
     await expect(
-      page.getByText(/Done — next due/),
+      page.getByText(/Done: .* — next due/),
     ).toBeVisible({ timeout: 5000 });
 
     // Phase 20 TEST-01 (D-04 CORRECTED by Phase 20 research): Under LOAD,

@@ -4,7 +4,7 @@ import { useOptimistic, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import type { Task } from '@/lib/task-scheduling';
+import { isOoftTask, type Task } from '@/lib/task-scheduling';
 import type { EffectiveAssignee } from '@/lib/assignment';
 import type { Override } from '@/lib/schedule-overrides';
 import {
@@ -277,7 +277,15 @@ export function BandView({
           toast.error(result.formError || 'Could not complete task');
           return;
         }
-        toast.success(`Done — next due ${result.nextDueFormatted}`);
+        // Name the task: completions cannot be undone, so a slip on the
+        // one-tap check button has to be noticeable.
+        const doneTask = tasks.find((t) => t.id === taskId);
+        const nextPart = doneTask && isOoftTask(doneTask)
+          ? ''
+          : ` — next due ${result.nextDueFormatted}`;
+        toast.success(
+          doneTask ? `Done: ${doneTask.name}${nextPart}` : `Done${nextPart}`,
+        );
         // 06-03 GAME-04: fire the celebration overlay if the server
         // detected an area-100% crossover. Bumping `.key` on each
         // trigger guarantees remount + fresh 2500ms timer even if the
@@ -333,21 +341,13 @@ export function BandView({
       effective?: EffectiveAssignee;
     };
   };
-  // Phase 11 (WR-03): OOFT tasks (frequency_days null, or 0 per the PB
-  // 0.37.1 cleared-NumberField storage quirk) survive computeTaskBands
-  // via computeNextDue's OOFT branch returning due_date. The band
-  // children (TaskBand, TaskRow) render "Every N days" from
-  // frequency_days, which is nonsensical for OOFTs. Phase 15 owns the
-  // OOFT UI (dedicated "Once" label + OOFT-shape handling per CONTEXT.md);
-  // until then filter OOFTs out of the band view so task-band never
-  // casts a null/0 frequency to number. Matches the isDormant filter
-  // in computeCoverage — both exclude tasks that don't belong in the
-  // recurring-cycle rendering path.
-  const filterOutOoft = (ct: ClassifiedTask) =>
-    ct.frequency_days !== null && ct.frequency_days !== 0;
-  const overdueWithName = bands.overdue.filter(filterOutOoft).map(attachMeta);
-  const thisWeekWithName = bands.thisWeek.filter(filterOutOoft).map(attachMeta);
-  const horizonWithName = bands.horizon.filter(filterOutOoft).map(attachMeta);
+  // One-off tasks are classified like any other: computeNextDue returns
+  // their due_date, so they land in Overdue / This week / Horizon and
+  // TaskRow labels them "One-off". The scheduler pushes for them too, so
+  // they must be visible here.
+  const overdueWithName = bands.overdue.map(attachMeta);
+  const thisWeekWithName = bands.thisWeek.map(attachMeta);
+  const horizonWithName = bands.horizon.map(attachMeta);
 
   // Phase 14 (SEAS-06, D-07..D-09): dormant-task classification parallels
   // the band path. computeTaskBands silently skips tasks whose
@@ -383,140 +383,140 @@ export function BandView({
     : [];
   const hasAnyTasks = tasks.length > 0;
 
+  // The summary (ring, most neglected, horizon) is rendered twice: one
+  // copy in the phone column, in reading order, and one in the desktop
+  // aside. CSS reordering would leave keyboard and screen-reader order
+  // out of step with what is on screen, so the DOM order itself is the
+  // phone order. Only one copy is ever displayed.
+  const ring = <CoverageRing percentage={coveragePct} />;
+  const mostNeglectedCard = (
+    <MostNeglectedCard
+      task={mostNeglected}
+      onComplete={(id) => handleTap(id)}
+      pending={mostNeglected !== null && pendingTaskId === mostNeglected.id}
+    />
+  );
+  const horizonStrip = (
+    <HorizonStrip
+      tasks={horizonWithName}
+      now={nowDate}
+      timezone={timezone}
+      shiftByTaskId={shiftByTaskId}
+    />
+  );
+
   return (
     <div
-      // Phone: one column in the familiar order (ring, overdue, most
-      // neglected, this week, horizon, sleeping). The section/aside are
-      // display:contents below lg, so their children are flex items here
-      // and the max-lg order rules interleave them. Desktop: tasks on the
-      // left, the at-a-glance summary pinned on the right. Pure CSS, so the
-      // server render and hydration are identical at every width.
-      className={
-        'mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:grid lg:grid-cols-12 lg:items-start ' +
-        'max-lg:[&_[data-band=overdue]]:order-1 max-lg:[&_[data-most-neglected-card]]:order-2 ' +
-        'max-lg:[&_[data-band=thisWeek]]:order-3 max-lg:[&_[data-band=horizon]]:order-4 ' +
-        'max-lg:[&_[data-dormant-section]]:order-5'
-      }
+      className="mx-auto flex max-w-6xl flex-col gap-6 p-6 lg:grid lg:grid-cols-12 lg:items-start"
       data-band-view
       data-home-id={homeId}
     >
       <section
         data-dashboard-main
         aria-label="Tasks"
-        className="contents lg:col-span-7 lg:flex lg:flex-col lg:gap-6"
+        className="flex flex-col gap-6 lg:col-span-7"
       >
-      {!hasAnyTasks ? (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
-            <p className="font-display text-lg text-foreground/85">
-              Your house is a blank canvas.
-            </p>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Add your first recurring task and HomeKeep will keep track of
-              what&rsquo;s due, quietly, in the background.
-            </p>
-            <Button asChild>
-              <Link
-                href={emptyStateHref ?? `/h/${homeId}/tasks/new`}
-              >
-                Add your first task
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <TaskBand
-            label="Overdue"
-            tasks={overdueWithName}
-            onComplete={(id) => handleTap(id)}
-            onDetail={handleDetail}
-            onQuickComplete={(id) => handleTap(id)}
-            showEmpty
-            pendingTaskId={pendingTaskId}
-            timezone={timezone}
-            variant="overdue"
-            now={nowDate}
-            shiftByTaskId={shiftByTaskId}
-          />
-          <TaskBand
-            label="This week"
-            tasks={thisWeekWithName}
-            onComplete={(id) => handleTap(id)}
-            onDetail={handleDetail}
-            onQuickComplete={(id) => handleTap(id)}
-            showEmpty
-            pendingTaskId={pendingTaskId}
-            timezone={timezone}
-            variant="thisWeek"
-            now={nowDate}
-            shiftByTaskId={shiftByTaskId}
-          />
-          {/* Phase 14 (SEAS-06): Sleeping section — rendered only when at
-              least one dormant task exists. Dormant rows carry their
-              own opacity-50 + "Sleeps until" badge + inert click
-              handler via <DormantTaskRow/>. The section disappears
-              entirely when `dormant.length === 0` so the render order
-              Overdue → MostNeglected → ThisWeek → HorizonStrip is
-              byte-identical to the Phase 13 baseline for homes without
-              any seasonal tasks. */}
-          {dormant.length > 0 && (
-            <section
-              data-dormant-section
-              data-dormant-count={dormant.length}
-              className="space-y-2"
-            >
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Sleeping
-              </h3>
-              <div className="space-y-2">
-                {dormant.map((t) => (
-                  <DormantTaskRow
-                    key={t.id}
-                    task={{
-                      id: t.id,
-                      name: t.name,
-                      area_name: t.area_name,
-                      nextOpenDate: t.nextOpenDate,
-                    }}
-                    timezone={timezone}
-                  />
-                ))}
+        <header
+          data-summary-copy="phone"
+          className="flex items-center justify-center lg:hidden"
+        >
+          {ring}
+        </header>
+        {!hasAnyTasks ? (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="flex flex-col items-center gap-4 p-8 text-center">
+              <p className="font-display text-lg text-foreground/85">
+                Your house is a blank canvas.
+              </p>
+              <p className="max-w-sm text-sm text-muted-foreground">
+                Add your first recurring task and HomeKeep will keep track of
+                what&rsquo;s due, quietly, in the background.
+              </p>
+              <Button asChild>
+                <Link href={emptyStateHref ?? `/h/${homeId}/tasks/new`}>
+                  Add your first task
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <TaskBand
+              label="Overdue"
+              tasks={overdueWithName}
+              onComplete={(id) => handleTap(id)}
+              onDetail={handleDetail}
+              onQuickComplete={(id) => handleTap(id)}
+              showEmpty
+              pendingTaskId={pendingTaskId}
+              timezone={timezone}
+              variant="overdue"
+              now={nowDate}
+              shiftByTaskId={shiftByTaskId}
+            />
+            {mostNeglected && (
+              <div data-summary-copy="phone" className="lg:hidden">
+                {mostNeglectedCard}
               </div>
-            </section>
-          )}
-        </>
-      )}
+            )}
+            <TaskBand
+              label="This week"
+              tasks={thisWeekWithName}
+              onComplete={(id) => handleTap(id)}
+              onDetail={handleDetail}
+              onQuickComplete={(id) => handleTap(id)}
+              showEmpty
+              pendingTaskId={pendingTaskId}
+              timezone={timezone}
+              variant="thisWeek"
+              now={nowDate}
+              shiftByTaskId={shiftByTaskId}
+            />
+            <div data-summary-copy="phone" className="lg:hidden">
+              {horizonStrip}
+            </div>
+            {/* Sleeping: only when a seasonal task is dormant. Rows are
+                dimmed, carry a "Sleeps until" badge and are inert. */}
+            {dormant.length > 0 && (
+              <section
+                data-dormant-section
+                data-dormant-count={dormant.length}
+                className="space-y-2"
+              >
+                <h3 className="text-sm font-medium text-muted-foreground">
+                  Sleeping
+                </h3>
+                <div className="space-y-2">
+                  {dormant.map((t) => (
+                    <DormantTaskRow
+                      key={t.id}
+                      task={{
+                        id: t.id,
+                        name: t.name,
+                        area_name: t.area_name,
+                        nextOpenDate: t.nextOpenDate,
+                      }}
+                      timezone={timezone}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </section>
 
       <aside
         data-dashboard-aside
+        data-summary-copy="desktop"
         aria-label="Overview"
-        className="contents lg:sticky lg:top-16 lg:col-span-5 lg:flex lg:flex-col lg:gap-6 lg:self-start"
+        className="hidden lg:sticky lg:top-16 lg:col-span-5 lg:flex lg:flex-col lg:gap-6 lg:self-start"
       >
-        <header className="flex items-center justify-center max-lg:order-first">
-          <CoverageRing percentage={coveragePct} />
-        </header>
+        <header className="flex items-center justify-center">{ring}</header>
         {hasAnyTasks && (
           <>
-            {/* MostNeglectedCard sits between Overdue and This Week on
-                phone (via the order rules above) and in the summary column
-                on desktop. Self-null when no overdue tasks. `pending` is
-                per-task precise so the card only disables while THIS
-                task is in flight — double-tap guard shared via handleTap. */}
-            <MostNeglectedCard
-              task={mostNeglected}
-              onComplete={(id) => handleTap(id)}
-              pending={
-                mostNeglected !== null && pendingTaskId === mostNeglected.id
-              }
-            />
-            <HorizonStrip
-              tasks={horizonWithName}
-              now={nowDate}
-              timezone={timezone}
-              shiftByTaskId={shiftByTaskId}
-            />
+            {mostNeglectedCard}
+            {horizonStrip}
           </>
         )}
       </aside>

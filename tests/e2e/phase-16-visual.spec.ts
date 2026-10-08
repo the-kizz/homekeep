@@ -429,7 +429,7 @@ test.describe('Phase 16 visual UAT — screenshot capture', () => {
     });
 
     // 09 — HorizonStrip density tiers close-up.
-    const horizon = page.locator('[data-band="horizon"]');
+    const horizon = page.locator('[data-band="horizon"]:visible');
     await expect(horizon).toBeVisible();
     await horizon.screenshot({
       path: `${SHOT_DIR}/09-horizon-strip-density-tiers.png`,
@@ -565,7 +565,7 @@ test.describe('Phase 16 visual UAT — screenshot capture', () => {
     await page.keyboard.press('Escape');
 
     // 06 — Horizon drawer mobile.
-    const horizonMobile = page.locator('[data-band="horizon"]');
+    const horizonMobile = page.locator('[data-band="horizon"]:visible');
     await expect(horizonMobile).toBeVisible();
     const mobileCells = horizonMobile.locator(
       'button[data-month-count]:not([disabled])',

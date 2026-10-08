@@ -420,7 +420,7 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
     await expect(rescheduleSheet).toBeHidden();
 
     // 03 — horizon detail drawer. Click heaviest-tint cell.
-    const horizon = page.locator('[data-band="horizon"]');
+    const horizon = page.locator('[data-band="horizon"]:visible');
     await expect(horizon).toBeVisible();
     const populated = horizon.locator(
       'button[data-month-count]:not([disabled])',
