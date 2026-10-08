@@ -344,3 +344,41 @@ describe('computeWeeklySummary with override', () => {
     expect(withOverride.coveragePercent).toBe(100);
   });
 });
+
+describe('computeWeeklySummary seasonal tasks', () => {
+  test('a seasonal task out of window in the home timezone is not most-neglected', () => {
+    // 15:00 UTC on 31 Mar is already 1 Apr in Melbourne. An Oct–Mar task
+    // last done in March is overdue by UTC month but dormant at home.
+    const now = new Date('2026-03-31T15:00:00.000Z');
+    const seasonal = t({
+      id: 's1',
+      name: 'Clean pool filter',
+      active_from_month: 10,
+      active_to_month: 3,
+    });
+    const completions = [c('s1', '2026-03-10T00:00:00.000Z')];
+    const areas = [{ id: 'a-kitchen', name: 'Kitchen' }];
+
+    const atHome = computeWeeklySummary(
+      completions,
+      [seasonal],
+      areas,
+      new Map(),
+      now,
+      'Australia/Melbourne',
+    );
+    expect(atHome.mostNeglectedTask).toBeNull();
+
+    // Same instant read in UTC is still March, so the task is in window
+    // and overdue — proving the home timezone is what excludes it.
+    const inUtc = computeWeeklySummary(
+      completions,
+      [seasonal],
+      areas,
+      new Map(),
+      now,
+      'UTC',
+    );
+    expect(inUtc.mostNeglectedTask?.id).toBe('s1');
+  });
+});

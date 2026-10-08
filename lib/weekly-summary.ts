@@ -113,7 +113,8 @@ export function computeWeeklySummary(
 
   // 4) mostNeglectedTask — MAX daysOverdue across active tasks; tie-break
   //    by newer `created` descending. computeNextDue returns null for
-  //    archived or mis-configured tasks; we skip those.
+  //    archived tasks and for seasonal tasks dormant in the home's month
+  //    (hence the timezone); we skip those.
   let best: {
     id: string;
     name: string;
@@ -124,7 +125,7 @@ export function computeWeeklySummary(
     if (task.archived) continue;
     const last = latestByTask.get(task.id) ?? null;
     const override = overridesByTask.get(task.id);
-    const nextDue = computeNextDue(task, last, now, override);
+    const nextDue = computeNextDue(task, last, now, override, timezone);
     if (!nextDue) continue;
     const daysOverdue = Math.max(
       0,
