@@ -16,6 +16,11 @@ progress:
 
 # Project State
 
+## Functioning-properly branch (2026-10-09)
+
+`work/functioning` (local, unmerged, unpushed) implements `.planning/PLAN-2026-10-09-functioning.md`.
+Handoff with verification, rulings and the owner checklist: `.planning/HANDOFF-2026-10-09-functioning.md`.
+
 ## Review note (2026-10-09)
 
 The Hetzner VPS and its session are gone; this checkout on kizserv is a fresh clone of `dd8de8e`.
