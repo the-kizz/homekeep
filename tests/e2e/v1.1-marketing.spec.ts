@@ -453,15 +453,14 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
       fullPage: true,
     });
 
-    // 05 — task form with Advanced collapsible OPEN + Active months filled
+    // 05 — task form with More options OPEN + Active months filled
     await page.goto(`${homeUrl}/tasks/new`);
     await expect(page.locator('#task-name')).toBeVisible();
     // Fill some fields so the screenshot looks realistic
     await page.fill('#task-name', 'Rake autumn leaves');
     await page.fill('#task-freq', '60');
-    // Click the Advanced trigger (collapsible)
-    const advancedTrigger = page.getByRole('button', { name: /advanced/i });
-    await advancedTrigger.click();
+    // Open the "More options" collapsible (last done, active months)
+    await page.getByRole('button', { name: /more options/i }).click();
     await page.waitForTimeout(200);
     // Fill "Last done"
     await page.fill('#task-last-done', isoDate(inDays(-14)));
@@ -506,6 +505,8 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
     await page.goto(`${homeUrl}/tasks/new`);
     await expect(page.locator('#task-name')).toBeVisible();
     await page.fill('#task-name', 'Book boiler service');
+    // The task-type radios sit under the collapsed "More options" section
+    await page.getByRole('button', { name: /more options/i }).click();
     // Flip radio to one-off
     await page.locator('input[name="task_type_ui"][value="one-off"]').check();
     await page.waitForTimeout(250);

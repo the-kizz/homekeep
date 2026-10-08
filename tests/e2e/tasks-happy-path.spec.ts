@@ -116,6 +116,9 @@ test('D-21 full happy path: signup -> home -> area -> cycle task -> anchored tas
   await page.fill('[name=name]', 'Quarterly air-con');
   await page.click('button:has-text("Quarterly")');
 
+  // Schedule mode lives under the collapsed "More options" section
+  await page.getByRole('button', { name: /more options/i }).click();
+
   // Switch to anchored mode
   await page.click('input[value="anchored"]');
 
