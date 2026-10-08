@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatInTimeZone } from 'date-fns-tz';
-import { addMonths, startOfMonth } from 'date-fns';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import {
   Sheet,
   SheetContent,
@@ -78,11 +77,20 @@ export function HorizonStrip({
 }) {
   const [openMonthKey, setOpenMonthKey] = useState<string | null>(null);
 
+  // Month boundaries come from the home's wall clock, not the host's:
+  // date-fns startOfMonth/addMonths work in host-local time, which put the
+  // strip a month off whenever host and home disagreed on the current month.
+  const [startYear, startMonth] = formatInTimeZone(now, timezone, 'yyyy-MM')
+    .split('-')
+    .map(Number);
   const months: { key: string; label: string; date: Date }[] = [];
   for (let i = 0; i < 12; i++) {
-    const d = startOfMonth(addMonths(now, i));
+    const monthIndex = startMonth - 1 + i;
+    const year = startYear + Math.floor(monthIndex / 12);
+    const key = `${year}-${String((monthIndex % 12) + 1).padStart(2, '0')}`;
+    const d = fromZonedTime(`${key}-01T00:00:00`, timezone);
     months.push({
-      key: formatInTimeZone(d, timezone, 'yyyy-MM'),
+      key,
       label: formatInTimeZone(d, timezone, 'MMM'),
       date: d,
     });
