@@ -60,7 +60,7 @@ vi.mock('@/lib/pocketbase-server', () => ({
       // it with an empty totalItems so the quota check always passes
       // in these existing TCSEM tests (they exercise a single task
       // create — no quota-related assertion here).
-      getList: (..._args: unknown[]) =>
+      getList: () =>
         Promise.resolve({ items: [], totalItems: 0, page: 1, perPage: 1, totalPages: 0 }),
     }),
   }),

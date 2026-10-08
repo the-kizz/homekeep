@@ -229,21 +229,18 @@ describe('batchCreateSeedTasks', () => {
     // size, simulating the real distribution behavior. This makes Test 3
     // (5-seed distribution) pass — successive invocations see an updated
     // load map and spread across distinct dates.
-    let call = 0;
     mockPlaceNextDue.mockImplementation(
-      (task, lastCompletion, load: Map<string, number>, now: Date) => {
+      (task, lastCompletion, load: Map<string, number>) => {
         // baseISO = lastCompletion.completed_at (synthetic); naturalIdeal =
         // baseISO + freq = firstIdeal. Spread placements by load map
-        // density — each subsequent call sees a denser map and shifts
-        // forward by (call % 7) days to distribute.
+        // density — each subsequent call sees a denser map and lands on
+        // a different -2..+2 day offset.
         const baseIso = (lastCompletion as { completed_at: string })
           .completed_at;
         const freq = (task as { frequency_days: number }).frequency_days;
         const natural = new Date(baseIso).getTime() + freq * 86400000;
         const spread = load.size; // grows as threading adds entries
         const offset = (spread % 5) - 2; // -2..+2 day spread
-        void now;
-        call += 1;
         return new Date(natural + offset * 86400000);
       },
     );

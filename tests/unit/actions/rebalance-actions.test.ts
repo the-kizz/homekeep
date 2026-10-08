@@ -176,11 +176,10 @@ function makeOverride(taskId: string): Override {
 
 // Deterministic mock placeNextDue — echoes baseIso + freq.
 // This makes A1 ordering + A7 idempotency testable with stable ISOs.
+// The real placeNextDue also takes (load, now); this echo ignores them.
 function deterministicPlaceNextDue(
   task: Task,
   lastCompletion: { completed_at: string } | null,
-  _load: Map<string, number>,
-  _now: Date,
 ): Date {
   const freq = task.frequency_days as number;
   const baseIso = lastCompletion?.completed_at ?? task.created;

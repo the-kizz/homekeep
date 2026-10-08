@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, useWatch, Controller, type Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { taskSchema, type TaskInput } from '@/lib/schemas/task';
 import type { ActionState } from '@/lib/schemas/auth';
@@ -152,7 +152,6 @@ export function TaskForm({
     register,
     control,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<TaskInput>({
     resolver: zodResolver(taskSchema),
@@ -214,8 +213,10 @@ export function TaskForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
-  const scheduleMode = watch('schedule_mode');
-  const freqValue = watch('frequency_days');
+  // useWatch rather than watch(): watch() defeats React Compiler memoisation.
+  const scheduleMode = useWatch({ control, name: 'schedule_mode' });
+  const freqValue = useWatch({ control, name: 'frequency_days' });
+  const activeFromMonth = useWatch({ control, name: 'active_from_month' });
 
   const serverFieldErrors = !state.ok ? state.fieldErrors : undefined;
   const serverFormError = !state.ok ? state.formError : undefined;
@@ -603,7 +604,7 @@ export function TaskForm({
                 control={control}
                 name="active_to_month"
                 render={({ field }) => {
-                  const fromValue = watch('active_from_month');
+                  const fromValue = activeFromMonth;
                   return (
                     <select
                       id="task-active-to"
@@ -639,7 +640,7 @@ export function TaskForm({
 
           {/* Advisory only: save still succeeds. */}
           {taskType === 'recurring' && scheduleMode === 'anchored' && (
-            <AnchoredWarningAlert watch={watch} />
+            <AnchoredWarningAlert control={control} />
           )}
 
           <div className="space-y-1.5">
@@ -687,8 +688,8 @@ export function TaskForm({
  *   4. STRICTLY > 50% of 6 projected cycles fall outside the active
  *      window (D-04 threshold: 4+ of 6 dormant).
  *
- * Projection math is bounded to 6 iterations (O(1)) — RHF watch()
- * subscriptions debounce re-renders (T-14-03 accept disposition).
+ * Projection math is bounded to 6 iterations (O(1)); useWatch re-renders
+ * only this alert when the watched fields change.
  *
  * The alert does NOT block save — it's purely advisory. The user
  * may legitimately want a "service heater on Nov 1 with Oct-Mar
@@ -697,15 +698,11 @@ export function TaskForm({
  * want the warning case to materialize. Save succeeds regardless
  * (SEAS-08 contract: warn, don't gate).
  */
-function AnchoredWarningAlert({
-  watch,
-}: {
-  watch: ReturnType<typeof useForm<TaskInput>>['watch'];
-}) {
-  const anchorDate = watch('anchor_date');
-  const fromMonth = watch('active_from_month');
-  const toMonth = watch('active_to_month');
-  const freq = watch('frequency_days');
+function AnchoredWarningAlert({ control }: { control: Control<TaskInput> }) {
+  const anchorDate = useWatch({ control, name: 'anchor_date' });
+  const fromMonth = useWatch({ control, name: 'active_from_month' });
+  const toMonth = useWatch({ control, name: 'active_to_month' });
+  const freq = useWatch({ control, name: 'frequency_days' });
 
   if (
     typeof anchorDate !== 'string' ||

@@ -94,7 +94,6 @@ describe('getActiveOverride', () => {
       message: 'not found',
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await getActiveOverride(pb as any, 't1');
     expect(result).toBeNull();
   });
@@ -103,7 +102,6 @@ describe('getActiveOverride', () => {
     const pb = makePbStub();
     pb._coll.getFirstListItem.mockRejectedValue(new Error('network down'));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await getActiveOverride(pb as any, 't1');
     expect(result).toBeNull();
   });
@@ -113,7 +111,6 @@ describe('getActiveOverride', () => {
     const row = makeOverride({ id: 'o-1', task_id: 't1' });
     pb._coll.getFirstListItem.mockResolvedValue(row);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await getActiveOverride(pb as any, 't1');
     expect(result).toEqual(row);
     expect(result?.id).toBe('o-1');
@@ -123,7 +120,6 @@ describe('getActiveOverride', () => {
     const pb = makePbStub();
     pb._coll.getFirstListItem.mockResolvedValue(makeOverride());
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await getActiveOverride(pb as any, 'task-xyz-123');
 
     // Exactly one filter call; bound tid param (NOT string-concat).
@@ -145,7 +141,6 @@ describe('getActiveOverridesForHome', () => {
     const pb = makePbStub();
     pb._coll.getFullList.mockRejectedValue(new Error('PB down'));
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = await getActiveOverridesForHome(pb as any, 'h1');
     expect(m).toBeInstanceOf(Map);
     expect(m.size).toBe(0);
@@ -155,7 +150,6 @@ describe('getActiveOverridesForHome', () => {
     const pb = makePbStub();
     pb._coll.getFullList.mockResolvedValue([]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = await getActiveOverridesForHome(pb as any, 'h1');
     expect(m.size).toBe(0);
   });
@@ -180,7 +174,6 @@ describe('getActiveOverridesForHome', () => {
     });
     pb._coll.getFullList.mockResolvedValue([newest, middle, oldest]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = await getActiveOverridesForHome(pb as any, 'h1');
     expect(m.size).toBe(1);
     expect(m.get('t1')?.id).toBe('o-newest');
@@ -211,7 +204,6 @@ describe('getActiveOverridesForHome', () => {
     // Sort '-created' so newest first (t1New, t2New, t1Old, t2Old).
     pb._coll.getFullList.mockResolvedValue([t1New, t2New, t1Old, t2Old]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const m = await getActiveOverridesForHome(pb as any, 'h1');
     expect(m.size).toBe(2);
     expect(m.get('t1')?.id).toBe('o-t1-new');
@@ -222,7 +214,6 @@ describe('getActiveOverridesForHome', () => {
     const pb = makePbStub();
     pb._coll.getFullList.mockResolvedValue([]);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await getActiveOverridesForHome(pb as any, 'h1');
 
     // Single filter call with the home-id parameterized binding.

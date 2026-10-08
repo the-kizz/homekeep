@@ -312,7 +312,6 @@ describe('Phase 13 integration — task-creation semantics (port 18101)', () => 
       dateCounts.set(iso, (dateCounts.get(iso) ?? 0) + 1);
     }
 
-    // eslint-disable-next-line no-console
     console.log(
       `[Scenario 2] 5-seed cohort placement distribution: ${Array.from(
         dateCounts.entries(),

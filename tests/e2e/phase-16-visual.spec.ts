@@ -177,7 +177,6 @@ async function createTaskViaPB(
   const created = await pb.collection('tasks').create(body);
   // Diagnostic: one line per created task so the first failed run
   // surfaces the PB storage state without a rerun.
-  // eslint-disable-next-line no-console
   console.log(
     `[p16-seed] "${seed.name}" id=${created.id} afm=${JSON.stringify(created.active_from_month)} atm=${JSON.stringify(created.active_to_month)} anc=${JSON.stringify(created.anchor_date)} sm=${JSON.stringify(created.schedule_mode)} fd=${JSON.stringify(created.frequency_days)}`,
   );

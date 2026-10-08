@@ -330,7 +330,6 @@ describe('Phase 12 integration — load-smoothing engine (port 18100)', () => {
 
     // Count clusters (ISO dates with ≥3 tasks).
     const clusters = Array.from(load.values()).filter((c) => c >= 3).length;
-    // eslint-disable-next-line no-console
     console.log(
       `[Rider 1] 30-task placement: ${clusters} clusters (threshold: 7)`,
     );
