@@ -47,7 +47,7 @@ describe('WelcomeCard', () => {
       "This week — what's coming up next.",
     );
     expect(region.textContent).toContain(
-      'Horizon — the year at a glance; darker months are busier.',
+      'Horizon — the year at a glance; a stronger tint means a busier month.',
     );
     const invite = screen.getByRole('link', { name: 'Invite someone' });
     expect(invite.getAttribute('href')).toBe('/h/home-1/settings');

@@ -201,13 +201,9 @@ export function HorizonStrip({
             </span>
             {/* Whitespace between flex items is not drawn (gap spaces
                 them) but keeps the sentence intact for screen readers. */}
-            {/* On the dark theme the tint reads lighter, not darker, so
-                the word follows the theme; the swatch carries it either way. */}
-            <span>
-              <span className="dark:hidden">Darker</span>
-              <span className="hidden dark:inline">Brighter</span> months are
-              busier
-            </span>{' '}
+            {/* The tint reads darker on light cards and brighter on dark
+                ones, so the copy names its strength, not its shade. */}
+            <span>Stronger tint means a busier month</span>{' '}
             <span aria-hidden="true">·</span>{' '}
             <span>⚖️ moved to balance the month</span>
           </p>

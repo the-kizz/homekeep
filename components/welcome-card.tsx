@@ -52,7 +52,7 @@ const LINES = [
   { Icon: CalendarDays, text: "This week — what's coming up next." },
   {
     Icon: CalendarRange,
-    text: 'Horizon — the year at a glance; darker months are busier.',
+    text: 'Horizon — the year at a glance; a stronger tint means a busier month.',
   },
 ] as const;
 

@@ -149,18 +149,12 @@ describe('HorizonStrip density tint (Phase 16 LVIZ-01, D-01, D-03)', () => {
     );
     const legend = container.querySelector('[data-horizon-legend]');
     expect(legend).toBeTruthy();
-    // Light theme shows "Darker", dark theme "Brighter" (the tint reads
-    // lighter on a dark card); jsdom applies no CSS, so strip the
-    // dark-only word to get the light-theme sentence.
-    const clone = legend!.cloneNode(true) as HTMLElement;
-    clone.querySelectorAll('.dark\\:inline').forEach((n) => n.remove());
-    expect(clone.textContent?.replace(/\s+/g, ' ')).toBe(
-      'Darker months are busier · ⚖️ moved to balance the month',
+    // One sentence for both themes: the tint is darker on light cards and
+    // brighter on dark ones, so the copy must not name a shade.
+    expect(legend!.textContent?.replace(/\s+/g, ' ')).toBe(
+      'Stronger tint means a busier month · ⚖️ moved to balance the month',
     );
-    expect(legend!.querySelector('.dark\\:hidden')?.textContent).toBe('Darker');
-    expect(legend!.querySelector('.dark\\:inline')?.textContent).toBe(
-      'Brighter',
-    );
+    expect(legend!.textContent).not.toMatch(/darker|brighter/i);
     expect(legend!.getAttribute('class') ?? '').toMatch(/text-xs/);
     expect(legend!.getAttribute('class') ?? '').toMatch(/text-muted-foreground/);
   });
