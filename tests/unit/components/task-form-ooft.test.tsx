@@ -97,3 +97,141 @@ describe('TaskForm OOFT toggle (Phase 15 OOFT-04, D-01..D-03)', () => {
     expect(screen.queryByLabelText(/^do by/i)).toBeNull();
   });
 });
+
+describe('TaskForm progressive disclosure', () => {
+  const openMore = () =>
+    fireEvent.click(screen.getByRole('button', { name: /more options/i }));
+
+  test('first screen shows name, area, frequency and who; the rest is collapsed', () => {
+    const { container } = render(
+      <TaskForm mode="create" homeId="home-1" areas={AREAS} />,
+    );
+    expect(screen.getByLabelText(/^name$/i)).toBeTruthy();
+    expect(screen.getByLabelText(/^area$/i)).toBeTruthy();
+    expect(
+      screen.getByLabelText(/^frequency$/i, { selector: 'input' }),
+    ).toBeTruthy();
+    expect(screen.getByTestId('task-assignee-select')).toBeTruthy();
+
+    const more = container.querySelector('[data-more-options]');
+    expect(more).toBeTruthy();
+    expect(more!.hasAttribute('hidden')).toBe(true);
+    // The task-type radios live inside the collapsed section.
+    expect(more!.contains(screen.getByLabelText(/^one-off$/i))).toBe(true);
+    expect(more!.contains(screen.getByLabelText(/^notes/i))).toBe(true);
+  });
+
+  test('frequency chips include daily and every 2 weeks', () => {
+    render(<TaskForm mode="create" homeId="home-1" areas={AREAS} />);
+    for (const label of [
+      'Daily',
+      'Weekly',
+      'Every 2 weeks',
+      'Monthly',
+      'Quarterly',
+      'Yearly',
+    ]) {
+      expect(screen.getByRole('button', { name: label })).toBeTruthy();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Every 2 weeks' }));
+    const freq = screen.getByLabelText(/^frequency$/i, {
+      selector: 'input',
+    }) as HTMLInputElement;
+    expect(freq.value).toBe('14');
+  });
+
+  test('opening More options then choosing One-off reveals the Do by input', () => {
+    const { container } = render(
+      <TaskForm mode="create" homeId="home-1" areas={AREAS} />,
+    );
+    openMore();
+    expect(
+      container.querySelector('[data-more-options]')!.hasAttribute('hidden'),
+    ).toBe(false);
+    fireEvent.click(screen.getByLabelText(/^one-off$/i));
+    expect(screen.getByLabelText(/^do by/i)).toBeTruthy();
+  });
+
+  test('schedule mode carries the plain-English helper', () => {
+    render(<TaskForm mode="create" homeId="home-1" areas={AREAS} />);
+    openMore();
+    expect(
+      screen.getByText(
+          'Cycle: counts from the last time you did it. Anchored: fixed calendar dates, e.g. "every 1 July".',
+      ),
+    ).toBeTruthy();
+  });
+
+  test('FormData field names are unchanged after expanding', () => {
+    const { container } = render(
+      <TaskForm mode="create" homeId="home-1" areas={AREAS} />,
+    );
+    openMore();
+    for (const name of [
+      'home_id',
+      'name',
+      'area_id',
+      'assigned_to_id',
+      'frequency_days',
+      'schedule_mode',
+      'last_done',
+      'active_from_month',
+      'active_to_month',
+      'notes',
+    ]) {
+      expect(container.querySelector(`[name="${name}"]`)).toBeTruthy();
+    }
+    fireEvent.click(screen.getByLabelText(/^one-off$/i));
+    expect(container.querySelector('input[name="due_date"]')).toBeTruthy();
+  });
+
+  test('collapsed fields still submit (notes are not dropped on save)', () => {
+    const { container } = render(
+      <TaskForm
+        mode="edit"
+        homeId="home-1"
+        areas={AREAS}
+        task={{
+          id: 't1',
+          home_id: 'home-1',
+          area_id: 'area-1',
+          name: 'Wipe benches',
+          frequency_days: 7,
+          schedule_mode: 'cycle',
+          anchor_date: null,
+          notes: '',
+        }}
+      />,
+    );
+    const form = container.querySelector('form')!;
+    const fd = new FormData(form);
+    expect(fd.get('schedule_mode')).toBe('cycle');
+    expect(fd.has('notes')).toBe(true);
+    expect(
+      container.querySelector('[data-more-options]')!.hasAttribute('hidden'),
+    ).toBe(true);
+  });
+
+  test('edit mode opens More options when a non-default value is set', () => {
+    const { container } = render(
+      <TaskForm
+        mode="edit"
+        homeId="home-1"
+        areas={AREAS}
+        task={{
+          id: 't1',
+          home_id: 'home-1',
+          area_id: 'area-1',
+          name: 'Service heater',
+          frequency_days: 365,
+          schedule_mode: 'anchored',
+          anchor_date: '2026-07-01',
+          notes: '',
+        }}
+      />,
+    );
+    expect(
+      container.querySelector('[data-more-options]')!.hasAttribute('hidden'),
+    ).toBe(false);
+  });
+});
