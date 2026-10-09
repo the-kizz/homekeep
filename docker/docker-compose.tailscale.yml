@@ -1,0 +1,41 @@
+# Tailscale variant: add a tailscale sidecar that puts homekeep on the tailnet.
+# Usage:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.tailscale.yml up -d
+# Requires:
+#   - TS_AUTHKEY set in .env (Reusable auth key from
+#     https://login.tailscale.com/admin/settings/keys)
+#   - MagicDNS + HTTPS enabled on the tailnet
+#     (https://login.tailscale.com/admin/dns)
+# Once up: HomeKeep is reachable at https://homekeep.<tailnet>.ts.net on any
+# tailscale-connected device.
+
+services:
+  homekeep:
+    # Share the tailscale sidecar's network namespace so the tailscale IP
+    # fronts the homekeep service directly. No host port is published.
+    network_mode: "service:tailscale"
+    ports: !reset []
+    # depends_on ensures the tailnet interface is up before Next.js binds.
+    depends_on:
+      - tailscale
+
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: homekeep-tailscale
+    restart: unless-stopped
+    hostname: homekeep
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY:?set TS_AUTHKEY in .env before using this variant}
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
+      - TS_EXTRA_ARGS=--advertise-tags=tag:container
+      - TS_SERVE_CONFIG=/config/serve.json
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+      - sys_module
+
+volumes:
+  tailscale_state:

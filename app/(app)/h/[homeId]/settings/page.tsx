@@ -1,0 +1,191 @@
+import Link from 'next/link';
+import { ChevronLeft } from 'lucide-react';
+import { redirect, notFound } from 'next/navigation';
+import { createServerClient } from '@/lib/pocketbase-server';
+import { assertOwnership } from '@/lib/membership';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { HomeForm } from '@/components/forms/home-form';
+import {
+  InviteLinkCard,
+  type PendingInvite,
+} from '@/components/invite-link-card';
+import { DeleteHomeButton } from '@/components/delete-home-button';
+
+/**
+ * /h/[homeId]/settings — owner-gated settings route (04-03 D-16).
+ *
+ * Sections:
+ *   1. Home details (name / address / timezone) via HomeForm mode="edit"
+ *   2. Invite a member (InviteLinkCard — createInvite + pending-invites list)
+ *   Links to the Scheduling and Notifications sub-pages.
+ *   3. Danger zone — Delete home (04-03)
+ *
+ * Non-owner access: redirect to /h/[homeId] (the home dashboard). We
+ * intentionally don't 403 — membership is fine, they just don't have
+ * permission to view settings. notFound() is reserved for genuinely
+ * bogus home ids (the getOne below).
+ */
+export default async function HomeSettingsPage({
+  params,
+}: {
+  params: Promise<{ homeId: string }>;
+}) {
+  const { homeId } = await params;
+  const pb = await createServerClient();
+
+  try {
+    await assertOwnership(pb, homeId);
+  } catch {
+    redirect(`/h/${homeId}`);
+  }
+
+  let home;
+  try {
+    home = await pb.collection('homes').getOne(homeId, {
+      fields: 'id,name,address,timezone',
+    });
+  } catch {
+    notFound();
+  }
+
+  // PB empty-date filter uses the empty string. Owner can list invites
+  // for their home (invites.listRule is owner-only).
+  //
+  // Phase 17 WR-01: homeId traces to Next.js routing (typed params) so
+  // the prior template-literal filter was never exploitable, but the
+  // pb.filter() parameter-binding pattern matches the rest of the
+  // codebase (lib/actions/rebalance.ts, lib/membership.ts) and is the
+  // "safe filter" convention per 02-04 anti-SQLi. Defense-in-depth.
+  const pendingInvitesRaw = await pb.collection('invites').getFullList({
+    filter: pb.filter('home_id = {:hid} && accepted_at = ""', {
+      hid: homeId,
+    }),
+    sort: '-created',
+    fields: 'id,token,expires_at,created',
+  });
+  const pendingInvites: PendingInvite[] = pendingInvitesRaw.map((i) => ({
+    id: i.id,
+    token: i.token as string,
+    expiresAt: i.expires_at as string,
+    created: i.created as string,
+  }));
+
+  const homeName = (home.name as string) ?? 'Home';
+
+  return (
+    <main className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-2xl">
+      <Button asChild variant="ghost" size="sm">
+        <Link href={`/h/${homeId}`}><ChevronLeft className="size-4" aria-hidden="true" />Back to {homeName}</Link>
+      </Button>
+
+      <header>
+        <h1 className="page-title">Settings</h1>
+        <p className="mt-1 text-sm text-muted-foreground">For {homeName}.</p>
+      </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Home details</CardTitle>
+          <CardDescription>
+            Name, address, and timezone. The timezone decides when each
+            day starts, so tasks land in the right band.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <HomeForm
+            mode="edit"
+            home={{
+              id: home.id,
+              name: (home.name as string) ?? '',
+              address: (home.address as string) ?? undefined,
+              timezone: (home.timezone as string) ?? 'UTC',
+            }}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Members</CardTitle>
+          <CardDescription>
+            Invite people to share this home or manage existing members.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Phase 9 UX audit: button hierarchy inside the Members
+              section. InviteLinkCard renders the primary action
+              ("Create invite link") in solid warm. "View members" is
+              a secondary navigation affordance — outline variant,
+              natural width, not full-bleed, so it doesn't visually
+              compete with the primary action above it. */}
+          <InviteLinkCard homeId={homeId} pendingInvites={pendingInvites} />
+          <div className="flex justify-start">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/h/${homeId}/members`}>View members</Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Phase 17 Plan 17-02 (REBAL-05): Scheduling sub-page link. The
+          actual Rebalance UI lives on /settings/scheduling so this
+          section stays thin — future household-wide scheduling controls
+          (auto-rebalance triggers, tolerance defaults) will land there
+          too (v1.2+). */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Scheduling</CardTitle>
+          <CardDescription>
+            Household-wide scheduling controls. Redistribute your
+            calendar when things start to feel bunched.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/h/${homeId}/settings/scheduling`}>
+              Open Scheduling settings
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>ntfy topic and which pushes you want.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/h/${homeId}/settings/notifications`}>
+              Open notification settings
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Danger zone: warm-brick tone via the tightened --destructive
+          token (globals.css, Phase 9). The 5% alpha background + 30%
+          border tone make the panel obviously 'hotter' than the
+          neutral cards above it without shouting pure red. */}
+      <Card className="border-destructive/30 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="text-destructive">Danger zone</CardTitle>
+          <CardDescription>
+            Deletes the home, its areas, and tasks for every member.
+            Irreversible.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DeleteHomeButton homeId={homeId} homeName={homeName} />
+        </CardContent>
+      </Card>
+    </main>
+  );
+}

@@ -1,0 +1,191 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+    # v1.2.1: bumped 25 -> 45 min. arm64 cross-build via QEMU emulation
+    # regularly finished right at the 25-min boundary; with E2E + tests
+    # + type-check + lint in front of it, jobs started racing the limit
+    # once the E2E suite grew past ~25 specs. Release workflow uses 60.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run typecheck
+
+      # Integration tests under tests/unit/*-integration.test.ts spawn disposable
+      # PocketBase instances against .pb/pocketbase. The binary is gitignored (31MB)
+      # and dev-pb.js downloads it on first local run; CI needs the same step.
+      - name: Cache PocketBase binary
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: .pb/pocketbase
+          key: pocketbase-0.37.1-${{ runner.os }}-${{ runner.arch }}
+      - name: Setup PocketBase
+        run: |
+          if [ ! -x .pb/pocketbase ]; then
+            mkdir -p .pb
+            PB_VERSION=0.37.1
+            ARCH=$([ "$(uname -m)" = "aarch64" ] && echo arm64 || echo amd64)
+            curl -sSL "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_linux_${ARCH}.zip" -o .pb/pb.zip
+            unzip -o .pb/pb.zip -d .pb/
+            chmod +x .pb/pocketbase
+          fi
+          .pb/pocketbase --version
+
+      - name: Unit tests
+        env:
+          TZ: UTC
+        run: npm run test
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: E2E tests
+        env:
+          # Phase 28+ CI exemption: E2E suite signs up 15+ users in parallel
+          # across test files; PB's 10/60s users:create and 20/60s
+          # authWithPassword buckets (Phase 25 RATE-02/05) block that volume.
+          # bootstrap_ratelimits.pb.js reads this env and skips rule setup
+          # entirely when true. Production deployments leave this unset.
+          DISABLE_RATE_LIMITS: "true"
+        run: npm run test:e2e
+
+      # v1.3 TESTFIX-05: flake-retry budget. playwright.config.ts runs
+      # CI with retries=2 to absorb genuine transient failures. This
+      # step parses the JSON report and fails the build if ANY retry
+      # was actually consumed — silent green-with-retries is the
+      # regression we're preventing. A clean PR has "0/N tests retried".
+      - name: Flake budget check (TESTFIX-05 — zero retries allowed on master)
+        if: always()
+        run: |
+          set -eu
+          REPORT=test-results/e2e-report.json
+          if [ ! -f "$REPORT" ]; then
+            echo "no JSON report at $REPORT (E2E step likely errored before writing). Skipping flake audit."
+            exit 0
+          fi
+          # Count any test whose .results[] array has length > 1 — that's
+          # a retry. Also count outright failures.
+          RESULT=$(python3 -c "
+          import json,sys
+          d=json.load(open('$REPORT'))
+          retried=failed=passed=0
+          def walk(suite):
+            global retried,failed,passed
+            for s in suite.get('suites',[]): walk(s)
+            for spec in suite.get('specs',[]):
+              for t in spec.get('tests',[]):
+                results=t.get('results',[])
+                if not results: continue
+                final=results[-1].get('status','')
+                if final=='passed': passed+=1
+                elif final=='failed': failed+=1
+                if len(results)>1 and final=='passed': retried+=1
+          for s in d.get('suites',[]): walk(s)
+          print(f'{passed}|{failed}|{retried}')
+          ")
+          PASSED=$(echo "$RESULT" | cut -d'|' -f1)
+          FAILED=$(echo "$RESULT" | cut -d'|' -f2)
+          RETRIED=$(echo "$RESULT" | cut -d'|' -f3)
+          echo "E2E outcome: passed=$PASSED failed=$FAILED retried-but-passed=$RETRIED"
+          if [ "$FAILED" -gt 0 ]; then
+            echo "FAIL: $FAILED E2E test(s) failed outright."
+            exit 1
+          fi
+          if [ "$RETRIED" -gt 0 ]; then
+            echo "FAIL: $RETRIED E2E test(s) required retry to pass — flake budget is zero on master."
+            echo "Either fix the flake at its source or document the known-flake in the test file."
+            exit 1
+          fi
+          echo "OK: zero retries consumed."
+
+      - name: Set up Buildx (for docker build sanity)
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      # NOTE: --load requires single-platform; see release.yml for multi-arch GHCR push
+      - name: Docker build (amd64; --load for local-daemon inspection)
+        run: docker buildx build --platform linux/amd64 --load -t homekeep:ci -f docker/Dockerfile .
+
+      - name: Image size check (<320MB per INFR-03)
+        run: sh scripts/check-image-size.sh homekeep:ci
+
+      - name: Regression check - no unexpected NEXT_PUBLIC_ baked into client bundle (Pitfall #3)
+        run: |
+          set -e
+          # Pitfall #3 banned ALL NEXT_PUBLIC_* to catch accidentally-leaked
+          # secrets. v1.2.1 PATCH2-05 introduced NEXT_PUBLIC_PASSWORD_POLICY
+          # which is intentionally client-readable (the zod schema consults
+          # it for simple|strong password-policy branching). Allow-list
+          # known intentional public vars; fail on anything else.
+          ALLOWED='NEXT_PUBLIC_PASSWORD_POLICY'
+          LEAK=$(docker run --rm --entrypoint sh homekeep:ci -c 'grep -rIhoE NEXT_PUBLIC_[A-Z0-9_]+ /app/.next 2>/dev/null | sort -u || true')
+          UNEXPECTED=''
+          for var in $LEAK; do
+            case "$var" in
+              $ALLOWED) ;;
+              *) UNEXPECTED="$UNEXPECTED $var" ;;
+            esac
+          done
+          if [ -n "$UNEXPECTED" ]; then
+            echo "FAIL: unexpected NEXT_PUBLIC_* in built bundle:"
+            echo "$UNEXPECTED" | tr ' ' '\n' | sed '/^$/d'
+            echo "(Allow-listed: $ALLOWED)"
+            exit 1
+          fi
+          echo "OK: only allow-listed NEXT_PUBLIC_* present (allowed: $ALLOWED)"
+
+      - name: Regression check - .env is gitignored
+        run: |
+          # If someone accidentally committed .env, this catches it
+          if git ls-files | grep -E '^\.env$'; then
+            echo "FAIL: .env is tracked by git"
+            exit 1
+          fi
+          echo "OK: .env is not tracked"
+
+  # arm64 build validation on a native arm runner. Previously a QEMU
+  # cross-build inside the main job; it pushed the job past its 45-minute
+  # limit once the dependency set grew (2026-10-09). The release workflow
+  # builds arm64 the same native way.
+  arm64-build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Docker build (arm64, native; no push)
+        run: docker buildx build --platform linux/arm64 --output type=image,push=false -f docker/Dockerfile .

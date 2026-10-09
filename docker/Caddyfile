@@ -1,0 +1,71 @@
+{
+	auto_https off
+	admin off
+}
+
+:3000 {
+	# Phase 24 HDR-02: Mirror security headers at the Caddy layer (defense-in-depth).
+	# next.config.ts also emits these; if Next is ever replaced or skipped, Caddy
+	# still serves a hardened response. Placed BEFORE handle blocks so the header
+	# directive applies to every downstream response. HSTS lives in Caddyfile.prod
+	# (external TLS terminator) — omitted here because :3000 is internal HTTP.
+	header {
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://ntfy.sh https://*.ntfy.sh; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+		-Server
+		-X-Powered-By
+	}
+
+	# Next.js API routes — explicit allow-list before the PB catch-all.
+	# /api/health (Phase 1 INFR-05), /api/csp-report (Phase 24 HDR-03),
+	# /api/admin/* (Phase 6 scheduler + future admin-auth actions),
+	# /api/demo/* (Phase 26 DEMO-02 session seeder).
+	handle /api/health {
+		reverse_proxy localhost:3001
+	}
+	handle /api/csp-report {
+		reverse_proxy localhost:3001
+	}
+	handle /api/admin/* {
+		reverse_proxy localhost:3001
+	}
+	handle /api/demo/* {
+		reverse_proxy localhost:3001
+	}
+
+	# Everything else under /api/* → PocketBase (collections, auth, etc.)
+	handle /api/* {
+		reverse_proxy localhost:8090 {
+			flush_interval -1
+		}
+	}
+
+	# Phase 22 HOTFIX-01: PocketBase admin UI (/_/) blocked from public by
+	# default. PB admin login is a fingerprint + credential-spray target
+	# even when rate-limited. Return 404 so the path looks "not installed".
+	#
+	# Operators with admin need:
+	#   (a) `docker exec homekeep pocketbase superuser ...` from the host
+	#   (b) temporarily set ALLOW_PUBLIC_ADMIN_UI=true in docker/.env
+	#       (rotate back promptly — don't leave open on public deploys)
+	#
+	# Also blocks /api/_superusers and /api/collections/_superusers/* which
+	# are PB's superuser auth endpoints — same attack surface.
+	@admin_path path /_/* /api/_superusers /api/_superusers/* /api/collections/_superusers/*
+	handle @admin_path {
+		@admin_allowed expression `{env.ALLOW_PUBLIC_ADMIN_UI} == "true"`
+		handle @admin_allowed {
+			reverse_proxy localhost:8090 {
+				flush_interval -1
+			}
+		}
+		respond 404
+	}
+
+	handle {
+		reverse_proxy localhost:3001
+	}
+}

@@ -1,0 +1,48 @@
+# External Caddy reverse proxy for the Caddy compose variant.
+# DOMAIN is injected via compose env; Caddy auto-obtains a Let's Encrypt
+# cert on first hit (ACME HTTP-01 on port 80, then serves HTTPS on 443).
+# Internal homekeep container still does its own /api / /_/ routing via
+# docker/Caddyfile -- this file is the EXTERNAL terminator only.
+{
+	email {$CADDY_EMAIL:admin@example.com}
+}
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Phase 24 HDR-02: Mirror security headers at the external TLS terminator.
+	# next.config.ts + internal docker/Caddyfile also emit these — triple layer
+	# ensures responses stay hardened even if one layer is bypassed / misconfigured.
+	# This external block includes HSTS (D-03, D-09) because it is the only layer
+	# that sees real HTTPS clients; internal :3000 is plain HTTP.
+	header {
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://ntfy.sh https://*.ntfy.sh; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; report-uri /api/csp-report"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+		-Server
+		-X-Powered-By
+	}
+
+	# Phase 22 HOTFIX-01: block PB admin UI at the edge as defense-in-depth.
+	# The internal Caddyfile also blocks these paths; this is belt+suspenders
+	# so the block survives even if the internal Caddyfile ever changes.
+	@admin_path path /_/* /api/_superusers /api/_superusers/* /api/collections/_superusers/*
+	handle @admin_path {
+		@admin_allowed expression `{env.ALLOW_PUBLIC_ADMIN_UI} == "true"`
+		handle @admin_allowed {
+			reverse_proxy homekeep:3000 {
+				flush_interval -1
+			}
+		}
+		respond 404
+	}
+
+	reverse_proxy homekeep:3000 {
+		# flush_interval -1 preserves SSE/streaming behaviour; matches
+		# the internal docker/Caddyfile policy for /api/* and /_/* paths.
+		flush_interval -1
+	}
+}

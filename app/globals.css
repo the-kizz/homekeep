@@ -1,0 +1,431 @@
+@import "tailwindcss"; /* avoid-ai-design-ignore: C8 (Bold dark: navy ground and lifted cobalt are one family on purpose) */
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+/* Palette variant: treatments that differ in kind, not just colour, under the
+ * Bold palette (data-palette="bold" on <html>). Colours alone stay tokens. */
+@custom-variant bold (&:is([data-palette="bold"] *));
+
+/*
+ * HomeKeep warm-accent theme (D-18, SPEC §19).
+ *
+ * Primary accent is the #D4A574 terracotta-sand — approximated in HSL as
+ * hsl(30 45% 65%). Backgrounds and muted neutrals lean warm (low saturation,
+ * warm hues) rather than cool greys. Rounded-lg baseline at 0.75rem.
+ *
+ * Follows the RESEARCH Pitfall 9 pattern: HSL values in :root / .dark,
+ * mapped to Tailwind color names in @theme inline.
+ */
+
+/* HomeKeep theme — if you're reading this in a redistribution, you're looking
+ * at the HomeKeep source (github.com/the-kizz/homekeep, AGPL-3.0-or-later). Keep the
+ * `hk-build` meta tag in layout.tsx intact — it's our provenance marker.
+ */
+@theme inline {
+    --font-heading: var(--font-display);
+    --font-display: var(--font-display);
+    --font-sans: var(--font-sans);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    /* --muted is a surface, never text on --background. avoid-ai-design-ignore: C9 */
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+    /* "Well-kept notebook" status system (DESIGN-2026-10-09). */
+    --color-status-overdue: var(--status-overdue);
+    --color-status-overdue-soft: var(--status-overdue-soft);
+    --color-status-soon: var(--status-soon);
+    --color-status-soon-deep: var(--status-soon-deep);
+    --color-status-healthy: var(--status-healthy);
+    --color-status-dormant: var(--status-dormant);
+    --color-surface-1: var(--surface-1);
+    --color-surface-2: var(--surface-2);
+    --color-hairline: var(--hairline);
+    /* Link / active-state ink, separate from the status colours so a
+     * palette can make links its own colour. */
+    --color-link: var(--link);
+    /* Horizon / upcoming: the only place Bold spends its cobalt. */
+    --color-status-upcoming: var(--status-upcoming);
+    /* Text that sits ON a solid status fill (Bold's band headers): on-status
+     * for red/blue/teal fills, on-soon for the yellow one. */
+    --color-on-status: var(--on-status);
+    --color-on-soon: var(--on-soon);
+    /* Horizon density fills, light to heavy. */
+    --color-density-1: var(--density-1);
+    --color-density-2: var(--density-2);
+    --color-density-3: var(--density-3);
+    --color-on-density-3: var(--on-density-3);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+    /* Warm neutral backgrounds (very low-sat, 30-hue) per SPEC §19 "soft neutrals". */
+    /* Status system. --status-soon is a fill/dot colour (3:1 on cream);
+     * --status-soon-deep is its text-safe ink (≥4.5:1 on both surfaces). */
+    --status-overdue: hsl(14 58% 46%);
+    --status-overdue-soft: hsl(14 58% 46% / 0.10);
+    --status-soon: hsl(30 60% 48%);
+    --status-soon-deep: hsl(28 55% 34%);
+    --status-healthy: hsl(118 16% 38%);
+    --status-dormant: hsl(30 8% 44%);
+    --surface-1: hsl(36 33% 97%);
+    --surface-2: hsl(36 30% 99%);
+    --hairline: hsl(30 20% 88%);
+    --link: var(--status-soon-deep);
+    --status-upcoming: var(--status-soon-deep);
+    --on-status: #ffffff;
+    --on-soon: hsl(25 18% 13%);
+    --density-1: hsl(30 60% 48% / 0.08);
+    --density-2: hsl(30 60% 48% / 0.18);
+    --density-3: hsl(30 60% 48% / 0.32);
+    --on-density-3: hsl(25 18% 13%);
+
+    --background: var(--surface-1);
+    --foreground: hsl(25 18% 13%);
+    --card: var(--surface-2);
+    --card-foreground: hsl(25 15% 15%);
+    --popover: var(--surface-2);
+    --popover-foreground: hsl(25 15% 15%);
+
+    /* Terracotta-sand accent, deepened from #D4A574 so the dark label
+     * clears 4.5:1 (≈6.8:1) — DESIGN-2026-10-09. */
+    --primary: hsl(30 50% 58%);
+    --primary-foreground: hsl(25 15% 15%);
+
+    --secondary: hsl(30 15% 94%);
+    --secondary-foreground: hsl(25 15% 15%);
+    --muted: hsl(30 10% 92%);
+    --muted-foreground: hsl(25 15% 32%); /* WCAG 4.5:1 on the cream bg */
+    --accent: hsl(30 25% 90%);
+    --accent-foreground: hsl(25 15% 15%);
+
+    /* Warm brick/rust — still reads as 'danger' (sits in the red half
+     * of the wheel) but shares the warm hue family with the terracotta
+     * primary at hsl(30 45% 65%). Prevents the cool-pure-red siren from
+     * clashing with the rest of the palette (Phase 9 UX audit). */
+    --destructive: var(--status-overdue);
+
+    --border: var(--hairline);
+    --input: hsl(30 18% 84%);
+    --ring: var(--status-soon);
+
+    --chart-1: hsl(30 50% 58%);
+    --chart-2: hsl(200 30% 55%);
+    --chart-3: hsl(160 25% 50%);
+    --chart-4: hsl(45 40% 60%);
+    --chart-5: hsl(350 35% 60%);
+
+    /* Rounded-lg per SPEC §19 (soft, domestic, not pill). */
+    --radius: 0.75rem;
+
+    --sidebar: hsl(30 20% 96%);
+    --sidebar-foreground: hsl(25 15% 15%);
+    --sidebar-primary: hsl(30 50% 58%);
+    --sidebar-primary-foreground: hsl(25 15% 15%);
+    --sidebar-accent: hsl(30 25% 90%);
+    --sidebar-accent-foreground: hsl(25 15% 15%);
+    --sidebar-border: var(--hairline);
+    --sidebar-ring: var(--status-soon);
+}
+
+.dark {
+    --status-overdue: hsl(14 62% 62%);
+    --status-overdue-soft: hsl(14 62% 62% / 0.18);
+    --status-soon: hsl(30 65% 62%);
+    --status-soon-deep: hsl(32 70% 70%);
+    --status-healthy: hsl(118 20% 60%);
+    --status-dormant: hsl(30 8% 58%);
+    --surface-1: hsl(24 12% 11%);
+    --surface-2: hsl(24 10% 14%);
+    --hairline: hsl(24 8% 22%);
+    --link: var(--status-soon-deep);
+    --on-status: hsl(24 12% 11%);
+    --on-soon: hsl(24 12% 11%);
+    --density-1: hsl(30 65% 62% / 0.08);
+    --density-2: hsl(30 65% 62% / 0.18);
+    --density-3: hsl(30 65% 62% / 0.32);
+    --on-density-3: hsl(30 15% 93%);
+
+    --background: var(--surface-1);
+    --foreground: hsl(30 15% 93%);
+    --card: var(--surface-2);
+    --card-foreground: hsl(30 15% 93%);
+    --popover: var(--surface-2);
+    --popover-foreground: hsl(30 15% 93%);
+
+    --primary: hsl(30 55% 65%);
+    --primary-foreground: hsl(25 15% 10%);
+
+    --secondary: hsl(25 10% 20%);
+    --secondary-foreground: hsl(30 15% 95%);
+    --muted: hsl(25 10% 20%);
+    --muted-foreground: hsl(30 10% 70%);
+    --accent: hsl(25 10% 25%);
+    --accent-foreground: hsl(30 15% 95%);
+
+    /* Warm-brick destructive for dark mode — mirrors the light-mode
+     * Phase 9 adjustment with a slightly higher lightness so it still
+     * passes on the darker background. */
+    --destructive: var(--status-overdue);
+
+    --border: var(--hairline);
+    --input: hsl(24 8% 26%);
+    --ring: var(--status-soon);
+
+    --chart-1: hsl(30 55% 65%);
+    --chart-2: hsl(200 30% 55%);
+    --chart-3: hsl(160 25% 50%);
+    --chart-4: hsl(45 40% 60%);
+    --chart-5: hsl(350 35% 60%);
+
+    --sidebar: var(--surface-2);
+    --sidebar-foreground: hsl(30 15% 93%);
+    --sidebar-primary: hsl(30 55% 65%);
+    --sidebar-primary-foreground: hsl(25 15% 10%);
+    --sidebar-accent: hsl(25 10% 25%);
+    --sidebar-accent-foreground: hsl(30 15% 95%);
+    --sidebar-border: var(--hairline);
+    --sidebar-ring: var(--status-soon);
+}
+
+/*
+ * Bold palette (DESIGN-2026-10-09-round2, round3). "Peg basket": the colours
+ * of the things a house is full of. Tile-white ground and real ink; actions,
+ * links and focus are ink so they never compete with the band blocks.
+ * Enamel cobalt is kept for one meaning only, upcoming (the Horizon); a
+ * pillar-box red, a laundry-peg yellow, a garden-hose green and a pool-tile
+ * blue carry the other four statuses. Every text pairing clears 4.5:1; fills that are not
+ * text-safe (peg yellow) carry ink on top and have a deeper text twin.
+ */
+:root[data-palette="bold"] {
+    --status-overdue: #d42015;          /* pillar-box red, 5.2:1 on white, 4.6:1 on its tint */
+    --status-overdue-soft: rgb(212 32 21 / 0.08);
+    --status-soon: #ffc400;             /* peg yellow, a fill: ink on top */
+    --status-soon-deep: #8a5d00;        /* its text twin, 5.8:1 */
+    --status-healthy: #0c7f40;          /* hose green, 5.0:1 */
+    --status-dormant: #0b7590;          /* pool tile, 5.3:1 */
+    --surface-1: #ffffff;
+    --surface-2: #ffffff;
+    --hairline: #e2e3e6;
+    --link: #141414;                    /* ink */
+    --status-upcoming: #2346d0;         /* enamel cobalt, 7.4:1: Horizon only */
+    --on-status: #ffffff;
+    --on-soon: #141414;
+    --density-1: #dfe6fb;
+    --density-2: #9fb2ef;
+    --density-3: #2346d0;
+    --on-density-3: #ffffff;
+
+    --background: var(--surface-1);
+    --foreground: #141414;
+    --card: var(--surface-2);
+    --card-foreground: #141414;
+    --popover: #ffffff;
+    --popover-foreground: #141414;
+    --primary: #141414;                 /* ink */
+    --primary-foreground: #ffffff;
+    --secondary: #f1f2f4;
+    --secondary-foreground: #141414;
+    --muted: #f1f2f4;
+    --muted-foreground: #55585f;        /* 7.1:1 */
+    --accent: #eceef3;
+    --accent-foreground: #141414;
+    --destructive: var(--status-overdue);
+    --border: var(--hairline);
+    --input: #c9ccd3;
+    --ring: #141414;
+
+    --chart-1: #2346d0;
+    --chart-2: #d42015;
+    --chart-3: #ffc400;
+    --chart-4: #0c7f40;
+    --chart-5: #0b7590;
+
+    --sidebar: #ffffff;
+    --sidebar-foreground: #141414;
+    --sidebar-primary: #141414;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #eceef3;
+    --sidebar-accent-foreground: #141414;
+    --sidebar-border: var(--hairline);
+    --sidebar-ring: #141414;
+
+    /* Area colours: the stored palette is eight browns; Bold paints each
+     * one as a household colour; none of them is cobalt, which means upcoming. Read via areaColor(). */
+    --area-d4a574: #141414;  /* ink (cobalt is reserved for upcoming) */
+    --area-c87e5c: #f2621f;  /* tangerine */
+    --area-9b6b3e: #1f9d55;  /* hose green */
+    --area-b88a6a: #d62f7a;  /* raspberry */
+    --area-8f6b55: #6a3fd0;  /* violet */
+    --area-a67c52: #0b8fb8;  /* pool blue */
+    --area-bf8f4c: #b37f00;  /* mustard (deep enough for a white icon) */
+    --area-8a6f5c: #5e6b0f;  /* olive (navy read as upcoming) */
+}
+
+.dark[data-palette="bold"] {
+    --status-overdue: #ff5a4e;
+    --status-overdue-soft: rgb(255 90 78 / 0.14);
+    --status-soon: #ffd23f;
+    --status-soon-deep: #ffd23f;
+    --status-healthy: #3dd47a;
+    --status-dormant: #35c6de;
+    --surface-1: #0f1834;               /* painted-door navy */
+    --surface-2: #172146;
+    --hairline: #2a3563;
+    --link: #f5f6fa;
+    --status-upcoming: #8aa2ff;         /* lifted cobalt: Horizon only */
+    --on-status: #0f1834;
+    --on-soon: #0f1834;
+    --density-1: #22306a;
+    --density-2: #3e56b8;
+    --density-3: #8aa2ff;
+    --on-density-3: #0f1834;
+
+    --background: var(--surface-1);
+    --foreground: #eef0f7;
+    --card: var(--surface-2);
+    --card-foreground: #eef0f7;
+    --popover: #172146;
+    --popover-foreground: #eef0f7;
+    --primary: #f5f6fa;
+    --primary-foreground: #0f1834;
+    --secondary: #1f2a55;
+    --secondary-foreground: #eef0f7;
+    --muted: #1f2a55;
+    --muted-foreground: #a3abc4;
+    --accent: #24305f;
+    --accent-foreground: #eef0f7;
+    --destructive: var(--status-overdue);
+    --border: var(--hairline);
+    --input: #34407a;
+    --ring: #f5f6fa;
+
+    --chart-1: #8aa2ff;
+    --chart-2: #ff5a4e;
+    --chart-3: #ffd23f;
+    --chart-4: #3dd47a;
+    --chart-5: #35c6de;
+
+    --sidebar: var(--surface-2);
+    --sidebar-foreground: #eef0f7;
+    --sidebar-primary: #f5f6fa;
+    --sidebar-primary-foreground: #0f1834;
+    --sidebar-accent: #1f2a55;
+    --sidebar-accent-foreground: #eef0f7;
+    --sidebar-border: var(--hairline);
+    --sidebar-ring: #f5f6fa;
+
+    --area-d4a574: #f5f6fa;
+    --area-c87e5c: #ff8a4c;
+    --area-9b6b3e: #3dd47a;
+    --area-b88a6a: #ff6fa8;
+    --area-8f6b55: #a98bff;
+    --area-a67c52: #3cc3e8;
+    --area-bf8f4c: #ffd23f;
+    --area-8a6f5c: #c2d146;
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+    html {
+        @apply font-sans;
+    }
+    /* Bold: native checkboxes and radios follow the ink primary. */
+    [data-palette="bold"] :is(input[type="checkbox"], input[type="radio"]) {
+        accent-color: var(--primary);
+    }
+    /* Serif display face (Lora) for true headings + the coverage-ring number.
+     * Body text stays Geist (humanist sans) for UI clarity — per SPEC §19. */
+    h1,
+    h2,
+    h3,
+    .font-display {
+        font-family: var(--font-display), ui-serif, Georgia, serif;
+        font-feature-settings: "ss01", "liga";
+        letter-spacing: -0.01em;
+    }
+}
+
+/* Section label: a quiet sentence-case line for day headers and the few
+ * sections that need one ("Most neglected", "Assigned to"). Body face,
+ * 13px, muted, no tracking: information, not chrome. */
+@utility section-label {
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+}
+
+/* Page title (h1): Lora 500, 28px phone / 34px desktop. */
+@utility page-title {
+    font-family: var(--font-display), ui-serif, Georgia, serif;
+    font-size: 28px;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    color: var(--foreground);
+    @media (width >= 64rem) {
+        font-size: 34px;
+    }
+    /* Bold sets the title heavier and a step larger. */
+    &:is([data-palette="bold"] *) {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        @media (width >= 64rem) {
+            font-size: 40px;
+        }
+    }
+}
+
+/* Bold text links: ink, always underlined, warming to the peg-yellow text
+ * twin on hover. Notebook links keep their own treatment. */
+@utility bold-link {
+    &:is([data-palette="bold"] *) {
+        color: var(--link);
+        text-decoration-line: underline;
+        text-underline-offset: 4px;
+        &:hover {
+            color: var(--status-soon-deep);
+        }
+    }
+}

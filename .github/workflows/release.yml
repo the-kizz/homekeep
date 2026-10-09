@@ -1,0 +1,208 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write  # create GitHub Release on tag push
+  packages: write
+  id-token: write  # OIDC token for cosign keyless signing
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+# Each platform builds natively on its own runner (arm64 on GitHub's free
+# ubuntu-24.04-arm runners) and pushes by digest. A merge job then stitches
+# the per-platform images into one manifest list, tags it, signs it and
+# creates the GitHub Release. Building arm64 under QEMU emulation on an
+# amd64 runner took over an hour and timed out (2026-10-09).
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Platform slug
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        run: echo "PLATFORM_PAIR=${PLATFORM//\//-}" >> "$GITHUB_ENV"
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (labels)
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=release-${{ env.PLATFORM_PAIR }}
+          cache-to: type=gha,mode=max,scope=release-${{ env.PLATFORM_PAIR }}
+          # BuildKit emits an SPDX SBOM + SLSA provenance as OCI attestations
+          # on each per-platform image; the merge below preserves them.
+          sbom: true
+          provenance: mode=max
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          build-args: |
+            PB_VERSION=0.37.1
+            S6_OVERLAY_VERSION=3.2.2.0
+            HK_BUILD_ID=hk-${{ github.sha }}
+
+      - name: Export digest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download digests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Extract metadata (tags)
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          # Take manual control of :latest so it only applies to stable tags.
+          flavor: |
+            latest=false
+          tags: |
+            # Exact version: v1.0.0 -> 1.0.0, v1.0.0-rc1 -> 1.0.0-rc1
+            type=semver,pattern={{version}}
+            # Minor pin (stable only): v1.2.3 -> 1.2; RC tags skipped via match-prefix
+            type=semver,pattern={{major}}.{{minor}},enable=${{ !contains(github.ref_name, '-') }}
+            # Major pin (stable only): v1.2.3 -> 1
+            type=semver,pattern={{major}},enable=${{ !contains(github.ref_name, '-') }}
+            # :latest only for stable releases (no -rc / -beta / -alpha suffix)
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-') }}
+            # :rc channel auto-updates to the most recent release candidate
+            type=raw,value=rc,enable=${{ contains(github.ref_name, '-rc') }}
+            # :beta channel auto-updates to the most recent beta
+            type=raw,value=beta,enable=${{ contains(github.ref_name, '-beta') }}
+
+      - name: Create manifest list and push tags
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'ghcr.io/${{ github.repository }}@sha256:%s ' *)
+
+      - name: Resolve manifest digest
+        id: digest
+        run: |
+          DIGEST=$(docker buildx imagetools inspect "ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}" --format '{{ json .Manifest }}' | jq -r .digest)
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+          echo "Manifest list digest: ${DIGEST}"
+
+      # Cosign keyless signing via GitHub OIDC. Signature is bound to the
+      # workflow identity (repo + workflow file + ref). Verify with:
+      #   cosign verify ghcr.io/the-kizz/homekeep:<tag> \
+      #     --certificate-identity-regexp "^https://github.com/the-kizz/homekeep/.github/workflows/release.yml@.+" \
+      #     --certificate-oidc-issuer https://token.actions.githubusercontent.com
+      - name: Install cosign
+        uses: sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003 # v4.1.1
+
+      - name: Sign image with cosign
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: cosign sign --yes "ghcr.io/${{ github.repository }}@${DIGEST}"
+
+      - name: Verify signature
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        run: |
+          cosign verify "ghcr.io/${{ github.repository }}@${DIGEST}" \
+            --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/release.yml@.+' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+      - name: Verify multi-arch manifest
+        env:
+          DIGEST: ${{ steps.digest.outputs.digest }}
+        # Semver-stripped tag from metadata-action (e.g. '1.0.0-rc1', not 'v1.0.0-rc1').
+        # `cosign tree` prints the .sig and attestations attached to the digest.
+        run: |
+          sh scripts/check-multiarch.sh ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+          cosign tree "ghcr.io/${{ github.repository }}@${DIGEST}"
+
+      # Auto-create a GitHub Release for every pushed tag. The annotated
+      # tag message becomes the release body (default body on lightweight
+      # tags). `-rc` / `-beta` / `-alpha` tags are flagged prerelease so
+      # they don't steal the "Latest" badge from the most recent stable.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # v2.3.2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          make_latest: ${{ !contains(github.ref_name, '-') && 'true' || 'false' }}
+          body: |
+            Multi-arch image (`linux/amd64`, `linux/arm64`) published to GHCR:
+            `ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}`
+
+            Supply-chain attestations:
+            - **Cosign signature** (keyless, GitHub OIDC), verified in the release workflow
+            - **SBOM** (SPDX, OCI attestation per platform)
+            - **SLSA provenance** (`mode=max`)
+
+            See `SECURITY.md` and `docs/deployment-hardening.md` for verification and operator guidance.
