@@ -120,7 +120,6 @@ test('LOAD-13 perf: 100-task placement completes in <100ms', () => {
   // Log for observability when running standalone — not asserted.
   // Expected range 2-8ms on CI; 100ms is 12-50× headroom.
   if (process.env.PERF_LOG === '1') {
-    // eslint-disable-next-line no-console
     console.log(`[LOAD-13] elapsed=${elapsed.toFixed(2)}ms (budget <100ms)`);
   }
 });

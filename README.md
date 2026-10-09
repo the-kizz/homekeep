@@ -44,9 +44,9 @@ Plus: fixed a silent `Secure` cookie bug on LAN-HTTP deploys (signup succeeded b
 
 No new user-facing features; every change tightens the attack surface or the operator-facing security posture. Ship-safe for public internet exposure (with `docs/deployment-hardening.md`).
 
-- **Cosign-signed images.** Every `ghcr.io/the-kizz/homekeep:*` tag is signed via GitHub OIDC keyless. No long-lived keys; the signature is bound to the exact workflow that built it. Verify with:
+- **Cosign-signed images.** Release tags from v1.2.0 are signed via GitHub OIDC keyless. No long-lived keys; the signature is bound to the exact workflow that built it. v1.3.0 was published without a signature; verify `1.2.1`, or any tag ≥ the next release, with the command below:
   ```bash
-  cosign verify ghcr.io/the-kizz/homekeep:latest \
+  cosign verify ghcr.io/the-kizz/homekeep:1.2.1 \
     --certificate-identity-regexp '^https://github.com/the-kizz/homekeep/.github/workflows/release.yml@.+' \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com
   ```
@@ -142,8 +142,8 @@ By Area, Person, History, coverage ring, early-completion guard, cascading assig
 - Zod + react-hook-form, @dnd-kit for drag-to-reorder
 - node-cron for the hourly scheduler, ntfy for push
 - s6-overlay supervises Caddy + PocketBase + Next.js inside one container
-- Vitest (unit) + Playwright (E2E); **678 unit + 24 E2E tests** (v1.2.1)
-- **Cosign** keyless image signing + **SPDX SBOM** + **SLSA-3 provenance** on every GHCR push
+- Vitest (unit) + Playwright (E2E); **600+ unit/integration tests and a Playwright E2E suite**
+- **Cosign** keyless image signing + **SPDX SBOM** + **SLSA-3 provenance** on release tags
 
 ## Quickstart
 
@@ -157,6 +157,8 @@ docker run -d -p 3000:3000 \
   --name homekeep --restart unless-stopped \
   ghcr.io/the-kizz/homekeep:latest
 ```
+
+> The `./data` folder must be writable by uid 1000 (the container repairs ownership at boot when it can; if you see `permission denied` in `docker logs`, run `sudo chown -R 1000:1000 ./data`). This applies when you bind-mount a host folder such as `-v ./data:/app/data`; the named volume above needs nothing.
 
 Open <http://localhost:3000>, sign up, create a home. The PocketBase admin UI lives at `/_/` — on first boot check the container logs for an installer link.
 
@@ -240,7 +242,8 @@ Minimum:
 | `ADMIN_SCHEDULER_TOKEN` | no | — | 32+ char string. Lets you manually trigger the scheduler via `POST /api/admin/run-scheduler`. |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | no | — | Enables password-reset + (future) email notifications. If unset, password reset no-ops gracefully. |
 | `HOST_PORT` | no | `3000` | Host-side port when using docker-compose. |
-| `TZ` | no | `Etc/UTC` | Host timezone. Per-home timezone still comes from the home record. |
+| `TZ` | no | `Etc/UTC` | Host timezone (affects log timestamps). Per-home timezone still comes from the home record; scheduling math is timezone-aware regardless. |
+| `PB_URL` | no (advanced) | `http://127.0.0.1:8090` | Where Next.js reaches PocketBase. Only change it if you run PocketBase outside the container. |
 
 Full reference in [`.env.example`](.env.example).
 
@@ -280,19 +283,14 @@ PocketBase runs as a local binary under `./.pb/pocketbase` via `scripts/dev-pb.j
 
 ## Project status
 
-v1.0.0-rc1. All 7 planned phases shipped:
+Latest release: **v1.3.0** (2026-04-24).
 
-| Phase | What it delivered |
-|---|---|
-| 1 | Docker + Next + PocketBase + Caddy + s6 + multi-arch CI |
-| 2 | Signup, homes, areas, tasks, computed next-due |
-| 3 | Three-band dashboard + one-tap complete + early-completion guard + coverage ring |
-| 4 | Invite links + members + cascading assignment |
-| 5 | By Area / Person / History views + onboarding wizard |
-| 6 | ntfy notifications + scheduler + streaks + celebrations |
-| 7 | PWA manifest + service worker + HTTP banner + Caddy/Tailscale compose overlays |
+This branch is unreleased. Since v1.3.0 it adds dark mode, a desktop layout,
+one-tap complete, area suggestions during onboarding, and scheduler and
+timezone fixes. The next release will be tagged by the maintainer.
 
-Decimal phases (2.1, 3.1, …) are deploy checkpoints — build the image and stand it up on the VPS between features so you can actually look at the thing.
+Upgrading from 1.3.0 may re-send one overdue notification per task on the
+first scheduler tick.
 
 ## Known limits
 
@@ -318,10 +316,15 @@ keep the changes visible to the people you serve.
 ## Security
 
 Found a vulnerability? See [SECURITY.md](SECURITY.md) for our threat model,
-disclosure policy, and response SLA. Operators running HomeKeep on a
+disclosure policy, and response SLA. Reports go through GitHub private
+vulnerability reporting. Operators running HomeKeep on a
 public domain should also work through
 [`docs/deployment-hardening.md`](docs/deployment-hardening.md) before
 cut-over.
+
+**Maintainer fork checklist:** enable Settings → Security → "Private
+vulnerability reporting" on the repository (and point the link in
+`SECURITY.md` at it), or reporters will have nowhere private to go.
 
 ## Provenance
 

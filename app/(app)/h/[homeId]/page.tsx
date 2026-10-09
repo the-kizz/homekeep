@@ -5,6 +5,7 @@ import {
   type CompletionRecord,
 } from '@/lib/completions';
 import { BandView, type TaskWithName } from '@/components/band-view';
+import { WelcomeCard } from '@/components/welcome-card';
 import { AvatarStack } from '@/components/avatar-stack';
 import { HouseholdStreakBadge } from '@/components/household-streak-badge';
 import { computeHouseholdStreak } from '@/lib/household-streak';
@@ -203,7 +204,7 @@ export default async function HomeDashboardPage({
 
   return (
     <>
-      <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-6 pt-4 pb-6 text-sm text-muted-foreground">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-6 pt-4 pb-6 text-sm text-muted-foreground">
         <div className="flex items-center gap-3">
           {/* Mobile: tighter single-line title using serif. Desktop keeps
               same line but in the regular header density. */}
@@ -222,6 +223,7 @@ export default async function HomeDashboardPage({
           title={`${members.length} member${members.length === 1 ? '' : 's'} — view members`}
         />
       </div>
+      <WelcomeCard homeId={homeId} />
       <BandView
         tasks={mappedTasks}
         completions={completions}

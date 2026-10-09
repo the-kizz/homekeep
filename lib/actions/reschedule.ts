@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@/lib/pocketbase-server';
 import { assertMembership } from '@/lib/membership';
 import { getActiveOverride } from '@/lib/schedule-overrides';
+import { isOoftTask } from '@/lib/task-scheduling';
 
 /**
  * Phase 15 reschedule server actions (D-13, D-14, D-15).
@@ -49,6 +50,8 @@ import { getActiveOverride } from '@/lib/schedule-overrides';
  *   - T-15-01-08 EoP non-member: assertMembership gate before write.
  */
 
+// For a one-off task no override row is written (its due date moves
+// instead), so `override.id` is '' and `snooze_until` is the new due date.
 export type SnoozeResult =
   | { ok: true; override: { id: string; snooze_until: string } }
   | { ok: false; formError: string };
@@ -56,6 +59,32 @@ export type SnoozeResult =
 export type RescheduleResult =
   | { ok: true; task: { id: string; reschedule_marker: string } }
   | { ok: false; formError: string };
+
+/**
+ * A one-off task has exactly one occurrence. A smoothed date is never read
+ * for it, and an override row would shift the displayed date while leaving
+ * `due_date` (what the edit form shows and what the task is) stale. So both
+ * "just this time" and "from now on" move `due_date`, and stamp the marker
+ * so rebalancing treats the date as the user's choice. The caller has
+ * already checked membership.
+ */
+async function rescheduleOneOff(
+  pb: Awaited<ReturnType<typeof createServerClient>>,
+  taskId: string,
+  homeId: string,
+  newDateIso: string,
+): Promise<{ ok: true; task: { id: string; reschedule_marker: string } }> {
+  const markerIso = new Date().toISOString();
+  const updated = await pb.collection('tasks').update(taskId, {
+    due_date: newDateIso,
+    reschedule_marker: markerIso,
+  });
+  revalidatePath(`/h/${homeId}`);
+  return {
+    ok: true,
+    task: { id: updated.id, reschedule_marker: markerIso },
+  };
+}
 
 /**
  * "Just this time" — snoozeTaskAction writes a schedule_overrides row.
@@ -88,12 +117,25 @@ export async function snoozeTaskAction(input: {
     // Ownership preflight (T-15-01-01) — the tasks viewRule is
     // `home_id.owner_id = @request.auth.id`; a forged id 404s here.
     const task = await pb.collection('tasks').getOne(input.task_id, {
-      fields: 'id,home_id',
+      fields: 'id,home_id,frequency_days',
     });
     try {
       await assertMembership(pb, task.home_id as string);
     } catch {
       return { ok: false, formError: 'You are not a member of this home' };
+    }
+
+    // Only an explicit null/0 marks a one-off; PB returns 0 for an unset
+    // NumberField, so a missing value means the field was not selected.
+    if (isOoftTask({ frequency_days: task.frequency_days as number | null })) {
+      const newDateIso = parsed.toISOString();
+      await rescheduleOneOff(
+        pb,
+        input.task_id,
+        task.home_id as string,
+        newDateIso,
+      );
+      return { ok: true, override: { id: '', snooze_until: newDateIso } };
     }
 
     // Phase 10 D-02 atomic-replace-active precedent
@@ -147,11 +189,9 @@ export async function snoozeTaskAction(input: {
  * reads the non-null reschedule_marker as "user intent wins over
  * recompute" (D-08).
  *
- * OOFT note: one-off tasks (frequency_days=null) still route through
- * the cycle ternary branch here because their schedule_mode stays
- * 'cycle' (D-02 from 15-CONTEXT). The plan defers OOFT-specific
- * "edit the task instead" UX to Wave 2 — the action layer treats
- * OOFT rescheduling symmetrically with cycle tasks at this wave.
+ * One-off tasks keep schedule_mode 'cycle' but are scheduled by
+ * `due_date` only, so they take the rescheduleOneOff path instead of
+ * writing a next_due_smoothed that computeNextDue would never read.
  */
 export async function rescheduleTaskAction(input: {
   task_id: string;
@@ -172,12 +212,23 @@ export async function rescheduleTaskAction(input: {
 
   try {
     const task = await pb.collection('tasks').getOne(input.task_id, {
-      fields: 'id,home_id,schedule_mode',
+      fields: 'id,home_id,schedule_mode,frequency_days',
     });
     try {
       await assertMembership(pb, task.home_id as string);
     } catch {
       return { ok: false, formError: 'You are not a member of this home' };
+    }
+
+    // Only an explicit null/0 marks a one-off; PB returns 0 for an unset
+    // NumberField, so a missing value means the field was not selected.
+    if (isOoftTask({ frequency_days: task.frequency_days as number | null })) {
+      return await rescheduleOneOff(
+        pb,
+        input.task_id,
+        task.home_id as string,
+        parsed.toISOString(),
+      );
     }
 
     const now = new Date();

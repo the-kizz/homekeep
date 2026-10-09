@@ -132,7 +132,7 @@ describe('updateTask SEC-04 cross-home area_id guard', () => {
 
   test('rejects update when area_id 404s (forged id)', async () => {
     mockGetOne.mockImplementation(
-      async (collection: string, _id: string) => {
+      async (collection: string) => {
         if (collection === 'tasks') {
           return {
             id: 'task-1',

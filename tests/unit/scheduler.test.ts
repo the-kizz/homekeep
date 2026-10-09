@@ -369,8 +369,8 @@ describe.sequential('scheduler overdue notifications', () => {
       .authWithPassword('alice-s@test.com', 'alice1234567');
 
     // T4: fresh task, fresh overdue completion → natural nextDue is
-    // ~4 days ago. We then snooze it to a DIFFERENT past instant so
-    // buildOverdueRefCycle sees the override's ISO, not the natural ISO.
+    // ~4 days ago. We then snooze it to a DIFFERENT past day so
+    // buildOverdueRefCycle sees the override's day, not the natural one.
     const t4 = await aliceClient.collection('tasks').create({
       home_id: homeId,
       area_id: areaId,
@@ -426,12 +426,27 @@ describe.sequential('scheduler overdue notifications', () => {
     expect(rows).toHaveLength(1);
     const refCycle = rows[0].ref_cycle as string;
     expect(refCycle).toContain(`task:${t4.id}:overdue:`);
-    // The ISO suffix equals the override's snooze_until ISO, not the
-    // natural next-due ISO (completion + 1d).
-    const naturalNextDueIso = new Date(
+    // The day suffix is the override's snooze_until day (home tz is UTC),
+    // not the natural next-due day (completion + 1d).
+    const naturalNextDueDay = new Date(
       new Date(naturalCompletionIso).getTime() + 86400000,
-    ).toISOString();
-    expect(refCycle).toContain(overrideSnoozeIso);
-    expect(refCycle).not.toContain(naturalNextDueIso);
+    ).toISOString().slice(0, 10);
+    expect(refCycle).toBe(
+      `task:${t4.id}:overdue:${overrideSnoozeIso.slice(0, 10)}`,
+    );
+    expect(refCycle).not.toContain(naturalNextDueDay);
+  }, 60_000);
+});
+
+describe('runOnce tick guard', () => {
+  test('a second call while a tick is in flight is skipped', async () => {
+    const { runOnce } = await import('@/lib/scheduler');
+    const first = runOnce();
+    const second = await runOnce();
+    expect(second).toEqual({ skipped: true });
+    const firstResult = await first;
+    expect(firstResult).toHaveProperty('overdueSent');
+    // The guard resets once the tick finishes.
+    expect(await runOnce()).not.toEqual({ skipped: true });
   }, 60_000);
 });

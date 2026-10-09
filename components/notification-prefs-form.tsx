@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import {
@@ -68,13 +68,15 @@ export function NotificationPrefsForm({
   // v1.3 test-plumbing fix attempts.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
+    // Deliberate post-commit setState: the flag must flip only after the
+    // client has mounted, which is exactly what an effect guarantees.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHydrated(true);
   }, []);
 
   const {
     register,
     control,
-    watch,
     formState: { errors },
   } = useForm<NotificationPrefs>({
     resolver: zodResolver(notificationPrefsSchema),
@@ -95,7 +97,8 @@ export function NotificationPrefsForm({
     }
   }, [state]);
 
-  const weeklyOn = watch('notify_weekly_summary');
+  // useWatch rather than watch(): watch() defeats React Compiler memoisation.
+  const weeklyOn = useWatch({ control, name: 'notify_weekly_summary' });
 
   const serverFieldErrors =
     state.ok === false ? state.fieldErrors : undefined;

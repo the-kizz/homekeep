@@ -80,3 +80,4 @@ id_ed25519
 *.gpg
 *secret*.json
 !*.secret.template.json
+.superpowers/

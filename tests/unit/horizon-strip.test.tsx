@@ -56,6 +56,22 @@ describe('HorizonStrip', () => {
     expect(buttons[11].textContent).toMatch(/Mar/);
   });
 
+  it('starts at the home-timezone month when host and home disagree', () => {
+    // 20:00 UTC on 30 Apr is already 1 May in Melbourne (UTC+10).
+    const lateApril = new Date('2026-04-30T20:00:00Z');
+    const t = mkTask('x', 'X', new Date('2026-06-15T00:00:00Z'));
+    const { container } = render(
+      <HorizonStrip
+        tasks={[t]}
+        now={lateApril}
+        timezone="Australia/Melbourne"
+      />,
+    );
+    const buttons = container.querySelectorAll('button[data-month-key]');
+    expect(buttons[0].getAttribute('data-month-key')).toBe('2026-05');
+    expect(buttons[11].getAttribute('data-month-key')).toBe('2027-04');
+  });
+
   it('buckets a task into its month cell and leaves the cell enabled', () => {
     const t = mkTask('x', 'Paint fence', new Date('2026-07-10T00:00:00Z'));
     const { container } = render(

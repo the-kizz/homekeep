@@ -4,7 +4,7 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * 05-02 D-19 Phase 5 views E2E — three suites (B/C/D) covering the
@@ -39,7 +39,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * authentication protocol rationale).
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 
 const stamp = () =>
   `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
@@ -345,12 +344,23 @@ test.describe.serial('Phase 5 Views (D-19) — Suite C: person', () => {
     const streakCard = page.locator('[data-streak-count]');
     await expect(streakCard).toHaveAttribute('data-streak-count', '1');
 
-    // 06-03: placeholder replaced by real form — assert the new anchor.
-    const prefs = page.locator('[data-notification-prefs-form]');
-    await expect(prefs).toBeVisible();
+    // Notification preferences live on their own settings page; the
+    // Person page links to it.
     await expect(
       page.locator('[data-notification-prefs-placeholder]'),
     ).toHaveCount(0);
+    const prefsLink = page.getByRole('link', {
+      name: 'Notification settings →',
+    });
+    await expect(prefsLink).toBeVisible();
+    await expect(prefsLink).toHaveAttribute(
+      'href',
+      `/h/${homeId}/settings/notifications`,
+    );
+
+    await page.goto(`/h/${homeId}/settings/notifications`);
+    const prefs = page.locator('[data-notification-prefs-form]');
+    await expect(prefs).toBeVisible();
 
     // Topic + at least one toggle visible.
     await expect(prefs.locator('[data-field=ntfy-topic] input')).toBeVisible();

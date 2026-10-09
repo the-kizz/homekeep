@@ -21,6 +21,8 @@ docker compose -f docker/docker-compose.yml up -d
 
 HomeKeep is then reachable at `http://HOST_IP:3000` on your local network (change `HOST_PORT` in `.env` to map a different host port, e.g. `HOST_PORT=80`).
 
+> The `./data` folder must be writable by uid 1000 (the container repairs ownership at boot when it can; if you see `permission denied` in `docker logs`, run `sudo chown -R 1000:1000 ./data`).
+
 ### Verify
 
 ```bash
@@ -32,9 +34,9 @@ curl -s http://localhost:3000/api/health
 
 - **No HTTPS** — the in-container Caddy serves plain HTTP on port 3000. Browsers will correctly refuse to install HomeKeep as a PWA or register a service worker.
 - **No offline support** — the service worker only registers on HTTPS or `http://localhost` contexts.
-- The HTTP-only banner shipped in Phase 7 Plan 1 (`components/insecure-context-banner.tsx`) explains this to users automatically and links back to this guide.
+- The HTTP-only banner (`components/insecure-context-banner.tsx`) explains this to users automatically and links back to this guide.
 
-### One-line refresh (per Phase 2.1 pattern)
+### One-line refresh
 
 ```bash
 git pull && docker compose -f docker/docker-compose.yml pull && docker compose -f docker/docker-compose.yml up -d
@@ -157,10 +159,10 @@ This is **NOT** the mode to run your personal household on. For personal use, ru
 
 ### Prereqs (`user_setup`)
 
-1. **DNS A record** for `homekeep.demo.the-kizz.com` → VPS IP (`46.62.151.57`). GoDaddy manual step for now; DNS-01 + godaddy plugin automation is deferred to v1.3.
+1. **DNS A record** for `homekeep.demo.<your-domain>` → the demo VPS's public IP. GoDaddy manual step for now; DNS-01 + godaddy plugin automation is deferred to v1.3.
 2. **Ports 80 + 443** open on the VPS firewall (ACME HTTP-01 on 80, HTTPS on 443, HTTP/3 on UDP 443).
 3. **`docker/.env.demo`** populated locally (the checked-in template is the starting point — you MUST rotate `PB_ADMIN_PASSWORD` via `openssl rand -hex 24` before `compose up` or the admin client fails fast).
-4. **Caddyfile swap**: by default the `docker-compose.caddy.yml` overlay mounts `Caddyfile.prod`. For the demo host, swap to `Caddyfile.demo` via an ad-hoc compose override (see below) or run a single demo instance where `DOMAIN=homekeep.demo.the-kizz.com` is set in `.env.demo` — Caddyfile.prod's `{$DOMAIN}` substitution works just as well for the demo host (the hostnames in the block are env-driven).
+4. **Caddyfile swap**: by default the `docker-compose.caddy.yml` overlay mounts `Caddyfile.prod`. For the demo host, swap to `Caddyfile.demo` via an ad-hoc compose override (see below) or run a single demo instance where `DOMAIN=homekeep.demo.<your-domain>` is set in `.env.demo` — Caddyfile.prod's `{$DOMAIN}` substitution works just as well for the demo host (the hostnames in the block are env-driven).
 
 ### Start
 
@@ -177,7 +179,7 @@ docker compose \
   up -d
 ```
 
-The first request to `https://homekeep.demo.the-kizz.com/api/demo/session` triggers:
+The first request to `https://homekeep.demo.<your-domain>/api/demo/session` triggers:
 
 1. ACME HTTP-01 challenge on port 80 (Caddy auto-fetches a Let's Encrypt cert — ~15s on first run, persisted in the `caddy_data` volume).
 2. `lib/demo-session.ts` spawns a throwaway user + "Demo House" + Kitchen + Outdoor + Whole Home areas + 15 seed tasks.
@@ -187,10 +189,10 @@ The first request to `https://homekeep.demo.the-kizz.com/api/demo/session` trigg
 
 ```bash
 # from anywhere — TLS should auto-negotiate within 15s of first hit:
-curl -sS https://homekeep.demo.the-kizz.com/api/health
+curl -sS https://homekeep.demo.<your-domain>/api/health
 
 # first-visit flow returns a 303 to /h/<id>:
-curl -sSI https://homekeep.demo.the-kizz.com/api/demo/session
+curl -sSI https://homekeep.demo.<your-domain>/api/demo/session
 ```
 
 ### Expected resource usage
@@ -215,7 +217,7 @@ docker compose \
 
 ### Don't run demo + personal on the same VPS
 
-The VPS `46.62.151.57` is a **public-demo host only** (per STATE.md v1.2-security Architecture Decision). The personal instance lives on the home-lab server behind Tailscale. Running both on the same VPS would share the `caddy_data` volume between hosts and accidentally expose the personal instance's admin UI if the Caddy config drifted.
+The demo VPS is a **public-demo host only**. The personal instance lives on the home-lab server behind Tailscale. Running both on the same VPS would share the `caddy_data` volume between hosts and accidentally expose the personal instance's admin UI if the Caddy config drifted.
 
 ## Public deployment hardening
 

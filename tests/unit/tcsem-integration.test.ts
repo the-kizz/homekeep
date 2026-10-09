@@ -256,31 +256,31 @@ describe('Phase 13 integration — task-creation semantics (port 18101)', () => 
           seed_id: 'seed-wipe-benches',
           name: 'Cohort seed 1 (freq=30)',
           frequency_days: 30,
-          area_id: home2AreaId,
+          area: { kind: 'existing', id: home2AreaId },
         },
         {
           seed_id: 'seed-clean-sink',
           name: 'Cohort seed 2 (freq=30)',
           frequency_days: 30,
-          area_id: home2AreaId,
+          area: { kind: 'existing', id: home2AreaId },
         },
         {
           seed_id: 'seed-mop-kitchen-floor',
           name: 'Cohort seed 3 (freq=30)',
           frequency_days: 30,
-          area_id: home2AreaId,
+          area: { kind: 'existing', id: home2AreaId },
         },
         {
           seed_id: 'seed-clean-oven',
           name: 'Cohort seed 4 (freq=30)',
           frequency_days: 30,
-          area_id: home2AreaId,
+          area: { kind: 'existing', id: home2AreaId },
         },
         {
           seed_id: 'seed-deep-clean-fridge',
           name: 'Cohort seed 5 (freq=30)',
           frequency_days: 30,
-          area_id: home2AreaId,
+          area: { kind: 'existing', id: home2AreaId },
         },
       ],
     });
@@ -312,7 +312,6 @@ describe('Phase 13 integration — task-creation semantics (port 18101)', () => 
       dateCounts.set(iso, (dateCounts.get(iso) ?? 0) + 1);
     }
 
-    // eslint-disable-next-line no-console
     console.log(
       `[Scenario 2] 5-seed cohort placement distribution: ${Array.from(
         dateCounts.entries(),

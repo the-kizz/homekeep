@@ -174,7 +174,7 @@ export default async function ByAreaPage({
 
   return (
     <div
-      className="mx-auto max-w-4xl space-y-4 p-6"
+      className="mx-auto max-w-6xl space-y-4 p-6 *:max-w-4xl"
       data-by-area-view
       data-home-id={homeId}
     >

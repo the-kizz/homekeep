@@ -81,7 +81,7 @@ export function TopTabs({ homeId }: { homeId: string }) {
       data-top-tabs
       className="hidden md:flex sticky top-0 z-30 border-b bg-background/95 backdrop-blur"
     >
-      <div className="mx-auto flex w-full max-w-4xl items-center gap-1 px-6">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-1 px-6">
         {items.map(({ href, icon: Icon, label, dataKey, match }) => {
           const active = match(pathname);
           return (

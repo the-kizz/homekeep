@@ -4,7 +4,7 @@ import {
   type APIRequestContext,
   type Page,
 } from '@playwright/test';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * 06-03 Phase 6 Wave 3 Suite E — Notifications & Gamification E2E.
@@ -25,7 +25,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * All three live in one describe.serial block with shared helpers.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 
 // 06-03 Task 3: Same value is also injected via playwright.config.ts
 // webServer env (ADMIN_SCHEDULER_TOKEN). Keep in sync.
@@ -163,7 +162,7 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     const homeUrl = await createHome(page, 'Notif P1 Home');
     const homeId = extractHomeId(homeUrl);
 
-    await page.goto(`/h/${homeId}/person`);
+    await page.goto(`/h/${homeId}/settings/notifications`);
     // Real form visible; placeholder GONE.
     await expect(
       page.locator('[data-notification-prefs-form]'),
@@ -269,7 +268,7 @@ test.describe.serial('Suite E: Notifications & Gamification (06-03)', () => {
     expect(noAuth.status()).toBe(401);
 
     // Configure prefs: topic + notify_overdue=true (default on).
-    await page.goto(`/h/${homeId}/person`);
+    await page.goto(`/h/${homeId}/settings/notifications`);
     // Phase 39 hydration gate (same as Part 1).
     await expect(
       page.locator(

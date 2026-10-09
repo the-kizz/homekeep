@@ -9,7 +9,7 @@
  * Covers:
  *   (1) Header renders "Reschedule '<task.name>'".
  *   (2) Archived task (computeNextDue → null) renders the "Task is not
- *       schedulable right now" body + disabled submit.
+ *       schedulable right now" body with only a Close button.
  *   (3) Submit with default radio "just-this-time" calls snoozeTaskAction.
  *   (4) Selecting "from-now-on" then submit calls rescheduleTaskAction.
  *   (5) Cancel button triggers onOpenChange(false) without calling
@@ -23,8 +23,13 @@ import {
   vi,
   beforeEach,
 } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import type { Task } from '@/lib/task-scheduling';
+// Imported statically (vi.mock is hoisted above it) so the component's module
+// graph loads at collection time. A dynamic import inside a test could outlive
+// that test's timeout and render after cleanup, leaking a schedulable sheet
+// into the next test's DOM.
+import { RescheduleActionSheet } from '@/components/reschedule-action-sheet';
 
 const mockSnooze = vi.fn();
 const mockReschedule = vi.fn();
@@ -89,9 +94,6 @@ const ARCHIVED_TASK: Task & { name: string } = {
 
 describe('RescheduleActionSheet (Phase 15 SNZE-01/02/03)', () => {
   test('renders header "Reschedule \'<task.name>\'"', async () => {
-    const { RescheduleActionSheet } = await import(
-      '@/components/reschedule-action-sheet'
-    );
     render(
       <RescheduleActionSheet
         open
@@ -110,10 +112,7 @@ describe('RescheduleActionSheet (Phase 15 SNZE-01/02/03)', () => {
     expect(title.textContent).toMatch(/Reschedule/i);
   });
 
-  test('archived task renders "not schedulable" body + disabled submit', async () => {
-    const { RescheduleActionSheet } = await import(
-      '@/components/reschedule-action-sheet'
-    );
+  test('archived task renders "not schedulable" body and no submit', async () => {
     render(
       <RescheduleActionSheet
         open
@@ -125,17 +124,19 @@ describe('RescheduleActionSheet (Phase 15 SNZE-01/02/03)', () => {
       />,
     );
 
-    expect(screen.getByText(/not schedulable right now/i)).toBeTruthy();
-    // Submit button is not rendered on the "not schedulable" branch;
-    // only a Close button. Assert submit testid absent.
-    expect(screen.queryByTestId('reschedule-submit')).toBeNull();
+    // Scope to this task's sheet: the sheet portals into document.body, so
+    // a screen-wide query would see any other sheet left in the DOM.
+    const sheet = screen
+      .getByText(/not schedulable right now/i)
+      .closest('[data-testid="reschedule-sheet"]') as HTMLElement;
+    expect(sheet).toBeTruthy();
+    // Submit is omitted on this branch; only Close is offered.
+    expect(within(sheet).queryByTestId('reschedule-submit')).toBeNull();
+    expect(within(sheet).getByTestId('reschedule-close')).toBeTruthy();
   });
 
   test('default radio is "just-this-time"; submit calls snoozeTaskAction', async () => {
     const onOpenChange = vi.fn();
-    const { RescheduleActionSheet } = await import(
-      '@/components/reschedule-action-sheet'
-    );
     render(
       <RescheduleActionSheet
         open
@@ -167,9 +168,6 @@ describe('RescheduleActionSheet (Phase 15 SNZE-01/02/03)', () => {
   });
 
   test('selecting "from-now-on" + submit calls rescheduleTaskAction', async () => {
-    const { RescheduleActionSheet } = await import(
-      '@/components/reschedule-action-sheet'
-    );
     render(
       <RescheduleActionSheet
         open
@@ -199,9 +197,6 @@ describe('RescheduleActionSheet (Phase 15 SNZE-01/02/03)', () => {
 
   test('Cancel calls onOpenChange(false) without invoking either action', async () => {
     const onOpenChange = vi.fn();
-    const { RescheduleActionSheet } = await import(
-      '@/components/reschedule-action-sheet'
-    );
     render(
       <RescheduleActionSheet
         open

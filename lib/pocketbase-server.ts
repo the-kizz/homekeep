@@ -1,5 +1,6 @@
 import PocketBase from 'pocketbase';
 import { cookies } from 'next/headers';
+import { PB_URL } from '@/lib/constants';
 
 /**
  * Creates a fresh, request-scoped PocketBase client for Server Components,
@@ -15,13 +16,13 @@ import { cookies } from 'next/headers';
  * from different users cannot share an authStore. A unit test asserts that
  * two consecutive calls produce distinct instances.
  *
- * Base URL is the loopback 127.0.0.1:8090 because in production the Next.js
- * server runs in the same container as PocketBase (s6-overlay supervises
- * both). In dev, scripts/dev-pb.js binds to 127.0.0.1:8090 too, so this works
- * uniformly (matches Phase 1 D-03).
+ * Base URL is PB_URL (lib/constants.ts): loopback 127.0.0.1:8090 by default,
+ * because in production the Next.js server runs in the same container as
+ * PocketBase (s6-overlay supervises both), and scripts/dev-pb.js binds there
+ * in dev too.
  */
 export async function createServerClient(): Promise<PocketBase> {
-  const pb = new PocketBase('http://127.0.0.1:8090');
+  const pb = new PocketBase(PB_URL);
 
   const cookieStore = await cookies();
   const pbAuth = cookieStore.get('pb_auth');

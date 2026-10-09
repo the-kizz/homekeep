@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // HomeKeep (c) 2026 — github.com/the-kizz/homekeep
-import { addDays, differenceInDays } from 'date-fns';
 import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 import type { Override } from '@/lib/schedule-overrides';
 
@@ -18,9 +17,9 @@ import type { Override } from '@/lib/schedule-overrides';
  * PocketBase is UTC ISO strings. Rendering in the home's IANA timezone is a
  * *separate concern* handled by components/next-due-display.tsx via
  * date-fns-tz.formatInTimeZone — NEVER do date math in a non-UTC zone.
- * date-fns' addDays / differenceInDays operate on the UTC epoch and are
- * DST-safe by construction (RESEARCH §Pattern: Next-Due Computation
- * timezone handling note line 1217).
+ * Day steps are whole 24h UTC days (addUtcDays / elapsedUtcDays below), not
+ * date-fns' addDays, which steps host-local calendar days and so drifts by an
+ * hour across a DST change on any non-UTC host.
  *
  * Phase 11 timezone posture exception: the seasonal branches extract a
  * calendar month in home timezone (via `toZonedTime`) because "Is task
@@ -82,6 +81,17 @@ export function isOoftTask(
   return task.frequency_days === null || task.frequency_days === 0;
 }
 
+const DAY_MS = 86_400_000;
+
+function addUtcDays(date: Date, days: number): Date {
+  return new Date(date.getTime() + days * DAY_MS);
+}
+
+/** Whole UTC days from `from` to `to` (floored; callers pass to >= from). */
+function elapsedUtcDays(to: Date, from: Date): number {
+  return Math.floor((to.getTime() - from.getTime()) / DAY_MS);
+}
+
 /**
  * Compute the next-due date for a task.
  *
@@ -93,18 +103,19 @@ export function isOoftTask(
  *      override whose `snooze_until` post-dates the last completion wins.
  *      D-17: override beats dormant seasonal (user intent > inferred
  *      dormancy).
- *   4. (Phase 12 will insert the `next_due_smoothed` LOAD branch here — D-07
- *      forward-compatibility.)
- *   5. **seasonal-dormant branch** (Phase 11, D-12 + SEAS-02): task has
- *      an active window, now is outside it, and a completion exists →
- *      return null (invisible to scheduler / coverage / band views).
- *   6. **seasonal-wakeup branch** (Phase 11, D-12 + SEAS-03): task has an
- *      active window and (no completion OR last completion in a prior
- *      season) → return nextWindowOpenDate at home-tz midnight.
- *   7. **OOFT branch** (Phase 11, D-05 + OOFT-05): frequency_days === null
- *      → return due_date when no completion, null otherwise (completed
- *      OOFT is archived in the same batch; null fall-through is defensive
- *      against races).
+ *   4. **one-off branch**: frequency_days null/0 → due_date when no
+ *      completion, null otherwise. Runs before smoothing so a stale
+ *      next_due_smoothed can't override a one-off's real date.
+ *   5. **smoothed branch**: non-anchored task with next_due_smoothed,
+ *      unless the task is seasonal and either dormant now or in the first
+ *      cycle of a new season.
+ *   6. **seasonal-dormant branch**: task has an active window, now is
+ *      outside it, and the last completion was this season → null.
+ *   7. **seasonal-wakeup branch**: task is outside its window and has no
+ *      completion or one from a prior season → nextWindowOpenDate at
+ *      home-tz midnight. Inside the window with a prior-season completion,
+ *      a cycle task is due at the later of last + frequency_days and the
+ *      season's opening (startOfCurrentWindow).
  *   8. cycle branch — base + frequency_days.
  *   9. anchored branch — step forward by whole cycles past `now`.
  *
@@ -225,142 +236,91 @@ export function computeNextDue(
     // else: stale override; fall through to cycle/anchored natural branch.
   }
 
-  // ─── Phase 12 smoothed branch (D-02, LOAD-02, LOAD-06, LOAD-07) ───
-  // The LOAD smoother wrote `next_due_smoothed` on the previous
-  // completion's atomic batch (Plan 12-03). Branch precedence per
-  // D-02: this fires AFTER the override branch and BEFORE the Phase
-  // 11 seasonal block.
-  //
-  // LOAD-06 anchored bypass (D-03): anchored-mode tasks NEVER consult
-  // next_due_smoothed — byte-identical v1.0 behavior. Even if a task
-  // flipped cycle → anchored mid-v1.1, a stale smoothed value is
-  // ignored (the schedule_mode guard is authoritative).
-  //
-  // LOAD-07 seasonal-wakeup handshake (D-15): if the task has a
-  // seasonal window AND is first-cycle / prior-season, DON'T
-  // short-circuit here — let the Phase 11 seasonal-wakeup branch
-  // below return nextWindowOpenDate. The wake-up date is a calendar
-  // landmark, not a load-smoothing target. From the second cycle
-  // onward (same-season, lastInPriorSeason=false), we fall through
-  // to this branch normally.
-  //
-  // v1.0 backcompat (T-12-03): NULL next_due_smoothed falls through
-  // to the Phase 11 seasonal / OOFT / cycle / anchored branches —
-  // byte-identical v1.0 read behavior until the first post-upgrade
-  // completion writes a smoothed date.
-  //
-  // T-12-07 defense: invalid stored string → new Date(s) yields
-  // Invalid Date; `getTime() > 0` is false (NaN comparison), and
-  // the seasonal / cycle branches still run below. No crash.
-  if (
-    task.schedule_mode !== 'anchored'
-    && task.next_due_smoothed
-  ) {
-    // Phase 19 PATCH-01: normalizeMonth collapses PB 0.37.1 cleared-
-    // NumberField=0 to null so hasWindow stays false for year-round
-    // tasks where the column was cleared (not never-set).
-    const fromM = normalizeMonth(task.active_from_month);
-    const toM = normalizeMonth(task.active_to_month);
-    const hasWindow = fromM != null && toM != null;
-    const treatAsWakeup = hasWindow && (
-      !lastCompletion
-      || wasInPriorSeason(
-           new Date(lastCompletion.completed_at),
-           fromM!,
-           toM!,
-           now,
-           timezone,
-         )
-    );
-    if (!treatAsWakeup) {
-      const smoothed = new Date(task.next_due_smoothed);
-      if (smoothed.getTime() > 0) return smoothed;
-      // Invalid Date (T-12-07) → fall through to seasonal / cycle.
-    }
-    // else: fall through to seasonal block — wake-up anchors to window.
+  // ─── One-off branch ───────────────────────────────────────────────────
+  // A one-off (frequency_days null, or 0 as PB stores a cleared number)
+  // is due on its due_date until completed, then null (completion
+  // archives it; null is the race-safe answer). It runs before the
+  // smoothed and seasonal branches: a leftover next_due_smoothed from a
+  // task that used to recur must never hide the one-off's real date.
+  if (isOoft) {
+    if (lastCompletion) return null;
+    return task.due_date ? new Date(task.due_date) : null;
   }
 
-  // ─── Phase 11 seasonal branches (D-12) ──────────────────────────────
-  // hasWindow = task is seasonal. Precompute the "prior-season" state
-  // once — both the dormant and wake-up branches need it:
-  //   - prior-season + dormant-month  → wake-up (return next from-open)
-  //   - prior-season + in-window-now  → wake-up (return next from-open)
-  //   - same-season + dormant-month   → dormant (return null)
-  //   - same-season + in-window-now   → fall through to cycle branch
-  //
-  // Prior-season means "the last completion was in a different active
-  // season instance than the current one" — either via wasInPriorSeason's
-  // dormant-month short-circuit, via the A3 365-day heuristic, or via
-  // no completion at all (first cycle is definitionally prior-season).
-  // Phase 19 PATCH-01: normalizeMonth collapses PB 0.37.1 cleared-
-  // NumberField=0 to null. Both `fromM` and `toM` flow into the
-  // seasonal branches below, narrowed from `number | null` to the
-  // caller-consumed `number`.
+  // ─── Seasonal state, shared by the smoothed and seasonal branches ─────
+  // normalizeMonth collapses PB's cleared-NumberField 0 to null so a
+  // year-round task whose month columns were cleared stays windowless.
   const fromM = normalizeMonth(task.active_from_month);
   const toM = normalizeMonth(task.active_to_month);
   const hasWindow = fromM != null && toM != null;
   const nowMonth = timezone
     ? toZonedTime(now, timezone).getMonth() + 1
     : now.getUTCMonth() + 1;
-
-  if (hasWindow) {
-    const lastInPriorSeason = lastCompletion
-      ? wasInPriorSeason(
+  const inWindowNow = hasWindow && isInActiveWindow(nowMonth, fromM, toM);
+  // Prior-season means the last completion belongs to an earlier season
+  // instance than the current one (no completion counts as prior). Inside
+  // the window that is exact: was it done before this season opened?
+  // Outside the window wasInPriorSeason's heuristic decides.
+  const lastInPriorSeason = hasWindow && (
+    !lastCompletion
+    || (inWindowNow
+      ? new Date(lastCompletion.completed_at).getTime()
+        < startOfCurrentWindow(now, fromM!, timezone ?? 'UTC').getTime()
+      : wasInPriorSeason(
           new Date(lastCompletion.completed_at),
           fromM!,
           toM!,
           now,
           timezone,
-        )
-      : true; // no completion = treat as prior season (first cycle)
+        ))
+  );
 
-    // Seasonal-dormant (SEAS-02): only fires when the task was recently
-    // active in the SAME season and now drifted out-of-window. A
-    // prior-season completion indicates a wake-up, not dormancy — user
-    // should see the next open date, not null.
-    const inWindowNow = isInActiveWindow(
-      nowMonth,
-      fromM!,
-      toM!,
-    );
-    if (!inWindowNow && !lastInPriorSeason) {
-      // Same-season dormant — task is sleeping mid-cycle.
-      return null;
+  // ─── Smoothed branch ─────────────────────────────────────────────────
+  // The load smoother writes next_due_smoothed when a task is completed.
+  // It is skipped when:
+  //   - the task is anchored (anchored dates never shift; a stale value
+  //     left from a cycle → anchored flip is ignored);
+  //   - the task is seasonal and outside its window: the smoother knows
+  //     nothing about seasons, so a date it placed after the window closed
+  //     would read as overdue all through the dormant months;
+  //   - the task is seasonal and this is its first cycle of the season:
+  //     the window opening is the landmark, not a smoothing target.
+  // An unparseable stored value (Invalid Date) also falls through.
+  if (
+    task.schedule_mode !== 'anchored'
+    && task.next_due_smoothed
+    && !(hasWindow && (!inWindowNow || lastInPriorSeason))
+  ) {
+    const smoothed = new Date(task.next_due_smoothed);
+    if (smoothed.getTime() > 0) return smoothed;
+  }
+
+  // ─── Seasonal branches ───────────────────────────────────────────────
+  //   - same-season + dormant month  → dormant (null)
+  //   - prior-season + dormant month → wake-up (next window opening)
+  //   - prior-season (or never done) + in window → due from the later of
+  //     its cadence and this season's opening, so a task waking up reads
+  //     "due now" rather than months overdue
+  //   - same-season + in window      → falls through to its cadence
+  if (hasWindow) {
+    if (!inWindowNow && !lastInPriorSeason) return null;
+
+    if (!inWindowNow) {
+      return nextWindowOpenDate(now, fromM!, toM!, timezone ?? 'UTC');
     }
 
-    // Seasonal-wakeup (SEAS-03): prior-season (or first-cycle) →
-    // anchor to start-of-window in home tz, regardless of whether
-    // now is currently in-window (the caller still wants a concrete
-    // wake-up date to render in Phase 14/15 UI).
-    //
-    // Phase 19 PATCH-02: guard against fresh task (null lastCompletion)
-    // whose current month is ALREADY in-window — a fresh in-window
-    // task is "already awake"; there is no wake-up date to render,
-    // fall through to natural cadence. The old unconditional fire
-    // forced fresh in-window seasonal tasks to display the NEXT year's
-    // from-boundary (e.g. Nov fresh in Oct-Mar window → 2027-10-01)
-    // which surfaced as the "Case B" visual UAT bug per audit.
-    if (lastInPriorSeason && !(inWindowNow && !lastCompletion)) {
-      return nextWindowOpenDate(
-        now,
-        fromM!,
-        toM!,
-        timezone ?? 'UTC',
+    // A never-completed task counts from its creation: one created in the
+    // off-season must not read as months overdue when its window opens.
+    if (lastInPriorSeason && task.schedule_mode === 'cycle') {
+      const windowStart = startOfCurrentWindow(now, fromM!, timezone ?? 'UTC');
+      const cadence = addUtcDays(
+        new Date(lastCompletion?.completed_at ?? task.created),
+        task.frequency_days as number,
       );
+      return cadence > windowStart ? cadence : windowStart;
     }
-    // else: same-season in-window → fall through to cycle/anchored.
   }
 
-  // ─── Phase 11 OOFT branch (D-05, OOFT-05) ───────────────────────────
-  // OOFT marker = frequency_days null (app-layer semantic) OR 0 (PB
-  // 0.37.1 storage-layer reality for a cleared NumberField — see
-  // isOoft guard at top of function). Return due_date if no completion,
-  // null otherwise (completed OOFT is archived by completeTaskAction's
-  // batch, but race-safety returns null).
-  if (isOoft) {
-    if (lastCompletion) return null;
-    return task.due_date ? new Date(task.due_date) : null;
-  }
   // After the OOFT short-circuit, TypeScript still sees frequency_days
   // as `number | null` across branches (flow analysis can't carry the
   // null-guard through the intervening seasonal branches). Bind a local
@@ -371,7 +331,7 @@ export function computeNextDue(
   if (task.schedule_mode === 'cycle') {
     const baseIso = lastCompletion?.completed_at ?? task.created;
     const base = new Date(baseIso);
-    return addDays(base, freq);
+    return addUtcDays(base, freq);
   }
 
   // anchored
@@ -384,9 +344,9 @@ export function computeNextDue(
   // Otherwise find the next cycle boundary strictly after `now`.
   // floor(elapsed/freq) + 1 guarantees we step past `now` even when
   // elapsed is an exact multiple of freq.
-  const elapsedDays = differenceInDays(now, base);
+  const elapsedDays = elapsedUtcDays(now, base);
   const cycles = Math.floor(elapsedDays / freq) + 1;
-  return addDays(base, cycles * freq);
+  return addUtcDays(base, cycles * freq);
 }
 
 // ─── Phase 11 pure helpers (D-18, D-19, D-20) ───────────────────────────
@@ -521,11 +481,32 @@ export function nextWindowOpenDate(
   const nowYear = zonedNow.getFullYear();
   const nowMonth = zonedNow.getMonth() + 1; // 1..12
   const targetYear = nowMonth < from ? nowYear : nowYear + 1;
-  // Build 00:00 of (targetYear, from, 1) in home tz → UTC instant.
-  const localMidnight = new Date(
-    Date.UTC(targetYear, from - 1, 1, 0, 0, 0, 0),
-  );
-  return fromZonedTime(localMidnight, timezone);
+  // Midnight on the 1st of `from` month in the home's timezone, as a UTC
+  // instant. A wall-clock string is used because fromZonedTime reads a
+  // Date's host-local fields, which would shift the result by the host
+  // offset on any non-UTC machine.
+  const wall = `${targetYear}-${String(from).padStart(2, '0')}-01T00:00:00`;
+  return fromZonedTime(wall, timezone);
+}
+
+/**
+ * Midnight (home timezone) on the 1st of `from` for the most recent
+ * occurrence at or before `now`, as a UTC instant. Used for the opening
+ * of the season `now` sits in: for an Oct–Mar window on 2027-02-10 it is
+ * 2026-10-01. Built from a wall-clock string for the same reason as
+ * nextWindowOpenDate (fromZonedTime reads host-local Date fields).
+ */
+export function startOfCurrentWindow(
+  now: Date,
+  from: number,
+  timezone: string,
+): Date {
+  const zonedNow = toZonedTime(now, timezone);
+  const nowYear = zonedNow.getFullYear();
+  const nowMonth = zonedNow.getMonth() + 1;
+  const year = nowMonth >= from ? nowYear : nowYear - 1;
+  const wall = `${year}-${String(from).padStart(2, '0')}-01T00:00:00`;
+  return fromZonedTime(wall, timezone);
 }
 
 /**

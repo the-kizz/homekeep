@@ -5,7 +5,7 @@ import {
   type Page,
 } from '@playwright/test';
 import PocketBase from 'pocketbase';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * v1.1 marketing screenshot capture. Not an assertion suite — produces
@@ -24,7 +24,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * docs/screenshots/archive/v1.0/ via a bash step outside this spec.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 const SHOT_DIR = 'docs/screenshots/v1.1';
 const TOP_DIR = 'docs/screenshots';
 
@@ -420,7 +419,7 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
     await expect(rescheduleSheet).toBeHidden();
 
     // 03 — horizon detail drawer. Click heaviest-tint cell.
-    const horizon = page.locator('[data-band="horizon"]');
+    const horizon = page.locator('[data-band="horizon"]:visible');
     await expect(horizon).toBeVisible();
     const populated = horizon.locator(
       'button[data-month-count]:not([disabled])',
@@ -453,15 +452,14 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
       fullPage: true,
     });
 
-    // 05 — task form with Advanced collapsible OPEN + Active months filled
+    // 05 — task form with More options OPEN + Active months filled
     await page.goto(`${homeUrl}/tasks/new`);
     await expect(page.locator('#task-name')).toBeVisible();
     // Fill some fields so the screenshot looks realistic
     await page.fill('#task-name', 'Rake autumn leaves');
     await page.fill('#task-freq', '60');
-    // Click the Advanced trigger (collapsible)
-    const advancedTrigger = page.getByRole('button', { name: /advanced/i });
-    await advancedTrigger.click();
+    // Open the "More options" collapsible (last done, active months)
+    await page.getByRole('button', { name: /more options/i }).click();
     await page.waitForTimeout(200);
     // Fill "Last done"
     await page.fill('#task-last-done', isoDate(inDays(-14)));
@@ -506,8 +504,8 @@ test.describe('v1.1 marketing — README screenshot capture', () => {
     await page.goto(`${homeUrl}/tasks/new`);
     await expect(page.locator('#task-name')).toBeVisible();
     await page.fill('#task-name', 'Book boiler service');
-    // Flip radio to one-off
-    await page.locator('input[name="task_type_ui"][value="one-off"]').check();
+    // Flip the Recurring / One-off switch above Frequency
+    await page.getByRole('button', { name: 'One-off', exact: true }).click();
     await page.waitForTimeout(250);
     // Set a do-by date
     await page.fill('#task-due-date', isoDate(inDays(21)));

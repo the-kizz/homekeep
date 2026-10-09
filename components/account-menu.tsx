@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LeaveHomeMenuItem } from '@/components/leave-home-menu-item';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 /**
  * Account menu — top-right affordance on /h/* routes (D-07 + 04-03 D-15).
@@ -75,6 +76,8 @@ export function AccountMenu({
             <DropdownMenuSeparator />
           </>
         )}
+        <ThemeToggle />
+        <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
           {/*
             The Log out item wraps a form whose action is the server

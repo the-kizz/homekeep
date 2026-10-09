@@ -21,22 +21,24 @@ import {
 import { getActiveOverridesForHome } from '@/lib/schedule-overrides';
 import { normalizeMonth } from '@/lib/task-scheduling';
 import { PersonalStats } from '@/components/personal-stats';
-import { NotificationPrefsForm } from '@/components/notification-prefs-form';
-import type { NotificationPrefs } from '@/lib/schemas/notification-prefs';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 
 /**
  * /h/[homeId]/person — Person view (05-02 Task 2, D-07 + D-08,
  * PERS-01/02/03/04).
  *
- * Four sections:
+ * Three sections:
  *   1. Your tasks — tasks where resolveAssignee(task,area,members) lands
  *      on the current user (task-level OR area-default). Rendered via
  *      <PersonTaskList/> which preserves tap-to-complete + guard.
  *   2. Your history — user's completions in the last 30 days, grouped
  *      flat as a reverse-chronological list of "{task} · {relative time}".
  *   3. Your stats — weekly / monthly completion counts + personal streak.
- *   4. Notifications — disabled preview of the Phase 6 prefs form.
+ *
+ * Notification preferences live at /settings/notifications; the header
+ * links there so members (who cannot open /settings) can still reach
+ * them.
  *
  * Security posture: assertMembership (Phase 4) gates non-members via
  * notFound(); PB's viewRule on tasks/completions/areas scopes the
@@ -217,26 +219,9 @@ export default async function PersonPage({
     tasksRaw.map((t) => [t.id, t.name as string]),
   );
 
-  // 06-03: fetch the current user's notification preferences so the form
-  // can pre-fill. The users collection viewRule allows self-read; if a
-  // field is missing (pre-migration row) we coerce to the product default.
-  const userRecord = await pb.collection('users').getOne(authId, {
-    fields:
-      'id,ntfy_topic,notify_overdue,notify_assigned,notify_partner_completed,notify_weekly_summary,weekly_summary_day',
-  });
-  const initialPrefs: NotificationPrefs = {
-    ntfy_topic: (userRecord.ntfy_topic as string) || '',
-    notify_overdue: Boolean(userRecord.notify_overdue),
-    notify_assigned: Boolean(userRecord.notify_assigned),
-    notify_partner_completed: Boolean(userRecord.notify_partner_completed),
-    notify_weekly_summary: Boolean(userRecord.notify_weekly_summary),
-    weekly_summary_day:
-      userRecord.weekly_summary_day === 'monday' ? 'monday' : 'sunday',
-  };
-
   return (
     <div
-      className="mx-auto max-w-4xl space-y-6 p-6"
+      className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-4xl"
       data-person-view
       data-home-id={homeId}
       data-user-id={authId}
@@ -245,6 +230,14 @@ export default async function PersonPage({
         <h1 className="text-2xl font-semibold">You</h1>
         <p className="text-sm text-muted-foreground">
           Your slice of {home.name as string}.
+        </p>
+        <p className="mt-1 text-sm">
+          <Link
+            href={`/h/${homeId}/settings/notifications`}
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Notification settings →
+          </Link>
         </p>
       </header>
 
@@ -258,7 +251,16 @@ export default async function PersonPage({
         {myTasks.length === 0 ? (
           <Card>
             <CardContent className="p-6 text-center text-sm text-muted-foreground">
-              Nothing is assigned to you right now.
+              Nothing is assigned to you. Tasks default to &ldquo;Anyone&rdquo;
+              &mdash; open a task and pick a person, or set a default person
+              per area in{' '}
+              <Link
+                href={`/h/${homeId}/by-area`}
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                By Area
+              </Link>
+              .
             </CardContent>
           </Card>
         ) : (
@@ -333,10 +335,6 @@ export default async function PersonPage({
         />
       </section>
 
-      {/* Section 4 — Notifications (06-03: real form replaces Phase 5 stub) */}
-      <section className="space-y-3" data-section="notifications">
-        <NotificationPrefsForm initialPrefs={initialPrefs} />
-      </section>
     </div>
   );
 }

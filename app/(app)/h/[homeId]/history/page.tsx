@@ -173,7 +173,7 @@ export default async function HistoryPage({
 
   return (
     <div
-      className="mx-auto max-w-4xl space-y-4 p-6"
+      className="mx-auto max-w-6xl space-y-4 p-6 *:max-w-4xl"
       data-history-view
       data-home-id={homeId}
       data-filtered-count={filtered.length}

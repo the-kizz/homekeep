@@ -12,6 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { TaskForm } from '@/components/forms/task-form';
 
+function monthOrNull(v: unknown): number | null {
+  const n = Number(v);
+  return Number.isInteger(n) && n >= 1 && n <= 12 ? n : null;
+}
+
 /**
  * /h/[homeId]/tasks/[taskId] — task detail + edit + archive.
  *
@@ -33,7 +38,7 @@ export default async function TaskDetailPage({
   try {
     task = await pb.collection('tasks').getOne(taskId, {
       fields:
-        'id,home_id,area_id,name,description,frequency_days,schedule_mode,anchor_date,notes,archived,archived_at,assigned_to_id',
+        'id,home_id,area_id,name,description,frequency_days,schedule_mode,anchor_date,notes,archived,archived_at,assigned_to_id,active_from_month,active_to_month,due_date',
     });
   } catch {
     notFound();
@@ -91,7 +96,7 @@ export default async function TaskDetailPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
+    <div className="mx-auto max-w-6xl space-y-4 p-6 *:max-w-2xl">
       <Button asChild variant="ghost" size="sm">
         <Link href={`/h/${homeId}/areas/${task.area_id as string}`}>
           ← Back to area
@@ -139,6 +144,15 @@ export default async function TaskDetailPage({
                     ? (task.anchor_date as string)
                     : null,
                 notes: String(task.notes ?? ''),
+                // Without these the form opens blank and saving clears a
+                // seasonal window or a one-off's date. PB returns 0 for an
+                // unset month, which means year-round.
+                active_from_month: monthOrNull(task.active_from_month),
+                active_to_month: monthOrNull(task.active_to_month),
+                due_date:
+                  typeof task.due_date === 'string' && task.due_date.length > 0
+                    ? (task.due_date as string)
+                    : null,
                 assigned_to_id:
                   typeof task.assigned_to_id === 'string' &&
                   task.assigned_to_id.length > 0

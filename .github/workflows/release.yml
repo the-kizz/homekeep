@@ -93,9 +93,24 @@ jobs:
         run: |
           cosign sign --yes "ghcr.io/${{ github.repository }}@${DIGEST}"
 
+      # Fail the release if the signature did not land on the digest we just
+      # pushed; a successful run must mean the README's verify command works.
+      - name: Verify signature
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          cosign verify "ghcr.io/${{ github.repository }}@${DIGEST}" \
+            --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/release.yml@.+' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
       - name: Verify multi-arch manifest
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
         # Use the semver-stripped tag from metadata-action (e.g. '1.0.0-rc1', not 'v1.0.0-rc1').
-        run: sh scripts/check-multiarch.sh ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+        # `cosign tree` prints the .sig and attestations attached to the digest, so the log shows them.
+        run: |
+          sh scripts/check-multiarch.sh ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
+          cosign tree "ghcr.io/${{ github.repository }}@${DIGEST}"
 
       # v1.2.1 follow-up: auto-create a GitHub Release for every pushed
       # tag. Prior workflow published images + SBOM + provenance but never

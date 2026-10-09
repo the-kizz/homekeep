@@ -60,6 +60,8 @@ jobs:
           .pb/pocketbase --version
 
       - name: Unit tests
+        env:
+          TZ: UTC
         run: npm run test
 
       - name: Install Playwright browsers

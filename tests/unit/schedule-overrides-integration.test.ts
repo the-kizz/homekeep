@@ -71,7 +71,6 @@ let pbMallory: PocketBase;
 let aliceId: string;
 let malloryId: string;
 let aliceHomeId: string;
-let malloryHomeId: string;
 let t1Id: string; // Alice task — primary override subject
 let t1bId: string; // Alice task — secondary override for batch
 let t3Id: string; // Alice task — no override (Scenario 6)
@@ -172,7 +171,7 @@ beforeAll(async () => {
     timezone: 'Australia/Perth',
     owner_id: malloryId,
   });
-  malloryHomeId = malloryHome.id;
+  expect(malloryHome.id).toBeTruthy();
   // Mallory's area exists (hook creates Whole Home) but we don't need
   // its id in the tests — just needed for cross-home isolation context.
 

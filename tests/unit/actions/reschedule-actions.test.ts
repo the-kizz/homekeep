@@ -247,6 +247,41 @@ describe('Phase 15 reschedule server actions (Plan 15-01 Task 2)', () => {
       );
     });
 
+    test('one-off + just-this-time moves due_date instead of writing an override', async () => {
+      const { snoozeTaskAction } = await loadActions();
+
+      mockGetOne.mockResolvedValue({
+        id: 'task-3',
+        home_id: 'home-1',
+        frequency_days: null,
+      });
+      mockUpdateTask.mockResolvedValue({ id: 'task-3' });
+
+      const result = await snoozeTaskAction({
+        task_id: 'task-3',
+        snooze_until: '2026-07-04T00:00:00.000Z',
+      });
+
+      // A one-off has one occurrence, so "just this time" moves the due date
+      // like "from now on" does. The snooze success shape is kept; no
+      // override row exists, so its id is empty.
+      expect(result).toEqual({
+        ok: true,
+        override: { id: '', snooze_until: '2026-07-04T00:00:00.000Z' },
+      });
+      expect(currentBatchOps).toHaveLength(0);
+      expect(mockGetActiveOverride).not.toHaveBeenCalled();
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1);
+      const [collection, id, payload] = mockUpdateTask.mock.calls[0];
+      expect(collection).toBe('tasks');
+      expect(id).toBe('task-3');
+      expect(payload).toEqual({
+        due_date: '2026-07-04T00:00:00.000Z',
+        reschedule_marker: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      });
+      expect(mockRevalidatePath).toHaveBeenCalledWith('/h/home-1');
+    });
+
     test('returns {ok:false, formError:"Not signed in"} when !authStore.isValid', async () => {
       const { snoozeTaskAction } = await loadActions();
       authValid = false;
@@ -343,6 +378,42 @@ describe('Phase 15 reschedule server actions (Plan 15-01 Task 2)', () => {
       });
       // Regression guard: anchored path must NOT write next_due_smoothed.
       expect(payload).not.toHaveProperty('next_due_smoothed');
+    });
+
+    test('one-off + from-now-on writes due_date, never next_due_smoothed', async () => {
+      const { rescheduleTaskAction } = await loadActions();
+
+      // PB serialises an unset frequency_days NumberField as 0.
+      mockGetOne.mockResolvedValue({
+        id: 'task-3',
+        home_id: 'home-1',
+        schedule_mode: 'cycle',
+        frequency_days: 0,
+      });
+      mockUpdateTask.mockResolvedValue({ id: 'task-3' });
+
+      const result = await rescheduleTaskAction({
+        task_id: 'task-3',
+        new_date: '2026-07-04T00:00:00.000Z',
+      });
+
+      expect(result).toEqual({
+        ok: true,
+        task: {
+          id: 'task-3',
+          reschedule_marker: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        },
+      });
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1);
+      const [collection, id, payload] = mockUpdateTask.mock.calls[0];
+      expect(collection).toBe('tasks');
+      expect(id).toBe('task-3');
+      expect(payload).toEqual({
+        due_date: '2026-07-04T00:00:00.000Z',
+        reschedule_marker: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+      });
+      expect(payload).not.toHaveProperty('next_due_smoothed');
+      expect(payload).not.toHaveProperty('anchor_date');
     });
 
     test('returns {ok:false} on membership rejection', async () => {

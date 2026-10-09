@@ -142,4 +142,27 @@ describe('HorizonStrip density tint (Phase 16 LVIZ-01, D-01, D-03)', () => {
     expect(junBtn).toBeTruthy();
     expect(junBtn!.getAttribute('class') ?? '').toMatch(/bg-primary\/30\b/);
   });
+
+  it('explains the tint and the ⚖️ badge in a one-line legend under the strip', () => {
+    const { container } = render(
+      <HorizonStrip tasks={buildDistribution()} now={NOW} timezone={TZ} />,
+    );
+    const legend = container.querySelector('[data-horizon-legend]');
+    expect(legend).toBeTruthy();
+    // One sentence for both themes: the tint is darker on light cards and
+    // brighter on dark ones, so the copy must not name a shade.
+    expect(legend!.textContent?.replace(/\s+/g, ' ')).toBe(
+      'Stronger tint means a busier month · ⚖️ moved to balance the month',
+    );
+    expect(legend!.textContent).not.toMatch(/darker|brighter/i);
+    expect(legend!.getAttribute('class') ?? '').toMatch(/text-xs/);
+    expect(legend!.getAttribute('class') ?? '').toMatch(/text-muted-foreground/);
+  });
+
+  it('omits the legend when the horizon is empty (nothing to explain)', () => {
+    const { container } = render(
+      <HorizonStrip tasks={[]} now={NOW} timezone={TZ} />,
+    );
+    expect(container.querySelector('[data-horizon-legend]')).toBeNull();
+  });
 });

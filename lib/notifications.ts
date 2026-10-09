@@ -8,7 +8,7 @@ import type PocketBase from 'pocketbase';
  *   1. **Deterministic ref_cycle string builders** (pure, side-effect free).
  *      Every scheduler-originated send derives its dedupe key from the
  *      event's intrinsic identity:
- *        - overdue:           `task:{taskId}:overdue:{nextDueIso}`
+ *        - overdue:           `task:{taskId}:overdue:{dueDay}` (yyyy-MM-dd in home tz)
  *        - assigned:          `task:{taskId}:assigned:{assignedAtIso}`
  *        - weekly summary:    `user:{userId}:weekly:{weekStartIso}`
  *        - partner-completed: `completion:{completionId}:partner`
@@ -50,11 +50,17 @@ export type NotificationRecord = {
 
 // ─── ref_cycle builders (pure) ─────────────────────────────────────────
 
+/**
+ * Keyed on the due date as a home-timezone calendar day (yyyy-MM-dd), not
+ * the full instant: small shifts in how the due instant is computed (a
+ * smoothed vs natural date on the same day, DST, a code change) must not
+ * look like a new overdue cycle and re-send the push.
+ */
 export function buildOverdueRefCycle(
   taskId: string,
-  nextDueIso: string,
+  dueDay: string,
 ): string {
-  return `task:${taskId}:overdue:${nextDueIso}`;
+  return `task:${taskId}:overdue:${dueDay}`;
 }
 
 export function buildAssignedRefCycle(

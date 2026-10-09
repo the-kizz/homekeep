@@ -4,48 +4,41 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { SeedTaskCard } from '@/components/seed-task-card';
+import {
+  SeedTaskCard,
+  type SeedAreaOption,
+  type SeedSelectionState,
+} from '@/components/seed-task-card';
 import { batchCreateSeedTasks } from '@/lib/actions/seed';
 import { skipOnboarding } from '@/lib/actions/onboarding';
-import type { SeedTask, SeedAreaSuggestion } from '@/lib/seed-library';
+import {
+  SUGGESTED_AREA_DEFAULTS,
+  hemisphereFromTimezone,
+  type SeedTask,
+  type SeedAreaSuggestion,
+} from '@/lib/seed-library';
+import type { SeedAreaInput } from '@/lib/schemas/seed';
 
 /**
- * OnboardingWizard — first-run seed library wizard (05-03 Task 2, D-13).
+ * OnboardingWizard — first-run seed library wizard.
  *
- * Client Component. Displays the SEED_LIBRARY grouped by suggested_area,
- * each seed rendered as a SeedTaskCard with Add/Edit/Skip controls. Per
- * CONTEXT bottom note + 05-03 mapping decision: every seed DEFAULTS to the
- * Whole Home area (always exists via the Phase 2 hook). The Edit control
- * lets the user pick a different existing area.
+ * Displays SEED_LIBRARY grouped by suggested area. Each seed defaults to its
+ * suggested area: an existing area with the same name if the home already
+ * has one, otherwise a placeholder that the server creates on submit
+ * ("Kitchen (will be created)"). That way By Area is useful the moment the
+ * wizard finishes, without the user having to build areas first. Edit on a
+ * card lets the user rename, retime or move a seed.
  *
- * Submit flow:
- *   1. Click "Add N tasks" → collects all selections with action='add' →
- *      calls batchCreateSeedTasks({home_id, selections}) inside a useTransition.
- *   2. On success: toast + router.push('/h/[id]') + router.refresh().
- *   3. On failure: toast.error + stay on wizard.
+ * Submit sends only seed ids, overrides and area choices; the server fills
+ * in everything else from the library.
  *
- * Skip-all flow:
- *   1. Click "Skip all" → calls skipOnboarding(home_id).
- *   2. On success: router.push('/h/[id]') + router.refresh().
- *
- * E2E hooks:
- *   data-onboarding-wizard, data-selected-count, data-skip-all
+ * E2E hooks: data-onboarding-wizard, data-selected-count, data-skip-all,
+ * data-submit-seeds, data-hemisphere-note
  */
 
-type SeedAction = 'add' | 'skip';
+type WizardArea = { id: string; name: string; is_whole_home_system: boolean };
 
-// Phase 14 (SEAS-09): seasonal fields (active_from_month / active_to_month)
-// are propagated server-side from SEED_LIBRARY by seed_id inside
-// batchCreateSeedTasks — client payload shape unchanged (T-14-02 keeps
-// clients from forging a seasonal window for a non-seasonal seed).
-type Selection = {
-  action: SeedAction;
-  name: string;
-  frequency_days: number;
-  area_id: string;
-};
-
-// Order used for rendering the suggested_area sections per CONTEXT D-13.
+// Render order for the suggested_area sections.
 const AREA_ORDER: readonly SeedAreaSuggestion[] = [
   'kitchen',
   'bathroom',
@@ -55,44 +48,77 @@ const AREA_ORDER: readonly SeedAreaSuggestion[] = [
 ];
 
 const AREA_LABELS: Record<SeedAreaSuggestion, string> = {
-  kitchen: 'Kitchen',
-  bathroom: 'Bathroom',
-  living: 'Living areas',
-  yard: 'Yard',
+  kitchen: SUGGESTED_AREA_DEFAULTS.kitchen.name,
+  bathroom: SUGGESTED_AREA_DEFAULTS.bathroom.name,
+  living: SUGGESTED_AREA_DEFAULTS.living.name,
+  yard: SUGGESTED_AREA_DEFAULTS.yard.name,
   whole_home: 'Whole Home',
 };
+
+/** The existing area a suggested key will land on, if there is one. */
+function matchExistingArea(
+  key: SeedAreaSuggestion,
+  areas: WizardArea[],
+): WizardArea | undefined {
+  if (key === 'whole_home') return areas.find((a) => a.is_whole_home_system);
+  const label = AREA_LABELS[key].toLowerCase();
+  return areas.find(
+    (a) => !a.is_whole_home_system && a.name.trim().toLowerCase() === label,
+  );
+}
 
 export function OnboardingWizard({
   home,
   areas,
   seeds,
 }: {
-  home: { id: string; name: string };
-  areas: Array<{ id: string; name: string; is_whole_home_system: boolean }>;
+  home: { id: string; name: string; timezone: string };
+  areas: WizardArea[];
   seeds: ReadonlyArray<SeedTask>;
 }) {
   const router = useRouter();
   const [isSubmitting, startSubmit] = useTransition();
   const [isSkipping, startSkip] = useTransition();
 
-  // Every home has Whole Home via the Phase 2 hook — safe to assume.
-  const wholeHomeArea =
-    areas.find((a) => a.is_whole_home_system) ?? areas[0];
-  const wholeHomeId = wholeHomeArea?.id ?? '';
+  const hemisphere = hemisphereFromTimezone(home.timezone);
 
-  const [selections, setSelections] = useState<Record<string, Selection>>(
-    () =>
-      Object.fromEntries(
-        seeds.map((s) => [
+  // Existing areas first (in the home's order), then one "will be created"
+  // option for each suggested area the home doesn't have yet.
+  const areaOptions = useMemo<SeedAreaOption[]>(() => {
+    const opts: SeedAreaOption[] = areas.map((a) => ({
+      area: { kind: 'existing', id: a.id },
+      label: a.name,
+    }));
+    for (const key of AREA_ORDER) {
+      if (key === 'whole_home' || matchExistingArea(key, areas)) continue;
+      opts.push({
+        area: { kind: 'suggested', key },
+        label: `${AREA_LABELS[key]} (will be created)`,
+      });
+    }
+    return opts;
+  }, [areas]);
+
+  const [selections, setSelections] = useState<
+    Record<string, SeedSelectionState>
+  >(() =>
+    Object.fromEntries(
+      seeds.map((s) => {
+        const existing = matchExistingArea(s.suggested_area, areas);
+        const area: SeedAreaInput = existing
+          ? { kind: 'existing', id: existing.id }
+          : { kind: 'suggested', key: s.suggested_area };
+        return [
           s.id,
           {
-            action: 'add' as SeedAction,
+            action: 'add',
             name: s.name,
             frequency_days: s.frequency_days,
-            area_id: wholeHomeId,
-          },
-        ]),
-      ),
+            area,
+          } satisfies SeedSelectionState,
+        ];
+      }),
+    ),
   );
 
   const selectedCount = useMemo(
@@ -110,7 +136,7 @@ export function OnboardingWizard({
     return map;
   }, [seeds]);
 
-  function patchSelection(seedId: string, patch: Partial<Selection>) {
+  function patchSelection(seedId: string, patch: Partial<SeedSelectionState>) {
     setSelections((prev) => ({
       ...prev,
       [seedId]: { ...prev[seedId], ...patch },
@@ -124,7 +150,7 @@ export function OnboardingWizard({
         seed_id,
         name: sel.name.trim(),
         frequency_days: sel.frequency_days,
-        area_id: sel.area_id,
+        area: sel.area,
       }));
 
     if (payload.length === 0) {
@@ -141,10 +167,30 @@ export function OnboardingWizard({
         toast.error(r.formError || 'Could not create tasks');
         return;
       }
-      toast.success(
-        `${r.count} task${r.count === 1 ? '' : 's'} added — welcome in.`,
+      // Count the areas the new tasks landed in so the toast matches By
+      // Area: existing picks, plus areas created now. Suggested areas that
+      // could not be created (area quota) fell back to Whole Home.
+      const existingIds = new Set(
+        payload.flatMap((p) => (p.area.kind === 'existing' ? [p.area.id] : [])),
       );
-      router.push(`/h/${home.id}`);
+      const suggestedKeys = new Set(
+        payload.flatMap((p) => (p.area.kind === 'suggested' ? [p.area.key] : [])),
+      );
+      const wholeHomeId = areas.find((a) => a.is_whole_home_system)?.id;
+      if (suggestedKeys.has('whole_home') && wholeHomeId) {
+        existingIds.add(wholeHomeId);
+        suggestedKeys.delete('whole_home');
+      }
+      if (r.areasCreated < suggestedKeys.size && wholeHomeId) {
+        existingIds.add(wholeHomeId);
+      }
+      const areaCount = existingIds.size + r.areasCreated;
+      toast.success(
+        `${r.count} ${r.count === 1 ? 'task' : 'tasks'} added across ${areaCount} ${
+          areaCount === 1 ? 'area' : 'areas'
+        } — welcome in.`,
+      );
+      router.push(`/h/${home.id}?welcome=1`);
       router.refresh();
     });
   }
@@ -175,9 +221,15 @@ export function OnboardingWizard({
             Welcome to {home.name}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Let&apos;s seed some starter tasks — skip anything that
-            doesn&apos;t fit. You can edit the name, frequency, or area on
-            each one.
+            Here are some starter tasks, already sorted into rooms. Keep what
+            fits, skip the rest — you can change the name, how often, or the
+            area on any of them.
+          </p>
+          <p
+            className="text-xs text-muted-foreground"
+            data-hemisphere-note={hemisphere}
+          >
+            {`Seasonal tasks use ${hemisphere === 'south' ? 'southern' : 'northern'}-hemisphere seasons based on your home's timezone (${home.timezone}).`}
           </p>
         </div>
         <Button
@@ -211,7 +263,7 @@ export function OnboardingWizard({
                   <SeedTaskCard
                     key={seed.id}
                     seed={seed}
-                    areas={areas}
+                    areaOptions={areaOptions}
                     selection={selections[seed.id]}
                     onChange={(patch) => patchSelection(seed.id, patch)}
                   />
@@ -229,16 +281,20 @@ export function OnboardingWizard({
               ? 'All skipped — use Skip all above or add at least one back.'
               : `${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'} selected`}
           </p>
-          <Button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isSubmitting || isSkipping || selectedCount === 0}
-            data-submit-seeds
-          >
-            {isSubmitting
-              ? 'Adding…'
-              : `Add ${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'}`}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* No invite link here: leaving would discard every choice
+                above. The welcome card offers it after submit. */}
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isSubmitting || isSkipping || selectedCount === 0}
+              data-submit-seeds
+            >
+              {isSubmitting
+                ? 'Adding…'
+                : `Add ${selectedCount} ${selectedCount === 1 ? 'task' : 'tasks'}`}
+            </Button>
+          </div>
         </div>
       </div>
     </div>

@@ -17,6 +17,13 @@ import { expect, type Page, type Locator } from '@playwright/test';
  * reasons.
  */
 
+/**
+ * PocketBase REST base URL for direct API calls from specs. Defaults to
+ * the dev PocketBase; against a container set E2E_PB_URL (normally equal
+ * to E2E_BASE_URL, since the app's Caddy proxies /api/* to PocketBase).
+ */
+export const PB_URL = process.env.E2E_PB_URL ?? 'http://127.0.0.1:8090';
+
 // ─── Generic shared primitives ─────────────────────────────────────
 
 /**

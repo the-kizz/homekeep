@@ -5,7 +5,7 @@ import {
   type Page,
 } from '@playwright/test';
 import PocketBase from 'pocketbase';
-import { skipOnboardingIfPresent } from './helpers';
+import { PB_URL, skipOnboardingIfPresent } from './helpers';
 
 /**
  * Phase 16 visual UAT screenshot capture (NOT a pass/fail assertion suite).
@@ -39,7 +39,6 @@ import { skipOnboardingIfPresent } from './helpers';
  * blockers, not Phase 16 feature failures.
  */
 
-const PB_URL = 'http://127.0.0.1:8090';
 const SHOT_DIR =
   '.planning/phases/16-horizon-density-visualization/screenshots';
 
@@ -177,7 +176,6 @@ async function createTaskViaPB(
   const created = await pb.collection('tasks').create(body);
   // Diagnostic: one line per created task so the first failed run
   // surfaces the PB storage state without a rerun.
-  // eslint-disable-next-line no-console
   console.log(
     `[p16-seed] "${seed.name}" id=${created.id} afm=${JSON.stringify(created.active_from_month)} atm=${JSON.stringify(created.active_to_month)} anc=${JSON.stringify(created.anchor_date)} sm=${JSON.stringify(created.schedule_mode)} fd=${JSON.stringify(created.frequency_days)}`,
   );
@@ -430,7 +428,7 @@ test.describe('Phase 16 visual UAT — screenshot capture', () => {
     });
 
     // 09 — HorizonStrip density tiers close-up.
-    const horizon = page.locator('[data-band="horizon"]');
+    const horizon = page.locator('[data-band="horizon"]:visible');
     await expect(horizon).toBeVisible();
     await horizon.screenshot({
       path: `${SHOT_DIR}/09-horizon-strip-density-tiers.png`,
@@ -566,7 +564,7 @@ test.describe('Phase 16 visual UAT — screenshot capture', () => {
     await page.keyboard.press('Escape');
 
     // 06 — Horizon drawer mobile.
-    const horizonMobile = page.locator('[data-band="horizon"]');
+    const horizonMobile = page.locator('[data-band="horizon"]:visible');
     await expect(horizonMobile).toBeVisible();
     const mobileCells = horizonMobile.locator(
       'button[data-month-count]:not([disabled])',

@@ -21,11 +21,12 @@ import type { ClassifiedTask } from '@/lib/band-classification';
  * headings derived via `formatInTimeZone` — NEVER raw `.getDay()`,
  * which would read the server's timezone (Pitfall 2).
  *
- * Empty-band policy (D-12): when `tasks.length === 0`, returns
- * `null` so the band (header + card) disappears entirely. The
- * caller decides whether to render an empty-state placeholder
- * elsewhere (the page-level CTA when the whole home has zero
- * tasks is owned by `<BandView>`).
+ * Empty-band policy: when `tasks.length === 0` the band returns `null`
+ * unless the caller passes `showEmpty`, in which case it keeps its
+ * header and says so in one calm line ("Nothing overdue. Nice.").
+ * The dashboard opts in so the bands stay in a fixed place and an
+ * empty one reads as good news rather than as something missing; the
+ * page-level CTA for a home with zero tasks is still `<BandView>`'s.
  *
  * ClassifiedTask carries the pure classification fields (nextDue,
  * daysDelta). `<BandView>` attaches `name` onto each item before
@@ -33,11 +34,17 @@ import type { ClassifiedTask } from '@/lib/band-classification';
  * a structural contract, not a bug (see 03-02 PLAN Task 2 Step A
  * note).
  */
+const EMPTY_COPY: Record<'overdue' | 'thisWeek', string> = {
+  overdue: 'Nothing overdue. Nice.',
+  thisWeek: 'Nothing due this week.',
+};
+
 export function TaskBand({
   label,
   tasks,
   onComplete,
   onDetail,
+  onQuickComplete,
   primaryTap,
   pendingTaskId,
   timezone,
@@ -45,12 +52,15 @@ export function TaskBand({
   groupByDay,
   now,
   shiftByTaskId,
+  showEmpty,
 }: {
   label: string;
   tasks: ClassifiedTask[];
   onComplete: (taskId: string) => void;
   /** 03-03 extension: forwarded to TaskRow for right-click / long-press. */
   onDetail?: (taskId: string) => void;
+  /** Forwarded to TaskRow; when set, each row gets a one-tap check button. */
+  onQuickComplete?: (taskId: string) => void;
   /** v1.2.1 PATCH2-06: forwarded to TaskRow. Defaults to 'detail' when
    * onDetail is provided; PersonTaskList passes 'complete' so its
    * reschedule-on-long-press UX stays reachable via tap→complete. */
@@ -72,8 +82,28 @@ export function TaskBand({
     string,
     { idealDate: Date; scheduledDate: Date; displaced: boolean }
   >;
+  /** Keep the band visible with its calm empty line when it has no tasks. */
+  showEmpty?: boolean;
 }) {
-  if (tasks.length === 0) return null;
+  if (tasks.length === 0) {
+    const emptyCopy =
+      variant === 'overdue' || variant === 'thisWeek'
+        ? EMPTY_COPY[variant]
+        : null;
+    if (!showEmpty || !emptyCopy) return null;
+    return (
+      <Card data-band={variant} data-band-empty>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="font-display text-lg font-medium text-foreground/85">
+            {label}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 sm:px-6">
+          <p className="text-sm text-muted-foreground">{emptyCopy}</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const shouldGroup = groupByDay ?? tasks.length > 5;
 
@@ -82,12 +112,12 @@ export function TaskBand({
       <Card
         data-band={variant ?? label.toLowerCase().replace(/\s+/g, '-')}
       >
-        <CardHeader>
+        <CardHeader className="px-4 sm:px-6">
           <CardTitle className="font-display text-lg font-medium text-foreground/85">
             {label}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 px-4 sm:px-6">
           {tasks.map((t) => {
             // Phase 16 Plan 01 (D-06 / LVIZ-03): thread ShiftBadge
             // info only when this task is actually displaced. Parent
@@ -107,15 +137,7 @@ export function TaskBand({
                 task={{
                   id: t.id,
                   name: (t as ClassifiedTask & { name: string }).name,
-                  // Phase 11 (WR-03): frequency_days widened to
-                  // `number | null` for OOFT (Plan 11-02). Callers
-                  // (BandView) pre-filter OOFT tasks (null or 0 freq)
-                  // out of the classified lists before rendering this
-                  // band — see filterOutOoft in band-view.tsx. So
-                  // tasks reaching this cast are guaranteed recurring
-                  // (non-null positive integer). OOFT UI is Phase 15
-                  // scope per 11-CONTEXT.md deferred decisions.
-                  frequency_days: t.frequency_days as number,
+                  frequency_days: t.frequency_days,
                   effective: (
                     t as ClassifiedTask & {
                       effective?: import('@/lib/assignment').EffectiveAssignee;
@@ -124,6 +146,7 @@ export function TaskBand({
                 }}
                 onComplete={onComplete}
                 onDetail={onDetail}
+                onQuickComplete={onQuickComplete}
                 primaryTap={primaryTap}
                 pending={pendingTaskId === t.id}
                 daysDelta={t.daysDelta}
@@ -163,12 +186,12 @@ export function TaskBand({
 
   return (
     <Card data-band={variant ?? label.toLowerCase().replace(/\s+/g, '-')}>
-      <CardHeader>
+      <CardHeader className="px-4 sm:px-6">
         <CardTitle className="font-display text-lg font-medium text-foreground/85">
           {label}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 px-4 sm:px-6">
         {orderedKeys.map((key) => {
           const bucket = buckets.get(key)!;
           const anchor = bucket[0].nextDue;
@@ -203,14 +226,16 @@ export function TaskBand({
                       task={{
                         id: t.id,
                         name: (t as ClassifiedTask & { name: string }).name,
-                        // Phase 11 (WR-03): see TaskRow projection
-                        // comment above — callers pre-filter OOFT tasks
-                        // so a non-null positive integer is guaranteed
-                        // at this cast site.
-                        frequency_days: t.frequency_days as number,
+                        frequency_days: t.frequency_days,
+                        effective: (
+                          t as ClassifiedTask & {
+                            effective?: import('@/lib/assignment').EffectiveAssignee;
+                          }
+                        ).effective,
                       }}
                       onComplete={onComplete}
                       onDetail={onDetail}
+                      onQuickComplete={onQuickComplete}
                       primaryTap={primaryTap}
                       pending={pendingTaskId === t.id}
                       daysDelta={t.daysDelta}

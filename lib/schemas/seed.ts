@@ -1,57 +1,57 @@
 import { z } from 'zod';
 
 /**
- * Seed schemas (05-03 Task 1).
+ * Seed schemas for the onboarding wizard's `batchCreateSeedTasks` action.
  *
- * Powers the onboarding wizard's `batchCreateSeedTasks` server action.
- * Shared between client (for defensive pre-validation — not strictly
- * required since the client owns the wizard state + submits through a
- * server action) and server (mandatory safeParse of the batched payload).
+ * The payload is deliberately thin: the client names a seed and where it
+ * should live, and the server fills in everything else from SEED_LIBRARY.
+ * `name` and `frequency_days` are optional overrides from the wizard's Edit
+ * expand; when omitted the library defaults apply. Seasonal months are never
+ * accepted from the client — the server derives them from the seed's season
+ * tag and the home's hemisphere, so a client cannot forge a window.
  *
- * Two schemas:
- *   - seedSelectionSchema   → per-seed accepted payload after user edits
- *                              in the wizard (Edit action in SeedTaskCard)
- *   - batchCreateSeedsSchema → whole submit envelope (home_id + array of
- *                              selections)
+ * `area` is either an existing area id (verified against the home inside the
+ * action, so a cross-home id is rejected) or a suggested-area key that the
+ * action resolves to an existing same-named area or creates on demand.
  *
- * Defence in depth (threat_model T-05-03-01..06):
- *   - `seed_id` non-empty but also membership-checked against SEED_LIBRARY
- *      inside the server action itself (T-05-03-01; client can't batch-
- *      spawn arbitrary fabricated seeds even if regex-valid).
- *   - `frequency_days` int in [1, 365] mirrors `taskSchema` from Phase 2
- *      (SPEC §7.5 recurrence bounds + T-05-03-03 DoS).
- *   - `area_id` exact 15-char PB record id; cross-home area ids rejected
- *      inside the action by fetching the home's areas.getFullList once
- *      and set-checking (T-05-03-02).
- *   - `selections.max(50)` caps batch size — matches PB's
- *      `settings.batch.maxRequests = 50` from bootstrap_batch.pb.js
- *      (T-05-03-06 DoS + keeps PB batch happy when the homes.update row
- *      is appended to the selections, taking the effective batch size
- *      to 51 which PB tolerates as N+1 within the maxRequests window).
- *      The SEED_LIBRARY size (currently 30) is well under the cap.
+ * `selections.max(50)` caps batch size to fit PB's batch maxRequests (50)
+ * once the trailing homes.update op is appended.
  */
+
+export const SUGGESTED_AREA_KEYS = [
+  'kitchen',
+  'bathroom',
+  'living',
+  'yard',
+  'whole_home',
+] as const;
+
+export const seedAreaSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('existing'),
+    id: z.string().length(15, 'Invalid area id'),
+  }),
+  z.object({
+    kind: z.literal('suggested'),
+    key: z.enum(SUGGESTED_AREA_KEYS),
+  }),
+]);
 
 export const seedSelectionSchema = z.object({
   seed_id: z.string().min(1, 'seed_id is required'),
   name: z
     .string()
+    .trim()
     .min(1, 'Name is required')
-    .max(100, 'Name too long'),
+    .max(100, 'Name too long')
+    .optional(),
   frequency_days: z
     .number()
     .int('Frequency must be a whole number')
     .min(1, 'Frequency must be at least 1 day')
-    .max(365, 'Frequency must be at most 365 days'),
-  area_id: z.string().length(15, 'Invalid area id'),
-  // Phase 14 (SEAS-09, D-11): optional seasonal window mirrored from
-  // the matched SEED_LIBRARY entry. Widened as optional-nullable to
-  // match taskSchema's paired-or-null invariant (enforced downstream
-  // at the task-create site via the Phase 11 refine 2). Client payload
-  // does NOT carry these — the server reads them from SEED_LIBRARY by
-  // seed_id after the Set-membership check (T-14-02: client cannot
-  // forge a seasonal window for a non-seasonal seed).
-  active_from_month: z.number().int().min(1).max(12).nullable().optional(),
-  active_to_month: z.number().int().min(1).max(12).nullable().optional(),
+    .max(365, 'Frequency must be at most 365 days')
+    .optional(),
+  area: seedAreaSchema,
 });
 
 export const batchCreateSeedsSchema = z.object({
@@ -62,5 +62,7 @@ export const batchCreateSeedsSchema = z.object({
     .max(50, 'At most 50 seeds can be batched'),
 });
 
+export type SeedAreaInput = z.infer<typeof seedAreaSchema>;
+export type SuggestedAreaKey = (typeof SUGGESTED_AREA_KEYS)[number];
 export type SeedSelectionInput = z.infer<typeof seedSelectionSchema>;
 export type BatchCreateSeedsInput = z.infer<typeof batchCreateSeedsSchema>;

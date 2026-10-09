@@ -295,6 +295,8 @@ installer), or delete the project entirely.
 4. Copy the new token, replace `GITHUB_PAT` in your deploy `.env`, then
    revoke the old classic token at https://github.com/settings/tokens.
 
+If the old VPS is gone, revoking the classic PAT is the whole task.
+
 **Verify.**
 
 ```bash
@@ -547,8 +549,9 @@ docker compose -f docker/docker-compose.yml -f docker/docker-compose.caddy.yml u
 
 ## 15. Verify image signatures via `cosign verify`
 
-**Description.** Every tagged HomeKeep release image is signed via cosign
-keyless OIDC (Phase 27 SUPPLY-01). Before pulling a new tag onto a public
+**Description.** Tagged HomeKeep release images from v1.2.0 are signed via
+cosign keyless OIDC (v1.3.0 was published without a signature, so verify
+`1.2.1` or any later release). Before pulling a new tag onto a public
 host, verify the signature is bound to the expected GitHub workflow.
 
 **Why it matters.** A cosign-verified pull proves the image was built by
@@ -563,7 +566,7 @@ where the bits came from.
 # Install cosign if not already present:
 # https://docs.sigstore.dev/cosign/system_config/installation/
 
-TAG=v1.2.0   # or whatever you're about to deploy
+TAG=1.2.1   # or whatever you're about to deploy (image tags have no leading v)
 
 cosign verify \
   --certificate-identity-regexp '^https://github\.com/the-kizz/homekeep/\.github/workflows/release\.yml@' \
@@ -575,9 +578,10 @@ Replace `the-kizz/homekeep` with your fork if relevant. The
 `--certificate-identity-regexp` pin ensures the signature is bound to the
 `release.yml` workflow on a tag-triggered run, not a rogue branch build.
 
-**Verify.** Cosign prints `Verification for ghcr.io/…/homekeep:v1.2.0 --`
+**Verify.** Cosign prints `Verification for ghcr.io/…/homekeep:1.2.1 --`
 followed by a block of matched claims. If verification fails, **do not
-deploy**. Open an issue or email security@homekeep.example.
+deploy**. Report it privately via
+<https://github.com/the-kizz/homekeep/security/advisories/new>.
 
 To inspect the SBOM + provenance after a successful verify:
 
@@ -586,6 +590,18 @@ docker buildx imagetools inspect ghcr.io/the-kizz/homekeep:${TAG} \
   --format '{{ json .SBOM }}'       | jq '.amd64.SPDX.name' 2>/dev/null
 docker buildx imagetools inspect ghcr.io/the-kizz/homekeep:${TAG} \
   --format '{{ json .Provenance }}' | jq '.amd64.SLSA.predicate.builder.id' 2>/dev/null
+```
+
+---
+
+## 16. Set `TZ` to the household timezone (optional)
+
+Set `TZ` to the household timezone in compose if you want scheduler logs in
+local time; scheduling math is timezone-aware regardless.
+
+```yaml
+environment:
+  TZ: Australia/Perth
 ```
 
 ---
@@ -610,6 +626,7 @@ docker buildx imagetools inspect ghcr.io/the-kizz/homekeep:${TAG} \
 | 13 | CSP reports monitored | `docker logs` shows `[CSP-REPORT]` pipeline |
 | 14 | Release feed subscribed | GitHub Watch → Releases |
 | 15 | `cosign verify` on pull | cosign prints matched claims |
+| 16 | `TZ` set (optional) | scheduler log lines show local time |
 
 Work the list top-to-bottom on first deploy. Revisit quarterly (item 12 is
 your reminder anchor) to confirm nothing has drifted.

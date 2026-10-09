@@ -23,6 +23,7 @@ import { DeleteHomeButton } from '@/components/delete-home-button';
  * Sections:
  *   1. Home details (name / address / timezone) via HomeForm mode="edit"
  *   2. Invite a member (InviteLinkCard — createInvite + pending-invites list)
+ *   Links to the Scheduling and Notifications sub-pages.
  *   3. Danger zone — Delete home (04-03)
  *
  * Non-owner access: redirect to /h/[homeId] (the home dashboard). We
@@ -78,7 +79,7 @@ export default async function HomeSettingsPage({
   const homeName = (home.name as string) ?? 'Home';
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 p-6">
+    <main className="mx-auto max-w-6xl space-y-6 p-6 *:max-w-2xl">
       <Button asChild variant="ghost" size="sm">
         <Link href={`/h/${homeId}`}>← Back to {homeName}</Link>
       </Button>
@@ -146,6 +147,20 @@ export default async function HomeSettingsPage({
           <Button asChild variant="outline" size="sm">
             <Link href={`/h/${homeId}/settings/scheduling`}>
               Open Scheduling settings
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Notifications</CardTitle>
+          <CardDescription>ntfy topic and which pushes you want.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/h/${homeId}/settings/notifications`}>
+              Open notification settings
             </Link>
           </Button>
         </CardContent>

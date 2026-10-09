@@ -75,7 +75,7 @@ export default async function NewTaskPage({
     .filter((m): m is { id: string; name: string } => m !== null);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-6">
+    <div className="mx-auto max-w-6xl space-y-4 p-6 *:max-w-2xl">
       <Button asChild variant="ghost" size="sm">
         <Link href={`/h/${homeId}`}>← Back to {home.name as string}</Link>
       </Button>
