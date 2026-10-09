@@ -51,7 +51,7 @@
     "@types/node": "22.20.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@types/serviceworker": "0.0.180",
+    "@types/serviceworker": "0.0.202",
     "@vitejs/plugin-react": "6.1.2",
     "concurrently": "10.0.6",
     "eslint": "9.39.5",
