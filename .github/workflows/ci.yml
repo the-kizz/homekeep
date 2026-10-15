@@ -43,7 +43,7 @@ jobs:
       # PocketBase instances against .pb/pocketbase. The binary is gitignored (31MB)
       # and dev-pb.js downloads it on first local run; CI needs the same step.
       - name: Cache PocketBase binary
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .pb/pocketbase
           key: pocketbase-0.37.1-${{ runner.os }}-${{ runner.arch }}
